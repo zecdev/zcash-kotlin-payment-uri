@@ -23,8 +23,9 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 
     // Use the JUnit 5 integration.
-    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.9.2")
-
+    testImplementation("io.kotest:kotest-runner-junit5:5.8.0")
+//    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.9.2")
+    testImplementation("io.kotest:kotest-property:5.8.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     // This dependency is exported to consumers, that is to say found on their compile classpath.
