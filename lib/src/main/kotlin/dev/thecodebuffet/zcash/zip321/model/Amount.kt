@@ -33,7 +33,7 @@ class Amount {
     /**
      * Enum representing errors that can occur during Amount operations.
      */
-    sealed class AmountError(message: String) : RuntimeException(message) {
+    sealed class AmountError(message: String) : Exception(message) {
         object NegativeAmount : AmountError("Amount cannot be negative")
         object GreaterThanSupply : AmountError("Amount cannot be greater than the maximum supply")
         object TooManyFractionalDigits : AmountError("Amount has too many fractional digits")

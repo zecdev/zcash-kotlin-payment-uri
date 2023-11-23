@@ -1,13 +1,29 @@
 import java.util.Base64
 
-data class MemoBytes(val data: ByteArray) {
+class MemoBytes {
     companion object {
         const val maxLength: Int = 512
     }
 
-    init {
-        require(data.isNotEmpty()) { "Memo bytes must not be empty" }
-        require(data.size <= maxLength) { "Memo bytes must not exceed the maximum length" }
+    val data: ByteArray
+    sealed class MemoError(message: String) : RuntimeException(message) {
+        object MemoTooLong : MemoError("MemoBytes exceeds max length of 512 bytes")
+        object MemoEmpty : MemoError("MemoBytes can't be initialized with empty bytes")
+    }
+    @Throws(MemoError::class)
+    constructor(data: ByteArray) {
+        require(data.isNotEmpty()) { throw MemoError.MemoEmpty }
+        require(data.size <= maxLength) { throw MemoError.MemoTooLong }
+
+        this.data = data
+    }
+
+    @Throws(MemoError::class)
+    constructor(string: String) {
+        require(string.isNotEmpty()) { throw MemoError.MemoEmpty }
+        require(string.length <= maxLength) { throw MemoError.MemoTooLong }
+
+        this.data = string.encodeToByteArray()
     }
 
     fun toBase64URL(): String {
