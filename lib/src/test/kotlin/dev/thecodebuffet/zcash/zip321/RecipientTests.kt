@@ -1,6 +1,7 @@
 package dev.thecodebuffet.zcash.zip321
 
 import RecipientAddress
+import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -14,19 +15,24 @@ class RecipientTests : FunSpec({
         }
     }
 
-    test("Recipient init is not null when validation fails") {
-        val expected = "asdf"
-        val recipient = RecipientAddress(expected) { _ -> true }
+    test("Recipient init does not throw when validation does not fail") {
+        shouldNotThrow<RecipientAddress.RecipientAddressError.InvalidRecipient> {
+            val expected = "asdf"
+            val recipient = RecipientAddress(expected) { _ -> true }
 
-        recipient shouldNotBe null
-        recipient?.value shouldBe "asdf"
+            recipient.value shouldBe expected
+        }
     }
 
-    test("Recipient init is not null when no validation provided") {
-        val expected = "asdf"
-        val recipient = RecipientAddress(expected)
+    test("Recipient init should not throw when no validation provided") {
 
-        recipient shouldNotBe null
-        recipient?.value shouldBe "asdf"
+        shouldNotThrow<RecipientAddress.RecipientAddressError.InvalidRecipient> {
+            val expected = "asdf"
+            val recipient: RecipientAddress = RecipientAddress(expected)
+
+            recipient.value shouldBe expected
+
+        }
+
     }
 })

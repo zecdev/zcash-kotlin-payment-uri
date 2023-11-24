@@ -8,7 +8,7 @@
 plugins {
     // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
     id("org.jetbrains.kotlin.jvm") version "1.8.20"
-
+    id("io.kotest") version "0.4.10"
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
 }
@@ -19,15 +19,12 @@ repositories {
 }
 
 dependencies {
-    // Use the Kotlin JUnit 5 integration.
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-
-    // Use the JUnit 5 integration.
+    // Use kotest
     testImplementation("io.kotest:kotest-runner-junit5:5.8.0")
-//    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.9.2")
     testImplementation("io.kotest:kotest-property:5.8.0")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
+    testImplementation("io.kotest:kotest-assertions-core-jvm:5.8.0")
+    testImplementation("io.kotest:kotest-framework-engine-jvm:5.8.0")
     // This dependency is exported to consumers, that is to say found on their compile classpath.
     api("org.apache.commons:commons-math3:3.6.1")
 
