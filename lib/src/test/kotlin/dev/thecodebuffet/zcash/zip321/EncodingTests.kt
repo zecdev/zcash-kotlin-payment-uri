@@ -5,7 +5,6 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 
-
 class EncodingTests : FunSpec({
 
     test("qcharEncoded string contains allowed characters only") {
@@ -17,7 +16,7 @@ class EncodingTests : FunSpec({
         mapOf(
             "Thank you for your purchase" to "Thank%20you%20for%20your%20purchase",
             "Use Coupon [ZEC4LIFE] to get a 20% discount on your next purchase!!" to
-                    "Use%20Coupon%20%5BZEC4LIFE%5D%20to%20get%20a%2020%25%20discount%20on%20your%20next%20purchase!!",
+                "Use%20Coupon%20%5BZEC4LIFE%5D%20to%20get%20a%2020%25%20discount%20on%20your%20next%20purchase!!",
             "Order #321" to "Order%20%23321",
             "Your Ben & Jerry's Order" to "Your%20Ben%20%26%20Jerry's%20Order",
             " " to "%20",
