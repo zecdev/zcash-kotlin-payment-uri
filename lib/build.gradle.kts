@@ -10,6 +10,8 @@ plugins {
     id("org.jetbrains.kotlin.jvm") version "1.8.20"
     id("io.kotest") version "0.4.10"
     id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
+    id("io.gitlab.arturbosch.detekt").version("1.23.3")
+
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
 }
@@ -23,9 +25,11 @@ dependencies {
     // Use kotest
     testImplementation("io.kotest:kotest-runner-junit5:5.8.0")
     testImplementation("io.kotest:kotest-property:5.8.0")
-
     testImplementation("io.kotest:kotest-assertions-core-jvm:5.8.0")
     testImplementation("io.kotest:kotest-framework-engine-jvm:5.8.0")
+
+    // Use Detekt
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.3")
     // This dependency is exported to consumers, that is to say found on their compile classpath.
     api("org.apache.commons:commons-math3:3.6.1")
 
@@ -33,10 +37,27 @@ dependencies {
     implementation("com.google.guava:guava:31.1-jre")
 }
 
+detekt {
+    buildUponDefaultConfig = true // preconfigure defaults
+    allRules = false // activate all available (even unstable) rules.
+    config.setFrom("$rootDir/tools/detekt.yml")
+    autoCorrect = false
+}
+
 // Apply a specific Java toolchain to ease working on different environments.
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(19))
+    }
+}
+
+tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
+    reports {
+        html.required.set(true) // observe findings in your browser with structure and code snippets
+        xml.required.set(true) // checkstyle like format mainly for integrations like Jenkins
+        txt.required.set(true) // similar to the console output, contains issue signature to manually edit baseline files
+        sarif.required.set(true) // standardized SARIF format (https://sarifweb.azurewebsites.net/) to support integrations with GitHub Code Scanning
+        md.required.set(true) // simple Markdown format
     }
 }
 

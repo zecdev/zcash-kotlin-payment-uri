@@ -13,8 +13,10 @@ class Amount {
     /**
      * Initializes an Amount from a `BigDecimal` number.
      *
-     * @param value Decimal representation of the desired amount. Important: `BigDecimal` values with more than 8 fractional digits will be rounded using bankers rounding.
-     * @throws AmountError if the provided value can't represent or can't be rounded to a non-negative non-zero ZEC decimal amount.
+     * @param value Decimal representation of the desired amount. Important: `BigDecimal` values
+     * with more than 8 fractional digits will be rounded using bankers rounding.
+     * @throws AmountError if the provided value can't represent or can't be rounded to a
+     * non-negative non-zero ZEC decimal amount.
      */
     @Throws(AmountError::class)
     constructor(value: BigDecimal) {
@@ -47,7 +49,7 @@ class Amount {
         private fun validateDecimal(value: BigDecimal) {
             require(value > BigDecimal.ZERO) { throw AmountError.NegativeAmount }
             require(value <= maxSupply) { throw AmountError.GreaterThanSupply }
-            require(value.scale() <= maxFractionalDecimalDigits) { throw AmountError.TooManyFractionalDigits }
+            requireFractionalDigits(value)
         }
 
         /**
@@ -64,7 +66,8 @@ class Amount {
          *
          * @param value The decimal representation of the desired amount.
          * @return A valid ZEC amount.
-         * @throws AmountError if the provided value cannot represent or cannot be rounded to a non-negative non-zero ZEC decimal amount.
+         * @throws AmountError if the provided value cannot represent or cannot be rounded to a
+         * non-negative non-zero ZEC decimal amount.
          */
         @Throws(AmountError::class)
         fun create(value: BigDecimal): Amount {
@@ -76,7 +79,8 @@ class Amount {
          *
          * @param string String representation of the ZEC amount.
          * @return A valid ZEC amount.
-         * @throws AmountError if the string cannot be parsed or if the parsed value violates ZEC amount constraints.
+         * @throws AmountError if the string cannot be parsed or if the parsed value violates ZEC
+         * amount constraints.
          */
         @Throws(AmountError::class)
         fun createFromString(string: String): Amount {
@@ -88,13 +92,17 @@ class Amount {
             try {
                 val decimal = BigDecimal(string)
 
-                require(decimal.scale() <= maxFractionalDecimalDigits) {
-                    throw AmountError.TooManyFractionalDigits
-                }
+                requireFractionalDigits(decimal)
 
                 return decimal
             } catch (e: NumberFormatException) {
                 throw AmountError.InvalidTextInput
+            }
+        }
+
+        private fun requireFractionalDigits(value: BigDecimal) {
+            require(value.scale() <= maxFractionalDecimalDigits) {
+                throw AmountError.TooManyFractionalDigits
             }
         }
     }
