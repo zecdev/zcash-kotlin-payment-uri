@@ -1,9 +1,9 @@
 package dev.thecodebuffet.zcash.zip321
 
 import Amount
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
-import io.kotest.assertions.throwables.shouldThrow
 import java.math.BigDecimal
 
 class AmountTests : FreeSpec({

@@ -7,7 +7,6 @@ import Payment
 import PaymentRequest
 import RecipientAddress
 
-
 /**
  * ZIP-321 object for handling formatting options.
  */

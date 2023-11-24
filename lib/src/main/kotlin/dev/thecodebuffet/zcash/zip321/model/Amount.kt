@@ -1,7 +1,6 @@
 import java.math.BigDecimal
 import java.math.RoundingMode
 
-
 /**
  * An non-negative decimal ZEC amount represented as specified in ZIP-321.
  * Amount can be from 1 zatoshi (0.00000001) to the maxSupply of 21M ZEC (21_000_000)
@@ -10,6 +9,7 @@ import java.math.RoundingMode
  */
 class Amount {
     private val value: BigDecimal
+
     /**
      * Initializes an Amount from a `BigDecimal` number.
      *
@@ -97,7 +97,6 @@ class Amount {
                 throw AmountError.InvalidTextInput
             }
         }
-
     }
 
     /**

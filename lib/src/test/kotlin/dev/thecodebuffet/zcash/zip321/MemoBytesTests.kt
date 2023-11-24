@@ -4,7 +4,6 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import java.util.*
-import kotlin.Byte.Companion.MIN_VALUE
 
 class MemoBytesTests : FunSpec({
 

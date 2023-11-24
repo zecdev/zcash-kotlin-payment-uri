@@ -10,6 +10,7 @@ class MemoBytes {
         object MemoTooLong : MemoError("MemoBytes exceeds max length of 512 bytes")
         object MemoEmpty : MemoError("MemoBytes can't be initialized with empty bytes")
     }
+
     @Throws(MemoError::class)
     constructor(data: ByteArray) {
         require(data.isNotEmpty()) { throw MemoError.MemoEmpty }
