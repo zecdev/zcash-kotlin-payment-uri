@@ -1,7 +1,6 @@
 import java.math.BigDecimal
-import java.math.MathContext
 import java.math.RoundingMode
-import java.text.DecimalFormat
+
 
 /**
  * An non-negative decimal ZEC amount represented as specified in ZIP-321.
@@ -10,7 +9,7 @@ import java.text.DecimalFormat
  * @property value The decimal value of the ZEC amount.
  */
 class Amount {
-    val value: BigDecimal
+    private val value: BigDecimal
     /**
      * Initializes an Amount from a `BigDecimal` number.
      *
