@@ -29,10 +29,21 @@ object ZIP321 {
      * @param formattingOptions The formatting options.
      * @return The ZIP-321 payment request [String].
      */
-    fun uriString(from: PaymentRequest, formattingOptions: FormattingOptions = FormattingOptions.EnumerateAllPayments): String {
+    fun uriString(
+        from: PaymentRequest,
+        formattingOptions: FormattingOptions = FormattingOptions.EnumerateAllPayments
+    ): String {
         return when (formattingOptions) {
-            is FormattingOptions.EnumerateAllPayments -> renderRequest(from, startIndex = 1, omittingFirstAddressLabel = false)
-            is FormattingOptions.UseEmptyParamIndex -> renderRequest(from, startIndex = null, omittingFirstAddressLabel = formattingOptions.omitAddressLabel)
+            is FormattingOptions.EnumerateAllPayments -> renderRequest(
+                from,
+                startIndex = 1,
+                omittingFirstAddressLabel = false
+            )
+            is FormattingOptions.UseEmptyParamIndex -> renderRequest(
+                from,
+                startIndex = null,
+                omittingFirstAddressLabel = formattingOptions.omitAddressLabel
+            )
         }
     }
 
@@ -43,9 +54,16 @@ object ZIP321 {
      * @param formattingOptions The formatting options.
      * @return The ZIP-321 payment URI [String].
      */
-    fun request(recipient: RecipientAddress, formattingOptions: FormattingOptions = FormattingOptions.UseEmptyParamIndex(omitAddressLabel = true)): String {
+    fun request(
+        recipient: RecipientAddress,
+        formattingOptions: FormattingOptions = FormattingOptions.UseEmptyParamIndex(
+            omitAddressLabel = true
+        )
+    ): String {
         return when (formattingOptions) {
-            is FormattingOptions.UseEmptyParamIndex -> "zcash:".plus(renderParameter(recipient, index = null, omittingAddressLabel = formattingOptions.omitAddressLabel))
+            is FormattingOptions.UseEmptyParamIndex -> "zcash:".plus(
+                renderParameter(recipient, index = null, omittingAddressLabel = formattingOptions.omitAddressLabel)
+            )
             else -> "zcash:".plus(renderParameter(recipient, index = null, omittingAddressLabel = false))
         }
     }
@@ -57,7 +75,10 @@ object ZIP321 {
      * @param formattingOptions The formatting options.
      * @return The ZIP-321 payment request [String].
      */
-    fun request(payment: Payment, formattingOptions: FormattingOptions = FormattingOptions.EnumerateAllPayments): String {
+    fun request(
+        payment: Payment,
+        formattingOptions: FormattingOptions = FormattingOptions.EnumerateAllPayments
+    ): String {
         return uriString(PaymentRequest(payments = listOf(payment)), formattingOptions = formattingOptions)
     }
 
@@ -86,7 +107,11 @@ object ZIP321 {
      */
     private fun renderRequest(request: PaymentRequest, startIndex: Int?, omittingFirstAddressLabel: Boolean): String {
         val renderedPayments = request.payments.mapIndexed { index, payment ->
-            renderParameter(payment.recipientAddress, index + (startIndex ?: 0) + 1, omittingAddressLabel = index == 0 && omittingFirstAddressLabel)
+            renderParameter(
+                payment.recipientAddress,
+                index + (startIndex ?: 0) + 1,
+                omittingAddressLabel = index == 0 && omittingFirstAddressLabel
+            )
         }.joinToString("&")
         return "zcash:$renderedPayments"
     }
