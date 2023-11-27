@@ -40,7 +40,7 @@ class AmountTests : FreeSpec({
         // Text Conversion Tests
 
         "testAmountThrowsIfTooManyFractionalDigits" {
-            shouldThrow<Amount.AmountError> {
+            shouldThrow<Amount.AmountError.TooManyFractionalDigits> {
                 Amount("0.123456789")
             }
         }
