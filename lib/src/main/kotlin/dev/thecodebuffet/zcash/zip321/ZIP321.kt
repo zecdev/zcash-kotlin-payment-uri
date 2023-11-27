@@ -34,12 +34,8 @@ object ZIP321 {
         formattingOptions: FormattingOptions = FormattingOptions.EnumerateAllPayments
     ): String {
         return when (formattingOptions) {
-            is FormattingOptions.EnumerateAllPayments -> renderRequest(
-                from,
-                startIndex = 1,
-                omittingFirstAddressLabel = false
-            )
-            is FormattingOptions.UseEmptyParamIndex -> renderRequest(
+            is FormattingOptions.EnumerateAllPayments -> Render.request(from, 1u, false)
+            is FormattingOptions.UseEmptyParamIndex -> Render.request(
                 from,
                 startIndex = null,
                 omittingFirstAddressLabel = formattingOptions.omitAddressLabel
@@ -62,9 +58,9 @@ object ZIP321 {
     ): String {
         return when (formattingOptions) {
             is FormattingOptions.UseEmptyParamIndex -> "zcash:".plus(
-                renderParameter(recipient, index = null, omittingAddressLabel = formattingOptions.omitAddressLabel)
+                Render.parameter(recipient, index = null, omittingAddressLabel = formattingOptions.omitAddressLabel)
             )
-            else -> "zcash:".plus(renderParameter(recipient, index = null, omittingAddressLabel = false))
+            else -> "zcash:".plus(Render.parameter(recipient, index = null, omittingAddressLabel = false))
         }
     }
 
@@ -80,39 +76,5 @@ object ZIP321 {
         formattingOptions: FormattingOptions = FormattingOptions.EnumerateAllPayments
     ): String {
         return uriString(PaymentRequest(payments = listOf(payment)), formattingOptions = formattingOptions)
-    }
-
-    /**
-     * Renders a parameter for ZIP-321 payment requests.
-     *
-     * @param recipient The recipient address.
-     * @param index The parameter index.
-     * @param omittingAddressLabel Whether to omit the address label.
-     * @return The rendered parameter [String].
-     */
-    private fun renderParameter(recipient: RecipientAddress, index: Int?, omittingAddressLabel: Boolean): String {
-        return when {
-            index == null && omittingAddressLabel -> ""
-            else -> "address=${recipient.value}"
-        }
-    }
-
-    /**
-     * Renders a ZIP-321 payment request [String].
-     *
-     * @param request The payment request.
-     * @param startIndex The start index.
-     * @param omittingFirstAddressLabel Whether to omit the address label for the first payment.
-     * @return The rendered ZIP-321 payment request [String].
-     */
-    private fun renderRequest(request: PaymentRequest, startIndex: Int?, omittingFirstAddressLabel: Boolean): String {
-        val renderedPayments = request.payments.mapIndexed { index, payment ->
-            renderParameter(
-                payment.recipientAddress,
-                index + (startIndex ?: 0) + 1,
-                omittingAddressLabel = index == 0 && omittingFirstAddressLabel
-            )
-        }.joinToString("&")
-        return "zcash:$renderedPayments"
     }
 }

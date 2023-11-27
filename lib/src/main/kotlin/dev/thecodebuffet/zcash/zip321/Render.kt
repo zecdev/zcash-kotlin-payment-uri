@@ -72,7 +72,7 @@ object Render {
     fun request(paymentRequest: PaymentRequest, startIndex: UInt?, omittingFirstAddressLabel: Boolean = false): String {
         var result = "zcash:"
         val payments = paymentRequest.payments.toMutableList()
-        val paramIndexOffset: UInt = (startIndex ?: 1) as UInt
+        val paramIndexOffset: UInt = startIndex ?: 1u
 
         if (startIndex == null) {
             result += if (omittingFirstAddressLabel) "" else "?"
