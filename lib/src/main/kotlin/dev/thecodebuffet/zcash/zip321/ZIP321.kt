@@ -6,11 +6,104 @@ package dev.thecodebuffet.zcash.zip321
 import Payment
 import PaymentRequest
 import RecipientAddress
+import dev.thecodebuffet.zcash.zip321.parser.Parser
 
 /**
  * ZIP-321 object for handling formatting options.
  */
 object ZIP321 {
+    sealed class Errors : Exception() {
+        /**
+         * There's a payment exceeding the max supply as [ZIP-321](https://zips.z.cash/zip-0321) forbids.
+         */
+        data class AmountExceededSupply(val value: UInt) : Errors()
+
+        /**
+         * There's a payment that is less than a decimal zatoshi as [ZIP-321](https://zips.z.cash/zip-0321) forbids.
+         */
+        data class AmountTooSmall(val value: UInt) : Errors()
+
+        /**
+         * Parsing encountered a duplicate [ZIP-321](https://zips.z.cash/zip-0321) URI parameter for the returned payment index.
+         */
+        data class DuplicateParameter(val parameter: String, val index: UInt?) : Errors()
+
+        /**
+         * An invalid address query parameter was found. paramIndex is provided in the associated value.
+         */
+        data class InvalidAddress(val index: UInt?) : Errors()
+
+        /**
+         * A memo field in the ZIP 321 URI was not properly base-64 encoded according to [ZIP-321](https://zips.z.cash/zip-0321)
+         */
+        object InvalidBase64 : Errors()
+
+        /**
+         * not even a Zcash URI
+         */
+        object InvalidURI : Errors()
+
+        /**
+         * A memo value exceeded 512 bytes in length or could not be interpreted as a UTF-8 string
+         * when using a valid UTF-8 lead byte
+         */
+        data class MemoBytesError(val error: Throwable, val index: UInt?) : Errors()
+
+        /**
+         * The [ZIP-321](https://zips.z.cash/zip-0321) request included more payments than can be created within a single Zcash transaction.
+         * The associated value is the number of payments in the request.
+         */
+        data class TooManyPayments(val value: Long) : Errors()
+
+        /**
+         * The payment at the associated value attempted to include a memo when sending to a transparent recipient address,
+         * which is not supported by the [Zcash protocol](https://zips.z.cash/protocol/protocol.pdf).
+         */
+        data class TransparentMemoNotAllowed(val index: UInt?) : Errors()
+
+        /**
+         * The payment which index is included in the associated value did not include a recipient address.
+         */
+        data class RecipientMissing(val index: UInt?) : Errors()
+
+        /**
+         * The payment request includes a `paramIndex` that is invalid according to [ZIP-321](https://zips.z.cash/zip-0321) specs
+         */
+        data class InvalidParamIndex(val value: String) : Errors()
+
+        /**
+         * Some invalid value was found at a query parameter that a specific index
+         */
+        data class InvalidParamValue(val param: String, val index: UInt?) : Errors()
+
+        /**
+         * The [ZIP-321](https://zips.z.cash/zip-0321) URI was malformed and failed to parse.
+         */
+        data class ParseError(val value: String) : Errors()
+
+        /**
+         * A value was expected to be qchar-encoded but its decoding failed.
+         * Associated type has the value that failed.
+         */
+        data class QcharDecodeFailed(val index: UInt?, val key: String, val value: String) : Errors()
+
+        /**
+         * The parser found a required parameter it does not recognize.
+         * Associated string contains the unrecognized input.
+         * See [Forward compatibilty](https://zips.z.cash/zip-0321#forward-compatibility)
+         * Variables which are prefixed with a req- are considered required. If a parser does not recognize any
+         * variables which are prefixed with req-, it MUST consider the entire URI invalid. Any other variables that
+         * are not recognized, but that are not prefixed with a req-, SHOULD be ignored.)
+         */
+        data class UnknownRequiredParameter(val value: String) : Errors()
+    }
+
+    sealed class ParserResult {
+        data class SingleAddress(val singleRecipient: RecipientAddress) : ParserResult()
+
+        data class Request(val paymentRequest: PaymentRequest) : ParserResult()
+    }
+
     /**
      * Enumerates formatting options for URI strings.
      */
@@ -76,5 +169,16 @@ object ZIP321 {
         formattingOptions: FormattingOptions = FormattingOptions.EnumerateAllPayments
     ): String {
         return uriString(PaymentRequest(payments = listOf(payment)), formattingOptions = formattingOptions)
+    }
+
+    /**
+     * Parses a ZIP-321 payment request from [String]
+     *
+     * @param uriString The payment request String.
+     * @param validatingRecipients a lambda that validates all found recipients
+     * @return The ZIP-321 payment request result [ParserResult].
+     */
+    fun request(uriString: String, validatingRecipients: ((String) -> Boolean)?): ParserResult {
+        return Parser(validatingRecipients).parse(uriString)
     }
 }

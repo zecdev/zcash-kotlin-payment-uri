@@ -15,3 +15,7 @@ fun String.qcharEncoded(): String? {
         }
     }
 }
+
+fun String.qcharDecode(): String? {
+    return java.net.URLDecoder.decode(this, "UTF-8")
+}

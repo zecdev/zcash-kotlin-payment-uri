@@ -10,6 +10,15 @@ naming:
 
 style:
   active: true
+  MaxLineLength:
+    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/jsTest/**', '**/iosTest/**']
+    active: true
+    maxLineLength: 120
+    excludePackageStatements: true
+    excludeImportStatements: true
+    excludeCommentStatements: false
+    excludeRawStrings: true
+
   ForbiddenComment:
     active: true
     comments:

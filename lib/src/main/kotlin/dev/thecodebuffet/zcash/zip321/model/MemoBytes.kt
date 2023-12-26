@@ -1,14 +1,20 @@
+import java.nio.charset.Charset
 import java.util.Base64
 
 class MemoBytes {
     companion object {
         const val maxLength: Int = 512
+        fun fromBase64URL(string: String): MemoBytes {
+            return string.decodeBase64URL()?.let { MemoBytes(it) } ?: throw MemoError.InvalidBase64URL
+        }
     }
 
     val data: ByteArray
     sealed class MemoError(message: String) : RuntimeException(message) {
         object MemoTooLong : MemoError("MemoBytes exceeds max length of 512 bytes")
         object MemoEmpty : MemoError("MemoBytes can't be initialized with empty bytes")
+
+        object InvalidBase64URL : MemoError("MemoBytes can't be initialized with invalid Base64URL")
     }
 
     @Throws(MemoError::class)
@@ -46,6 +52,22 @@ class MemoBytes {
     }
 
     override fun hashCode(): Int {
-        return data.contentHashCode()
+        return 31 * data.contentHashCode()
+    }
+}
+
+fun String.decodeBase64URL(): ByteArray? {
+    return try {
+        // Replace Base64URL specific characters
+        val base64URL = replace('-', '+').replace('_', '/')
+
+        // Pad the string with '=' characters to make the length a multiple of 4
+        val paddedBase64 = base64URL + "=".repeat((4 - base64URL.length % 4) % 4)
+
+        // Decode the Base64 string into a byte array
+        Base64.getDecoder().decode(paddedBase64.toByteArray(Charset.defaultCharset()))
+    } catch (e: IllegalArgumentException) {
+        // Handle decoding failure and return null
+        null
     }
 }
