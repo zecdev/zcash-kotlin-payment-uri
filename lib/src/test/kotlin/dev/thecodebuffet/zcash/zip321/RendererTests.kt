@@ -1,7 +1,7 @@
 package dev.thecodebuffet.zcash.zip321
 
-import Amount
 import MemoBytes
+import NonNegativeAmount
 import Payment
 import RecipientAddress
 import io.kotest.core.spec.style.FreeSpec
@@ -11,14 +11,14 @@ class RendererTests : FreeSpec({
     "Amount Tests" - {
         "Amount parameter is rendered with no `paramIndex`" {
             val expected = "amount=123.456"
-            val amount = Amount(123.456.toBigDecimal())
-            Render.parameter(amount, null) shouldBe expected
+            val nonNegativeAmount = NonNegativeAmount(123.456.toBigDecimal())
+            Render.parameter(nonNegativeAmount, null) shouldBe expected
         }
 
         "Amount parameter is rendered with `paramIndex`" {
             val expected = "amount.1=123.456"
-            val amount = Amount(123.456.toBigDecimal())
-            Render.parameter(amount, 1u) shouldBe expected
+            val nonNegativeAmount = NonNegativeAmount(123.456.toBigDecimal())
+            Render.parameter(nonNegativeAmount, 1u) shouldBe expected
         }
 
         "Address parameter is rendered with no `paramIndex`" {
@@ -88,7 +88,7 @@ class RendererTests : FreeSpec({
             val recipient0 = RecipientAddress(value = address0)
             val payment0 = Payment(
                 recipientAddress = recipient0,
-                amount = Amount(123.456.toBigDecimal()),
+                nonNegativeAmount = NonNegativeAmount(123.456.toBigDecimal()),
                 memo = null,
                 label = null,
                 message = null,
@@ -106,7 +106,7 @@ class RendererTests : FreeSpec({
             val recipient1 = RecipientAddress(value = address1)
             val payment1 = Payment(
                 recipientAddress = recipient1,
-                amount = Amount(0.789.toBigDecimal()),
+                nonNegativeAmount = NonNegativeAmount(0.789.toBigDecimal()),
                 memo = MemoBytes("This is a unicode memo ✨🦄🏆🎉"),
                 label = null,
                 message = null,
@@ -123,7 +123,7 @@ class RendererTests : FreeSpec({
             val recipient0 = RecipientAddress(value = address0)
             val payment0 = Payment(
                 recipientAddress = recipient0,
-                amount = Amount(123.456.toBigDecimal()),
+                nonNegativeAmount = NonNegativeAmount(123.456.toBigDecimal()),
                 memo = null,
                 label = null,
                 message = null,
@@ -141,7 +141,7 @@ class RendererTests : FreeSpec({
             val recipient1 = RecipientAddress(value = address1)
             val payment1 = Payment(
                 recipientAddress = recipient1,
-                amount = Amount(0.789.toBigDecimal()),
+                nonNegativeAmount = NonNegativeAmount(0.789.toBigDecimal()),
                 memo = MemoBytes("This is a unicode memo ✨🦄🏆🎉"),
                 label = null,
                 message = null,

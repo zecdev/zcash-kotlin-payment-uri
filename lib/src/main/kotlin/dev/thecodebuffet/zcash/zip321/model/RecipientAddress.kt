@@ -20,4 +20,19 @@ class RecipientAddress private constructor(val value: String) {
             false -> throw RecipientAddressError.InvalidRecipient
         }
     )
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is RecipientAddress) return false
+
+        return value == other.value
+    }
+
+    override fun hashCode(): Int {
+        return value.hashCode()
+    }
+
+    fun isTransparent(): Boolean {
+        return value.startsWith("t")
+    }
 }

@@ -1,7 +1,7 @@
 package dev.thecodebuffet.zcash.zip321
 
-import Amount
 import MemoBytes
+import NonNegativeAmount
 import Payment
 import PaymentRequest
 import RecipientAddress
@@ -25,8 +25,8 @@ object Render {
         return "$label${parameterIndex(index)}=$qcharValue"
     }
 
-    fun parameter(amount: Amount, index: UInt?): String {
-        return "${ParamName.AMOUNT.value}${parameterIndex(index)}=$amount"
+    fun parameter(nonNegativeAmount: NonNegativeAmount, index: UInt?): String {
+        return "${ParamName.AMOUNT.value}${parameterIndex(index)}=$nonNegativeAmount"
     }
 
     fun parameter(memo: MemoBytes, index: UInt?): String {
@@ -60,7 +60,7 @@ object Render {
             result += "&"
         }
 
-        result += "${parameter(payment.amount, index)}"
+        result += "${parameter(payment.nonNegativeAmount, index)}"
 
         payment.memo?.let { result += "&${parameter(it, index)}" }
         payment.label?.let { result += "&${parameterLabel(label = it, index)}" }

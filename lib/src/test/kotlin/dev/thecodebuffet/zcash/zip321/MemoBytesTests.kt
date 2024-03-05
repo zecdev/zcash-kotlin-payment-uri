@@ -29,6 +29,10 @@ class MemoBytesTests : FunSpec({
 
         val memo = MemoBytes(memoUTF8Text)
         memo.toBase64URL() shouldBe expectedBase64
+
+        MemoBytes.fromBase64URL(expectedBase64).data.contentEquals(memo.data) shouldBe true
+
+        MemoBytes.fromBase64URL(expectedBase64).equals(memo) shouldBe true
     }
 
     test("InitWithStringThrows") {
