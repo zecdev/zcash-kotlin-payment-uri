@@ -1,4 +1,4 @@
-package dev.thecodebuffet.zcash.zip321
+package org.zecdev.zcash.zip321
 
 import MemoBytes
 import NonNegativeAmount
@@ -12,13 +12,13 @@ class RendererTests : FreeSpec({
         "Amount parameter is rendered with no `paramIndex`" {
             val expected = "amount=123.456"
             val nonNegativeAmount = NonNegativeAmount(123.456.toBigDecimal())
-            Render.parameter(nonNegativeAmount, null) shouldBe expected
+            org.zecdev.zcash.zip321.Render.parameter(nonNegativeAmount, null) shouldBe expected
         }
 
         "Amount parameter is rendered with `paramIndex`" {
             val expected = "amount.1=123.456"
             val nonNegativeAmount = NonNegativeAmount(123.456.toBigDecimal())
-            Render.parameter(nonNegativeAmount, 1u) shouldBe expected
+            org.zecdev.zcash.zip321.Render.parameter(nonNegativeAmount, 1u) shouldBe expected
         }
 
         "Address parameter is rendered with no `paramIndex`" {
@@ -26,7 +26,7 @@ class RendererTests : FreeSpec({
             val address0 = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
 
             val recipient0 = RecipientAddress(value = address0)
-            Render.parameter(recipient0, null) shouldBe expected
+            org.zecdev.zcash.zip321.Render.parameter(recipient0, null) shouldBe expected
         }
 
         "Address parameter is rendered with `paramIndex`" {
@@ -34,49 +34,49 @@ class RendererTests : FreeSpec({
             val address0 = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
 
             val recipient0 = RecipientAddress(value = address0)
-            Render.parameter(recipient0, 1u) shouldBe expected
+            org.zecdev.zcash.zip321.Render.parameter(recipient0, 1u) shouldBe expected
         }
 
         "Message parameter is rendered with no `paramIndex`" {
             val expected = "message=Thank%20you%20for%20your%20purchase"
-            Render.parameterMessage(message = "Thank you for your purchase", index = null) shouldBe expected
+            org.zecdev.zcash.zip321.Render.parameterMessage(message = "Thank you for your purchase", index = null) shouldBe expected
         }
 
         "Message parameter is rendered with `paramIndex`" {
             val expected = "message.10=Thank%20you%20for%20your%20purchase"
-            Render.parameterMessage(message = "Thank you for your purchase", index = 10u) shouldBe expected
+            org.zecdev.zcash.zip321.Render.parameterMessage(message = "Thank you for your purchase", index = 10u) shouldBe expected
         }
 
         "Label parameter is rendered with no `paramIndex`" {
             val expected = "label=Lunch%20Tab"
-            Render.parameterLabel(label = "Lunch Tab", index = null) shouldBe expected
+            org.zecdev.zcash.zip321.Render.parameterLabel(label = "Lunch Tab", index = null) shouldBe expected
         }
 
         "Label parameter is rendered with `paramIndex`" {
             val expected = "label.1=Lunch%20Tab"
-            Render.parameterLabel(label = "Lunch Tab", index = 1u) shouldBe expected
+            org.zecdev.zcash.zip321.Render.parameterLabel(label = "Lunch Tab", index = 1u) shouldBe expected
         }
 
         "required future parameter is rendered with no `paramIndex`" {
             val expected = "req-futureParam=Future%20is%20Z"
-            Render.parameter(label = "req-futureParam", value = "Future is Z", index = null) shouldBe expected
+            org.zecdev.zcash.zip321.Render.parameter(label = "req-futureParam", value = "Future is Z", index = null) shouldBe expected
         }
 
         "required future parameter is rendered with `paramIndex" {
             val expected = "req-futureParam.1=Future%20is%20Z"
-            Render.parameter(label = "req-futureParam", value = "Future is Z", index = 1u) shouldBe expected
+            org.zecdev.zcash.zip321.Render.parameter(label = "req-futureParam", value = "Future is Z", index = 1u) shouldBe expected
         }
 
         "Memo parameter is rendered with no `paramIndex`" {
             val expected = "memo=VGhpcyBpcyBhIHVuaWNvZGUgbWVtbyDinKjwn6aE8J-PhvCfjok"
             val memo = MemoBytes("This is a unicode memo ✨🦄🏆🎉")
-            Render.parameter(memo, null) shouldBe expected
+            org.zecdev.zcash.zip321.Render.parameter(memo, null) shouldBe expected
         }
 
         "Memo parameter is rendered with `paramIndex`" {
             val expected = "memo.10=VGhpcyBpcyBhIHVuaWNvZGUgbWVtbyDinKjwn6aE8J-PhvCfjok"
             val memo = MemoBytes("This is a unicode memo ✨🦄🏆🎉")
-            Render.parameter(memo, 10u) shouldBe expected
+            org.zecdev.zcash.zip321.Render.parameter(memo, 10u) shouldBe expected
         }
 
         // MARK: Payment
@@ -95,7 +95,7 @@ class RendererTests : FreeSpec({
                 otherParams = null
             )
 
-            Render.payment(payment0, null) shouldBe expected
+            org.zecdev.zcash.zip321.Render.payment(payment0, null) shouldBe expected
         }
 
         "Payment is rendered with `paramIndex`" {
@@ -113,7 +113,7 @@ class RendererTests : FreeSpec({
                 otherParams = null
             )
 
-            Render.payment(payment1, 1u) shouldBe expected
+            org.zecdev.zcash.zip321.Render.payment(payment1, 1u) shouldBe expected
         }
 
         "Payment renders with no `paramIndex` and no address label" {
@@ -130,7 +130,7 @@ class RendererTests : FreeSpec({
                 otherParams = null
             )
 
-            Render.payment(payment0, null, omittingAddressLabel = true) shouldBe expected
+            org.zecdev.zcash.zip321.Render.payment(payment0, null, omittingAddressLabel = true) shouldBe expected
         }
 
         "Payment renderer ignores label omission when index is provided" {
@@ -148,7 +148,7 @@ class RendererTests : FreeSpec({
                 otherParams = null
             )
 
-            Render.payment(payment1, 1u, omittingAddressLabel = true) shouldBe expected
+            org.zecdev.zcash.zip321.Render.payment(payment1, 1u, omittingAddressLabel = true) shouldBe expected
         }
     }
 })

@@ -1,7 +1,7 @@
-package dev.thecodebuffet.zcash.zip321
+package org.zecdev.zcash.zip321
 
-import dev.thecodebuffet.zcash.zip321.extensions.qcharDecode
-import dev.thecodebuffet.zcash.zip321.extensions.qcharEncoded
+import org.zecdev.zcash.zip321.extensions.qcharDecode
+import org.zecdev.zcash.zip321.extensions.qcharEncoded
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
