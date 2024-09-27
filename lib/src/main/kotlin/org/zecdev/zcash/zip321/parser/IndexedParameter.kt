@@ -1,4 +1,4 @@
-package dev.thecodebuffet.zcash.zip321.parser
+package org.zecdev.zcash.zip321.parser
 
 data class IndexedParameter(
     val index: UInt,

@@ -1,4 +1,4 @@
-package dev.thecodebuffet.zcash.zip321.parser
+package org.zecdev.zcash.zip321.parser
 
 import RecipientAddress
 import com.copperleaf.kudzu.parser.ParserContext

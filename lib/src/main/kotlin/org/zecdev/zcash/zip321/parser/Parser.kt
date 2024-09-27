@@ -1,5 +1,5 @@
 
-package dev.thecodebuffet.zcash.zip321.parser
+package org.zecdev.zcash.zip321.parser
 
 import MemoBytes
 import NonNegativeAmount
@@ -19,8 +19,8 @@ import com.copperleaf.kudzu.parser.mapped.MappedParser
 import com.copperleaf.kudzu.parser.maybe.MaybeParser
 import com.copperleaf.kudzu.parser.sequence.SequenceParser
 import com.copperleaf.kudzu.parser.text.LiteralTokenParser
-import dev.thecodebuffet.zcash.zip321.ZIP321
-import dev.thecodebuffet.zcash.zip321.ZIP321.ParserResult
+import org.zecdev.zcash.zip321.ZIP321
+import org.zecdev.zcash.zip321.ZIP321.ParserResult
 import java.math.BigDecimal
 
 class Parser(private val addressValidation: ((String) -> Boolean)?) {

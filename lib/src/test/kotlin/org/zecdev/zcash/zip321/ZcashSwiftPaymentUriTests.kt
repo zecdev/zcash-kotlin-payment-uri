@@ -1,4 +1,4 @@
-package dev.thecodebuffet.zcash.zip321
+package org.zecdev.zcash.zip321
 
 import MemoBytes
 import NonNegativeAmount
