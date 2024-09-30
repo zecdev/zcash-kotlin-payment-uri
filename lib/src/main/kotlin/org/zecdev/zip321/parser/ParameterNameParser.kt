@@ -1,5 +1,5 @@
 
-package org.zecdev.zcash.zip321.parser
+package org.zecdev.zip321.parser
 
 import com.copperleaf.kudzu.parser.text.BaseTextParser
 
