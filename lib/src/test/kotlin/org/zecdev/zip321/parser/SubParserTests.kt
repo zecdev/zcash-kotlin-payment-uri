@@ -1,17 +1,17 @@
-package org.zecdev.zcash.zip321.parser
+package org.zecdev.zip321.parser
 import MemoBytes
 import NonNegativeAmount
 import OtherParam
 import Payment
 import RecipientAddress
 import com.copperleaf.kudzu.parser.ParserContext
-import org.zecdev.zcash.zip321.ZIP321
-import org.zecdev.zcash.zip321.extensions.qcharDecode
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.throwables.shouldThrowAny
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import org.zecdev.zip321.ZIP321
+import org.zecdev.zip321.extensions.qcharDecode
 import java.math.BigDecimal
 
 class SubParserTests : FreeSpec({

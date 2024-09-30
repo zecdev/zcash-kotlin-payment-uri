@@ -1,10 +1,10 @@
-package org.zecdev.zcash.zip321
+package org.zecdev.zip321
 
-import org.zecdev.zcash.zip321.extensions.qcharDecode
-import org.zecdev.zcash.zip321.extensions.qcharEncoded
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
+import org.zecdev.zip321.extensions.qcharDecode
+import org.zecdev.zip321.extensions.qcharEncoded
 
 class EncodingTests : FunSpec({
 

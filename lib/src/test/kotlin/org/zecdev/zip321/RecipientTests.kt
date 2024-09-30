@@ -1,4 +1,4 @@
-package org.zecdev.zcash.zip321
+package org.zecdev.zip321
 
 import RecipientAddress
 import io.kotest.assertions.throwables.shouldNotThrow

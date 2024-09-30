@@ -1,4 +1,4 @@
-package org.zecdev.zcash.zip321.extensions
+package org.zecdev.zip321.extensions
 
 fun String.qcharEncoded(): String? {
     val qcharEncodeAllowed = setOf(
