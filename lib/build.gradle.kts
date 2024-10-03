@@ -66,6 +66,12 @@ java {
     }
 }
 
+tasks.jar{
+    enabled = true
+    // Remove `plain` postfix from jar file name
+    archiveClassifier.set("")
+}
+
 tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
     reports {
         html.required.set(true) // observe findings in your browser with structure and code snippets
@@ -86,9 +92,12 @@ val publicationVariant = "release"
 val myVersion = project.property("LIBRARY_VERSION").toString()
 val myArtifactId = "zip321"
 val isSnapshot = project.property("IS_SNAPSHOT").toString().toBoolean()
-
-
+val myDescription = "A concise implementation of ZIP-321 in Kotlin."
+val myRepoUrl = "https://github.com/zecdev/zcash-kotlin-payment-uri"
 jreleaser {
+    project {
+        copyright.set("ZecDev.Org")
+    }
     gitRootSearch.set(true)
     version = myVersion
 
@@ -96,40 +105,52 @@ jreleaser {
         active.set(Active.ALWAYS)
         armored.set(true)
     }
+
     deploy {
+        active.set(Active.ALWAYS)
         maven {
+            active.set(Active.ALWAYS)
+            pomchecker {
+                version.set("1.12.0")
+                failOnWarning.set(false)
+                failOnError.set(true)
+            }
+            project {
+                description.set("A concise implementation of ZIP-321 in Kotlin.")
+                copyright.set("Copyright ZecDev.Org.")
+                license.set("The MIT License.")
+            }
             mavenCentral {
                 active.set(Active.ALWAYS)
+                create("maven-central") {
+                    active.set(Active.ALWAYS)
+                    url.set("https://central.sonatype.com/api/v1/publisher")
+                    stagingRepository("build/staging-deploy")
 
-//                    url.set("https://central.sonatype.com/api/v1/publisher")
-//                    stagingRepository.set("target/staging-deploy")
-
+                }
             }
+
         }
     }
 }
 
 publishing {
     publications {
-        create<MavenPublication>("mavenJava") {
+        create<MavenPublication>("Maven") {
             from(components["java"])  // Publish the "java" component (the jar file)
 
             groupId = "org.zecdev"
-            artifactId  = myArtifactId
+            artifactId = myArtifactId
             version = myVersion
-//            version = if (isSnapshot) {
-//                "$myVersion-SNAPSHOT"
-//            } else {
-//                myVersion
-//            }
+            description = myDescription
 
             pom {
                 name.set("Zcash Kotlin Payment URI")
-                description.set("A concise implementation of ZIP-321 in Kotlin.")
-                url.set("https://github.com/zecdev/zcash-kotlin-payment-uri")
+                description.set(myDescription)
+                url.set(myRepoUrl)
                 inceptionYear.set("2023")
                 scm {
-                    url.set("https://github.com/zecdev/zcash-kotlin-payment-uri")
+                    url.set(myRepoUrl)
                     connection.set("scm:git:git://github.com/zecdev/zcash-kotlin-payment-uri.git")
                     developerConnection.set("scm:git:ssh://git@github.com/zecdev/zcash-kotlin-payment-uri.git")
                 }
@@ -158,29 +179,6 @@ publishing {
 }
 
 
-//signing {
-//    // Maven Central requires signing for non-snapshots
-//    isRequired = !isSnapshot
-//
-//    val signingKey = run {
-//        val base64EncodedKey = project.property("ZECDEV_ASCII_GPG_KEY").toString()
-//        if (base64EncodedKey.isNotEmpty()) {
-//            val keyBytes = Base64.getDecoder().decode(base64EncodedKey)
-//            String(keyBytes)
-//        } else {
-//            ""
-//        }
-//    }
-//
-//    if (signingKey.isNotEmpty()) {
-//        useInMemoryPgpKeys(signingKey, "")
-//    }
-//
-//    sign(publishing.publications)
-//}
-
-
-
 
 // Workaround for:
 // - https://youtrack.jetbrains.com/issue/KT-46466
@@ -191,7 +189,7 @@ publishing {
 // Reason: Task ':bip39-lib:publishJvmPublicationToMavenLocalRepository' uses this output of task
 // ':bip39-lib:signKotlinMultiplatformPublication' without declaring an explicit or implicit
 // dependency. This can lead to incorrect results being produced, depending on what order the tasks are executed.
-val signingTasks = tasks.withType<Sign>()
-tasks.withType<AbstractPublishToMaven>().configureEach {
-    dependsOn(signingTasks)
-}
+//val signingTasks = tasks.withType<Sign>()
+//tasks.withType<AbstractPublishToMaven>().configureEach {
+//    dependsOn(signingTasks)
+//}
