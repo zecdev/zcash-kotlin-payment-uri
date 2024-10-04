@@ -1,4 +1,4 @@
-package org.zecdev.zcash.zip321
+package org.zecdev.zip321
 import MemoBytes
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
