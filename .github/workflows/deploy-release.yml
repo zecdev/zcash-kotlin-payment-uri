@@ -22,7 +22,7 @@ jobs:
           JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.JRELEASER_GPG_PUBLIC_KEY }}
           JRELEASER_GITHUB_TOKEN: ${{ secrets.JRELEASER_GITHUB_TOKEN }}
         if: "${{ env.JRELEASER_MAVENCENTRAL_USERNAME != '' && env.JRELEASER_MAVENCENTRAL_PASSWORD != '' && env.JRELEASER_GPG_SECRET_KEY != '' && env.JRELEASER_GPG_PASSPHRASE != '' && env.JRELEASER_GPG_PUBLIC_KEY != '' && env.JRELEASER_GITHUB_TOKEN != '' }}"
-        run: echo "::set-output name=defined::true"
+        run: echo "defined=true"
   deploy_release:
     if: needs.check_secrets.outputs.has-secrets == 'true'
     needs: [ check_secrets ]
@@ -54,13 +54,13 @@ jobs:
         env:
           ORG_GRADLE_PROJECT_IS_SNAPSHOT: false
           ORG_GRADLE_PROJECT_NATIVE_TARGETS_ENABLED: false
-          JRELEASER_GPG_SECRET_KEY: ${{ secrets.MAVEN_SIGNING_KEY_ASCII }}
+          JRELEASER_GPG_SECRET_KEY: ${{ secrets.JRELEASER_GPG_SECRET_KEY }}
         run: |
           ./gradlew publish --no-parallel
       - name: Publish package to maven central
         env:
-          JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.JRELEASER_NEXUS2_USERNAME }}
-          JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.JRELEASER_NEXUS2_PASSWORD }}
+          JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.JRELEASER_MAVENCENTRAL_USERNAME }}
+          JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.JRELEASER_MAVENCENTRAL_PASSWORD }}
           JRELEASER_GPG_PASSPHRASE: ${{ secrets.JRELEASER_GPG_PASSPHRASE }}
           JRELEASER_GPG_SECRET_KEY: ${{ secrets.JRELEASER_GPG_SECRET_KEY }}
           JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.JRELEASER_GPG_PUBLIC_KEY }}
