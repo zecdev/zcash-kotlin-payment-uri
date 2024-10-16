@@ -119,9 +119,10 @@ object Render {
                 startIndex,
                 omittingFirstAddressLabel
             )
-
             if (payments.isNotEmpty()) {
                 payments.removeAt(0)
+            }
+            if (payments.isNotEmpty()) {
                 result += "&"
             }
         }
