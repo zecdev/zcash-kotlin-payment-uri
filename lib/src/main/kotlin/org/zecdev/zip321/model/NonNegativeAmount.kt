@@ -8,7 +8,7 @@ import java.math.RoundingMode
  * @property value The decimal value of the ZEC amount.
  */
 class NonNegativeAmount {
-    private val value: BigDecimal
+    val value: BigDecimal
 
     /**
      * Initializes an Amount from a `BigDecimal` number.
