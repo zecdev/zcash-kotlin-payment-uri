@@ -8,6 +8,9 @@ import java.math.BigDecimal
 
 class AmountTests : FreeSpec({
     "Amount tests" - {
+
+        // BigDecimal Conversion Tests: Constructor
+
         "testAmountStringDecimals" {
             NonNegativeAmount(BigDecimal("123.456")).toString() shouldBe "123.456"
             "${NonNegativeAmount(BigDecimal("123.456"))}" shouldBe "123.456"
@@ -25,9 +28,27 @@ class AmountTests : FreeSpec({
             NonNegativeAmount(BigDecimal("0.12345678")).toString() shouldBe "0.12345678"
         }
 
+        "testAmountThrowsIfMaxDecimalsWithTrailingZeroes" {
+            shouldThrow<NonNegativeAmount.AmountError.TooManyFractionalDigits> {
+                NonNegativeAmount(BigDecimal("0.123456780")).toString()
+            }
+        }
+
+        "testAmountThrowsIfTooManyDecimals" {
+            shouldThrow<NonNegativeAmount.AmountError.TooManyFractionalDigits> {
+                NonNegativeAmount(BigDecimal("0.123456789")).toString()
+            }
+        }
+
         "testAmountThrowsIfMaxSupply" {
             shouldThrow<NonNegativeAmount.AmountError> {
                 NonNegativeAmount(BigDecimal("21000000.00000001")).toString()
+            }
+        }
+
+        "testAmountThrowsIfZeroAmount" {
+            shouldThrow<NonNegativeAmount.AmountError> {
+                NonNegativeAmount(BigDecimal("0")).toString()
             }
         }
 
@@ -37,7 +58,58 @@ class AmountTests : FreeSpec({
             }
         }
 
-        // Text Conversion Tests
+        // BigDecimal Conversion Tests: Factory Method
+
+        "testAmountStringDecimals" {
+            NonNegativeAmount.create(BigDecimal("123.456")).toString() shouldBe "123.456"
+            "${NonNegativeAmount(BigDecimal("123.456"))}" shouldBe "123.456"
+        }
+
+        "testAmountTrailing" {
+            NonNegativeAmount.create(BigDecimal("50.000")).toString() shouldBe "50"
+        }
+
+        "testAmountLeadingZeros" {
+            NonNegativeAmount.create(BigDecimal("0000.5")).toString() shouldBe "0.5"
+        }
+
+        "testAmountMaxDecimals" {
+            NonNegativeAmount.create(BigDecimal("0.12345678")).toString() shouldBe "0.12345678"
+        }
+
+        // FIXME: Fails because input is rounded
+        "testAmountThrowsIfMaxDecimalsWithTrailingZeroes" {
+            shouldThrow<NonNegativeAmount.AmountError.TooManyFractionalDigits> {
+                NonNegativeAmount.create(BigDecimal("0.123456780")).toString()
+            }
+        }
+
+        // FIXME: Fails because input is rounded
+        "testAmountThrowsIfTooManyDecimals" {
+            shouldThrow<NonNegativeAmount.AmountError.TooManyFractionalDigits> {
+                NonNegativeAmount.create(BigDecimal("0.123456789")).toString()
+            }
+        }
+
+        "testAmountThrowsIfMaxSupply" {
+            shouldThrow<NonNegativeAmount.AmountError> {
+                NonNegativeAmount.create(BigDecimal("21000000.00000001")).toString()
+            }
+        }
+
+        "testAmountThrowsIfNegativeAmount" {
+            shouldThrow<NonNegativeAmount.AmountError> {
+                NonNegativeAmount.create(BigDecimal("-1")).toString()
+            }
+        }
+
+        "testAmountThrowsIfZeroAmount" {
+            shouldThrow<NonNegativeAmount.AmountError> {
+                NonNegativeAmount.create(BigDecimal("0")).toString()
+            }
+        }
+
+        // Text Conversion Tests: Constructor
 
         "testAmountThrowsIfTooManyFractionalDigits" {
             shouldThrow<NonNegativeAmount.AmountError.TooManyFractionalDigits> {
@@ -49,8 +121,66 @@ class AmountTests : FreeSpec({
             NonNegativeAmount("0.12345678").toString() shouldBe NonNegativeAmount(BigDecimal("0.12345678")).toString()
         }
 
+        "testAmountThrowsIfMaxFractionalDigitsWithTrailingZeroes" {
+            shouldThrow<NonNegativeAmount.AmountError.TooManyFractionalDigits> {
+                NonNegativeAmount("0.1234567890")
+            }
+        }
+
         "testAmountParsesMaxAmount" {
             NonNegativeAmount("21000000").toString() shouldBe NonNegativeAmount(BigDecimal("21000000")).toString()
+        }
+
+        "testAmountParsesMaxAmountWithTrailingZeroes" {
+            NonNegativeAmount("21000000.00000000").toString() shouldBe NonNegativeAmount(BigDecimal("21000000")).toString()
+        }
+
+        "testAmountThrowsIfMaxSupply" {
+            shouldThrow<NonNegativeAmount.AmountError.GreaterThanSupply> {
+                NonNegativeAmount("21000000.00000001")
+            }
+        }
+
+        // Text Conversion Tests: Factory Method
+
+        "testAmountThrowsIfTooManyFractionalDigits" {
+            shouldThrow<NonNegativeAmount.AmountError.TooManyFractionalDigits> {
+                NonNegativeAmount.createFromString("0.123456789")
+            }
+        }
+
+        "testAmountParsesMaxFractionalDigits" {
+            NonNegativeAmount.createFromString("0.12345678").toString() shouldBe NonNegativeAmount(BigDecimal("0.12345678")).toString()
+        }
+
+        "testAmountThrowsIfMaxFractionalDigitsWithTrailingZeroes" {
+            shouldThrow<NonNegativeAmount.AmountError.TooManyFractionalDigits> {
+                NonNegativeAmount.createFromString("0.1234567890")
+            }
+        }
+
+        "testAmountParsesMaxAmount" {
+            NonNegativeAmount.createFromString("21000000").toString() shouldBe NonNegativeAmount(BigDecimal("21000000")).toString()
+        }
+
+        "testAmountParsesMaxAmountWithTrailingZeroes" {
+            NonNegativeAmount.createFromString("21000000.00000000").toString() shouldBe NonNegativeAmount(BigDecimal("21000000")).toString()
+        }
+
+        "testAmountThrowsIfMaxSupply" {
+            shouldThrow<NonNegativeAmount.AmountError.GreaterThanSupply> {
+                NonNegativeAmount.createFromString("21000000.00000001")
+            }
+        }
+
+        // Equality tests
+
+        "testEquality" {
+            NonNegativeAmount(BigDecimal("123.456789")).equals(NonNegativeAmount("123.456789")) shouldBe true
+        }
+
+        "testInEquality" {
+            NonNegativeAmount(BigDecimal("123.456789")).equals(NonNegativeAmount("123.45678")) shouldBe false
         }
     }
 })

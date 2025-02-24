@@ -21,6 +21,26 @@ class MemoBytesTests : FunSpec({
         val expectedBase64 = "VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"
         val memo = MemoBytes(bytes)
         memo.toBase64URL() shouldBe expectedBase64
+        MemoBytes.fromBase64URL(expectedBase64).equals(memo) shouldBe true
+        MemoBytes.fromBase64URL(expectedBase64).data.contentEquals(memo.data) shouldBe true
+    }
+
+    test("InitWithOneNullByte") {
+        val bytes = byteArrayOf(0x0)
+        val expectedBase64 = "AA"
+        val memo = MemoBytes(bytes)
+        memo.toBase64URL() shouldBe expectedBase64
+        MemoBytes.fromBase64URL(expectedBase64).equals(memo) shouldBe true
+        MemoBytes.fromBase64URL(expectedBase64).data.contentEquals(memo.data) shouldBe true
+    }
+
+    test("InitWithMaxNullBytes") {
+        val bytes = ByteArray(MemoBytes.maxLength)
+        val expectedBase64 = "A".repeat(ceil(MemoBytes.maxLength * 8 / 6.0).toInt())
+        val memo = MemoBytes(bytes)
+        memo.toBase64URL() shouldBe expectedBase64
+        MemoBytes.fromBase64URL(expectedBase64).equals(memo) shouldBe true
+        MemoBytes.fromBase64URL(expectedBase64).data.contentEquals(memo.data) shouldBe true
     }
 
     test("UnicodeMemo") {
@@ -40,7 +60,7 @@ class MemoBytesTests : FunSpec({
             MemoBytes("")
         }
         shouldThrow<MemoBytes.MemoError.MemoTooLong> {
-            MemoBytes("a".repeat(513))
+            MemoBytes("a".repeat(MemoBytes.maxLength + 1))
         }
     }
 
@@ -50,6 +70,15 @@ class MemoBytesTests : FunSpec({
         }
         shouldThrow<MemoBytes.MemoError.MemoTooLong> {
             MemoBytes(ByteArray(MemoBytes.maxLength + 1))
+        }
+    }
+
+    test("SingleBase64CharacterThrows") {
+        shouldThrow<MemoBytes.MemoError.InvalidBase64URL> {
+            MemoBytes.fromBase64URL("A")
+        }
+        shouldThrow<MemoBytes.MemoError.InvalidBase64URL> {
+            MemoBytes.fromBase64URL("AAAAA")
         }
     }
 })
