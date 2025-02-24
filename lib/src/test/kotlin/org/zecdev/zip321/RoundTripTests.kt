@@ -74,6 +74,36 @@ class RoundTripTests : FreeSpec({
             roundTrip shouldBe url
         }
 
+        // FIXME: Fails because `+` is decoded to ` ` and then encoded to `%20`
+        "Round-trip parsing and encoding via uriString() of single payment with amount and label containing delimiter, with empty param index and address label omitted" {
+            val url = "zcash:tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU?amount=123.45&label=apple+banana"
+            val parserResult = ZIP321.request(url) { _ -> true }
+            (parserResult is Request) shouldBe true
+            val paymentRequest = (parserResult as Request).paymentRequest
+            val roundTrip = ZIP321.uriString(paymentRequest, UseEmptyParamIndex(true))
+            roundTrip shouldBe url
+        }
+
+        // FIXME: Fails because `+` is decoded to ` ` and then encoded to `%20`
+        "Round-trip parsing and encoding via uriString() of single payment with amount and label containing delimiter, with empty param index and address label not omitted" {
+            val url = "zcash:?address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount=123.45&label=apple+banana"
+            val parserResult = ZIP321.request(url) { _ -> true }
+            (parserResult is Request) shouldBe true
+            val paymentRequest = (parserResult as Request).paymentRequest
+            val roundTrip = ZIP321.uriString(paymentRequest, UseEmptyParamIndex(false))
+            roundTrip shouldBe url
+        }
+
+        // FIXME: Fails because `?` is missing from URL and because `+` is decoded to ` ` and then encoded to `%20`
+        "Round-trip parsing and encoding via uriString() of single payment with amount and label containing delimiter, with all payments enumerated" {
+            val url = "zcash:?address.1=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount.1=123.45&label.1=apple+banana"
+            val parserResult = ZIP321.request(url) { _ -> true }
+            (parserResult is Request) shouldBe true
+            val paymentRequest = (parserResult as Request).paymentRequest
+            val roundTrip = ZIP321.uriString(paymentRequest, EnumerateAllPayments)
+            roundTrip shouldBe url
+        }
+
         // FIXME: Parsing fails with spurious NegativeAmount error
         "Round-trip parsing and encoding via uriString() of single payment with label but no amount, with empty param index and address label omitted" {
             val url = "zcash:tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU?label=apple"
