@@ -184,6 +184,7 @@ object ZIP321 {
      * @param validatingRecipients a lambda that validates all found recipients
      * @return The ZIP-321 payment request result [ParserResult].
      */
+    @Throws(Errors::class)
     fun request(uriString: String, validatingRecipients: ((String) -> Boolean)?): ParserResult {
         return Parser(validatingRecipients).parse(uriString)
     }
