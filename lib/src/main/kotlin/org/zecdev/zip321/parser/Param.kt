@@ -1,11 +1,11 @@
 package org.zecdev.zip321.parser
 
-import MemoBytes
-import NonNegativeAmount
-import RecipientAddress
 import org.zecdev.zip321.ParamName
 import org.zecdev.zip321.ZIP321
 import org.zecdev.zip321.extensions.qcharDecode
+import org.zecdev.zip321.model.MemoBytes
+import org.zecdev.zip321.model.NonNegativeAmount
+import org.zecdev.zip321.model.RecipientAddress
 
 sealed class Param {
     companion object {
@@ -16,16 +16,16 @@ sealed class Param {
             validatingAddress: ((String) -> Boolean)? = null
         ): Param {
             return when (queryKey) {
-                org.zecdev.zip321.ParamName.ADDRESS.value -> {
+                ParamName.ADDRESS.value -> {
                     try {
-                        Param.Address(RecipientAddress(value, validatingAddress))
+                        Address(RecipientAddress(value, validatingAddress))
                     } catch (error: RecipientAddress.RecipientAddressError.InvalidRecipient) {
                         throw ZIP321.Errors.InvalidAddress(if (index > 0u) index else null)
                     }
                 }
-                org.zecdev.zip321.ParamName.AMOUNT.value -> {
+                ParamName.AMOUNT.value -> {
                     try {
-                        Param.Amount(NonNegativeAmount(decimalString = value))
+                        Amount(NonNegativeAmount(decimalString = value))
                     } catch (error: NonNegativeAmount.AmountError.NegativeAmount) {
                         throw ZIP321.Errors.AmountTooSmall(index)
                     } catch (error: NonNegativeAmount.AmountError.GreaterThanSupply) {
@@ -36,21 +36,21 @@ sealed class Param {
                         throw ZIP321.Errors.AmountTooSmall(index)
                     }
                 }
-                org.zecdev.zip321.ParamName.LABEL.value -> {
+                ParamName.LABEL.value -> {
                     when (val qcharDecoded = value.qcharDecode()) {
                         null -> throw ZIP321.Errors.QcharDecodeFailed(index.mapToParamIndex(), queryKey, value)
-                        else -> Param.Label(qcharDecoded)
+                        else -> Label(qcharDecoded)
                     }
                 }
-                org.zecdev.zip321.ParamName.MESSAGE.value -> {
+                ParamName.MESSAGE.value -> {
                     when (val qcharDecoded = value.qcharDecode()) {
                         null -> throw ZIP321.Errors.QcharDecodeFailed(index.mapToParamIndex(), queryKey, value)
-                        else -> Param.Message(qcharDecoded)
+                        else -> Message(qcharDecoded)
                     }
                 }
-                org.zecdev.zip321.ParamName.MEMO.value -> {
+                ParamName.MEMO.value -> {
                     try {
-                        Param.Memo(MemoBytes.fromBase64URL(value))
+                        Memo(MemoBytes.fromBase64URL(value))
                     } catch (error: MemoBytes.MemoError) {
                         throw ZIP321.Errors.MemoBytesError(error, index)
                     }
@@ -62,7 +62,7 @@ sealed class Param {
 
                     when (val qcharDecoded = value.qcharDecode()) {
                         null -> throw ZIP321.Errors.InvalidParamValue("message", index)
-                        else -> Param.Other(queryKey, qcharDecoded)
+                        else -> Other(queryKey, qcharDecoded)
                     }
                 }
             }
@@ -78,11 +78,11 @@ sealed class Param {
 
     val name: String
         get() = when (this) {
-            is Address -> org.zecdev.zip321.ParamName.ADDRESS.name.lowercase()
-            is Amount -> org.zecdev.zip321.ParamName.AMOUNT.name.lowercase()
-            is Memo -> org.zecdev.zip321.ParamName.MEMO.name.lowercase()
-            is Label -> org.zecdev.zip321.ParamName.LABEL.name.lowercase()
-            is Message -> org.zecdev.zip321.ParamName.MESSAGE.name.lowercase()
+            is Address -> ParamName.ADDRESS.name.lowercase()
+            is Amount -> ParamName.AMOUNT.name.lowercase()
+            is Memo -> ParamName.MEMO.name.lowercase()
+            is Label -> ParamName.LABEL.name.lowercase()
+            is Message -> ParamName.MESSAGE.name.lowercase()
             is Other -> paramName
         }
 
@@ -137,15 +137,12 @@ sealed class Param {
         if (name != other.name) return false
 
         return when (this) {
-            is Address -> (other as? Address) != null
-            is Amount -> (other as? Amount) != null
-            is Memo -> (other as? Memo) != null
-            is Label -> (other as? Label) != null
-            is Message -> (other as? Message) != null
-            is Other -> (other as? Other)?.let {
-                    p ->
-                p.paramName == paramName
-            } ?: false
+            is Address -> other is Address
+            is Amount -> other is Amount
+            is Memo -> other is Memo
+            is Label -> other is Label
+            is Message -> other is Message
+            is Other -> other is Other && other.paramName == paramName
         }
     }
 }

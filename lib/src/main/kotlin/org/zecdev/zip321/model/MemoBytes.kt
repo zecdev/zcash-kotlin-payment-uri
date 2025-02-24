@@ -1,3 +1,5 @@
+package org.zecdev.zip321.model
+
 import java.nio.charset.Charset
 import java.util.Base64
 
@@ -11,10 +13,17 @@ class MemoBytes {
 
     val data: ByteArray
     sealed class MemoError(message: String) : RuntimeException(message) {
-        object MemoTooLong : MemoError("MemoBytes exceeds max length of 512 bytes")
-        object MemoEmpty : MemoError("MemoBytes can't be initialized with empty bytes")
+        object MemoTooLong : MemoError("MemoBytes exceeds max length of 512 bytes") {
+            private fun readResolve(): Any = MemoTooLong
+        }
 
-        object InvalidBase64URL : MemoError("MemoBytes can't be initialized with invalid Base64URL")
+        object MemoEmpty : MemoError("MemoBytes can't be initialized with empty bytes") {
+            private fun readResolve(): Any = MemoEmpty
+        }
+
+        object InvalidBase64URL : MemoError("MemoBytes can't be initialized with invalid Base64URL") {
+            private fun readResolve(): Any = InvalidBase64URL
+        }
     }
 
     @Throws(MemoError::class)

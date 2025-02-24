@@ -1,9 +1,9 @@
 package org.zecdev.zip321.parser
 
-import RecipientAddress
 import com.copperleaf.kudzu.parser.ParserContext
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
+import org.zecdev.zip321.model.RecipientAddress
 
 class ParserTests : FreeSpec({
     "Parser detects leading addresses" - {

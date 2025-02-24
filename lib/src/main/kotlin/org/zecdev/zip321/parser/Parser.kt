@@ -1,12 +1,6 @@
 
 package org.zecdev.zip321.parser
 
-import MemoBytes
-import NonNegativeAmount
-import OtherParam
-import Payment
-import PaymentRequest
-import RecipientAddress
 import com.copperleaf.kudzu.parser.ParserContext
 import com.copperleaf.kudzu.parser.chars.AnyCharParser
 import com.copperleaf.kudzu.parser.chars.CharInParser
@@ -21,6 +15,13 @@ import com.copperleaf.kudzu.parser.sequence.SequenceParser
 import com.copperleaf.kudzu.parser.text.LiteralTokenParser
 import org.zecdev.zip321.ZIP321
 import org.zecdev.zip321.ZIP321.ParserResult
+import org.zecdev.zip321.model.MemoBytes
+import org.zecdev.zip321.model.NonNegativeAmount
+import org.zecdev.zip321.model.OtherParam
+import org.zecdev.zip321.model.Payment
+import org.zecdev.zip321.model.PaymentRequest
+import org.zecdev.zip321.model.RecipientAddress
+import org.zecdev.zip321.parser.CharsetValidations.Companion.QcharCharacterSet
 import java.math.BigDecimal
 
 class Parser(private val addressValidation: ((String) -> Boolean)?) {
@@ -92,7 +93,7 @@ class Parser(private val addressValidation: ((String) -> Boolean)?) {
         if (!paramName.all { c -> CharsetValidations.isValidParamNameChar(c) }) {
             throw ZIP321.Errors.ParseError("Invalid paramname $paramName")
         } else {
-            Pair<String, UInt?>(
+            Pair(
                 it.node1.text,
                 it.node2.node?.node2?.value
             )
@@ -104,7 +105,7 @@ class Parser(private val addressValidation: ((String) -> Boolean)?) {
             optionallyIndexedParamName,
             LiteralTokenParser("="),
             ManyParser(
-                CharInParser(CharsetValidations.Companion.QcharCharacterSet.characters.toList())
+                CharInParser(QcharCharacterSet.characters.toList())
             )
         )
     ) {
@@ -229,7 +230,7 @@ class Parser(private val addressValidation: ((String) -> Boolean)?) {
         }
 
         if (remainingText.isEmpty() && leadingAddress != null) {
-            leadingAddress?.let {
+            leadingAddress.let {
                 when (val param = it.param) {
                     is Param.Address -> return ParserResult.SingleAddress(param.recipientAddress)
                     else ->

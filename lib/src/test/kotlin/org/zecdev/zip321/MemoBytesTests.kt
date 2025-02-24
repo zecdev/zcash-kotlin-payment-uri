@@ -1,9 +1,9 @@
 package org.zecdev.zip321
-import MemoBytes
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import java.util.*
+import org.zecdev.zip321.model.MemoBytes
+import kotlin.math.ceil
 
 class MemoBytesTests : FunSpec({
 

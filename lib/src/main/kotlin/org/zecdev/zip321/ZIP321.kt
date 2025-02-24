@@ -3,9 +3,9 @@
  */
 package org.zecdev.zip321
 
-import Payment
-import PaymentRequest
-import RecipientAddress
+import org.zecdev.zip321.model.Payment
+import org.zecdev.zip321.model.PaymentRequest
+import org.zecdev.zip321.model.RecipientAddress
 import org.zecdev.zip321.parser.Parser
 
 /**
@@ -36,12 +36,16 @@ object ZIP321 {
         /**
          * A memo field in the ZIP 321 URI was not properly base-64 encoded according to [ZIP-321](https://zips.z.cash/zip-0321)
          */
-        object InvalidBase64 : Errors()
+        object InvalidBase64 : Errors() {
+            private fun readResolve(): Any = InvalidBase64
+        }
 
         /**
          * not even a Zcash URI
          */
-        object InvalidURI : Errors()
+        object InvalidURI : Errors() {
+            private fun readResolve(): Any = InvalidURI
+        }
 
         /**
          * A memo value exceeded 512 bytes in length or could not be interpreted as a UTF-8 string
@@ -127,8 +131,8 @@ object ZIP321 {
         formattingOptions: FormattingOptions = FormattingOptions.EnumerateAllPayments
     ): String {
         return when (formattingOptions) {
-            is FormattingOptions.EnumerateAllPayments -> org.zecdev.zip321.Render.request(from, 1u, false)
-            is FormattingOptions.UseEmptyParamIndex -> org.zecdev.zip321.Render.request(
+            is FormattingOptions.EnumerateAllPayments -> Render.request(from, 1u, false)
+            is FormattingOptions.UseEmptyParamIndex -> Render.request(
                 from,
                 startIndex = null,
                 omittingFirstAddressLabel = formattingOptions.omitAddressLabel
@@ -151,14 +155,14 @@ object ZIP321 {
     ): String {
         return when (formattingOptions) {
             is FormattingOptions.UseEmptyParamIndex -> "zcash:".plus(
-                org.zecdev.zip321.Render.parameter(
+                Render.parameter(
                     recipient,
                     index = null,
                     omittingAddressLabel = formattingOptions.omitAddressLabel
                 )
             )
             else -> "zcash:".plus(
-                org.zecdev.zip321.Render.parameter(recipient, index = null, omittingAddressLabel = false)
+                Render.parameter(recipient, index = null, omittingAddressLabel = false)
             )
         }
     }

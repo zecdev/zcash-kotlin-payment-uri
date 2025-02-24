@@ -1,3 +1,5 @@
+package org.zecdev.zip321.model
+
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -35,10 +37,21 @@ class NonNegativeAmount {
      * Enum representing errors that can occur during Amount operations.
      */
     sealed class AmountError(message: String) : Exception(message) {
-        object NegativeAmount : AmountError("Amount cannot be negative")
-        object GreaterThanSupply : AmountError("Amount cannot be greater than the maximum supply")
-        object TooManyFractionalDigits : AmountError("Amount has too many fractional digits")
-        object InvalidTextInput : AmountError("Invalid text input for amount")
+        object NegativeAmount : AmountError("Amount cannot be negative") {
+            private fun readResolve(): Any = NegativeAmount
+        }
+
+        object GreaterThanSupply : AmountError("Amount cannot be greater than the maximum supply") {
+            private fun readResolve(): Any = GreaterThanSupply
+        }
+
+        object TooManyFractionalDigits : AmountError("Amount has too many fractional digits") {
+            private fun readResolve(): Any = TooManyFractionalDigits
+        }
+
+        object InvalidTextInput : AmountError("Invalid text input for amount") {
+            private fun readResolve(): Any = InvalidTextInput
+        }
     }
 
     companion object {

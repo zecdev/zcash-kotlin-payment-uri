@@ -1,13 +1,13 @@
 package org.zecdev.zip321
 
-import MemoBytes
-import NonNegativeAmount
-import Payment
-import PaymentRequest
-import RecipientAddress
 import io.kotest.assertions.fail
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
+import org.zecdev.zip321.model.MemoBytes
+import org.zecdev.zip321.model.NonNegativeAmount
+import org.zecdev.zip321.model.Payment
+import org.zecdev.zip321.model.PaymentRequest
+import org.zecdev.zip321.model.RecipientAddress
 import java.math.BigDecimal
 
 /* ktlint-disable line-length */

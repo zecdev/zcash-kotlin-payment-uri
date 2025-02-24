@@ -1,8 +1,12 @@
+package org.zecdev.zip321.model
+
 typealias RequestParams = Pair<String, String>
 
 class RecipientAddress private constructor(val value: String) {
     sealed class RecipientAddressError(message: String) : Exception(message) {
-        object InvalidRecipient : RecipientAddressError("The provided recipient is invalid")
+        object InvalidRecipient : RecipientAddressError("The provided recipient is invalid") {
+            private fun readResolve(): Any = InvalidRecipient
+        }
     }
 
     /**

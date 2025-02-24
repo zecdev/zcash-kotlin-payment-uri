@@ -1,11 +1,12 @@
 package org.zecdev.zip321
 
-import MemoBytes
-import NonNegativeAmount
-import Payment
-import RecipientAddress
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
+import org.zecdev.zip321.model.MemoBytes
+import org.zecdev.zip321.model.NonNegativeAmount
+import org.zecdev.zip321.model.Payment
+import org.zecdev.zip321.model.PaymentRequest
+import org.zecdev.zip321.model.RecipientAddress
 
 class RendererTests : FreeSpec({
     "Amount Tests" - {

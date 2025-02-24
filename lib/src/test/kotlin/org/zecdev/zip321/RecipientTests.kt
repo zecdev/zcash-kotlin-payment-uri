@@ -1,10 +1,10 @@
 package org.zecdev.zip321
 
-import RecipientAddress
 import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import org.zecdev.zip321.model.RecipientAddress
 
 class RecipientTests : FunSpec({
 

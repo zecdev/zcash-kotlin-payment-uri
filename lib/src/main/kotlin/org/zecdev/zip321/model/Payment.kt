@@ -1,3 +1,4 @@
+package org.zecdev.zip321.model
 
 data class Payment(
     val recipientAddress: RecipientAddress,
