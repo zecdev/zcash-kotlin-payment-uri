@@ -3,6 +3,7 @@ package org.zecdev.zip321
 import io.kotest.assertions.fail
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
+import org.zecdev.zip321.parser.ParserContext
 import org.zecdev.zip321.model.MemoBytes
 import org.zecdev.zip321.model.NonNegativeAmount
 import org.zecdev.zip321.model.Payment
@@ -106,7 +107,7 @@ class ZcashSwiftPaymentUriTests : FreeSpec({
 
         val paymentRequest = PaymentRequest(payments = listOf(payment0, payment1))
 
-        when (val parsedRequest = ZIP321.request(validURI, null)) {
+        when (val parsedRequest = ZIP321.request(validURI, ParserContext.TESTNET, null)) {
             is ZIP321.ParserResult.SingleAddress -> fail("expected Request. got $parsedRequest")
             is ZIP321.ParserResult.Request -> {
                 parsedRequest.paymentRequest shouldBe paymentRequest

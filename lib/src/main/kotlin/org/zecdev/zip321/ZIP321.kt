@@ -7,6 +7,7 @@ import org.zecdev.zip321.model.Payment
 import org.zecdev.zip321.model.PaymentRequest
 import org.zecdev.zip321.model.RecipientAddress
 import org.zecdev.zip321.parser.Parser
+import org.zecdev.zip321.parser.ParserContext
 
 /**
  * ZIP-321 object for handling formatting options.
@@ -189,7 +190,10 @@ object ZIP321 {
      * @return The ZIP-321 payment request result [ParserResult].
      */
     @Throws(Errors::class)
-    fun request(uriString: String, validatingRecipients: ((String) -> Boolean)?): ParserResult {
-        return Parser(validatingRecipients).parse(uriString)
+    fun request(
+        uriString: String,
+        context: ParserContext,
+        validatingRecipients: ((String) -> Boolean)?): ParserResult {
+        return Parser(context, validatingRecipients).parse(uriString)
     }
 }

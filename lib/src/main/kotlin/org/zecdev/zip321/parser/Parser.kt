@@ -24,12 +24,25 @@ import org.zecdev.zip321.model.RecipientAddress
 import org.zecdev.zip321.parser.CharsetValidations.Companion.QcharCharacterSet
 import java.math.BigDecimal
 
-class Parser(private val addressValidation: ((String) -> Boolean)?) {
+class Parser(
+    private val context: org.zecdev.zip321.parser.ParserContext,
+    private val addressValidation: ((String) -> Boolean)?
+) {
+
+    val defaultValidation = addressValidation?.let { customValidation ->
+        { address: String ->
+            context.isValid(address) && customValidation(address)
+        }
+    }?:
+        { address: String ->
+            context.isValid(address)
+        }
+
     val maybeLeadingAddressParse = MappedParser(
         SequenceParser(
             LiteralTokenParser("zcash:"),
             MaybeParser(
-                AddressTextParser()
+                AddressTextParser(context)
             )
         )
     ) {
@@ -40,7 +53,7 @@ class Parser(private val addressValidation: ((String) -> Boolean)?) {
                 param = Param.Address(
                     RecipientAddress(
                         textNode.text,
-                        validating = addressValidation
+                        validating = defaultValidation
                     )
                 )
             )
@@ -163,7 +176,6 @@ class Parser(private val addressValidation: ((String) -> Boolean)?) {
     fun parseParameters(
         remainingString: ParserContext,
         leadingAddress: IndexedParameter?,
-        validatingAddress: ((String) -> Boolean)? = null
     ): List<IndexedParameter> {
         val list = ArrayList<IndexedParameter>()
 
@@ -173,7 +185,7 @@ class Parser(private val addressValidation: ((String) -> Boolean)?) {
             queryParamsParser.parse(remainingString)
                 .first
                 .value
-                .map { zcashParameter(it, validatingAddress) }
+                .map { zcashParameter(it, defaultValidation) }
         )
 
         if (list.isEmpty()) {
@@ -245,7 +257,7 @@ class Parser(private val addressValidation: ((String) -> Boolean)?) {
         return ParserResult.Request(
             PaymentRequest(
                 mapToPayments(
-                    parseParameters(remainingText, node.value, addressValidation)
+                    parseParameters(remainingText, node.value)
                 )
             )
         )

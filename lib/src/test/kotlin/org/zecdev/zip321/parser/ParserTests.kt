@@ -11,7 +11,7 @@ class ParserTests : FreeSpec({
     "Parser detects leading addresses" - {
         "detects single recipient with leading address" {
             val validURI = "zcash:ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez"
-            val (node, remainingText) = Parser(null).maybeLeadingAddressParse.parse(
+            val (node, remainingText) = Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).maybeLeadingAddressParse.parse(
                 ParserContext.fromString(validURI)
             )
 
@@ -57,7 +57,7 @@ class ParserTests : FreeSpec({
 
         "detects leading address with other params" {
             val validURI = "zcash:ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez?amount=1.0001"
-            val (node, remainingText) = Parser(null).maybeLeadingAddressParse.parse(
+            val (node, remainingText) = Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).maybeLeadingAddressParse.parse(
                 ParserContext.fromString(validURI)
             )
 
@@ -69,7 +69,7 @@ class ParserTests : FreeSpec({
 
         "returns null when no leading address is present" {
             val validURI = "zcash:?amount=1.0001&address=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez"
-            val (node, remainingText) = Parser(null).maybeLeadingAddressParse.parse(
+            val (node, remainingText) = Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).maybeLeadingAddressParse.parse(
                 ParserContext.fromString(validURI)
             )
             remainingText.isEmpty() shouldBe false

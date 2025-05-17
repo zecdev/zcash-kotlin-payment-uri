@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+- `ZIP321` object now has a `SproutRecipientsNotAllowed` error 
+### Changed
+- `ZIP321` parser object now takes a `ParserContext` for `request()` for network
+  specific validations and logic
+- Parser will always validate addresses with the `ParserContext.isValid()` function and
+  then will evaluate whatever validations the caller passed as argument.
 ## 0.0.6
 ### Added 
  - Open `NonNegativeAmount.value`
