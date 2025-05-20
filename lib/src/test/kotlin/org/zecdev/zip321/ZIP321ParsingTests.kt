@@ -2,15 +2,11 @@ package org.zecdev.zip321
 
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
-import org.zecdev.zip321.ZIP321.FormattingOptions.EnumerateAllPayments
-import org.zecdev.zip321.ZIP321.FormattingOptions.UseEmptyParamIndex
 import org.zecdev.zip321.ZIP321.ParserResult.Request
 import org.zecdev.zip321.ZIP321.ParserResult.SingleAddress
-import org.zecdev.zip321.model.NonNegativeAmount
 import org.zecdev.zip321.model.OtherParam
-import org.zecdev.zip321.model.Payment
-import org.zecdev.zip321.model.PaymentRequest
 import org.zecdev.zip321.model.RecipientAddress
+import org.zecdev.zip321.parser.ParserContext
 
 class ZIP321ParsingTests : FreeSpec({
     "ZIP321 Parsing Tests" - {
@@ -18,7 +14,7 @@ class ZIP321ParsingTests : FreeSpec({
             val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
             val url = "zcash:$address"
 
-            val parserResult = ZIP321.request(url) { _ -> true }
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
 
             (parserResult is SingleAddress) shouldBe true
             val recipientAddress = (parserResult as SingleAddress).singleRecipient
@@ -30,7 +26,7 @@ class ZIP321ParsingTests : FreeSpec({
             val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
             val url = "zcash:?address=$address"
 
-            val parserResult = ZIP321.request(url) { _ -> true }
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
 
             (parserResult is SingleAddress) shouldBe true
             val recipientAddress = (parserResult as SingleAddress).singleRecipient
@@ -42,7 +38,7 @@ class ZIP321ParsingTests : FreeSpec({
             val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
             val url = "zcash:?address.1=$address"
 
-            val parserResult = ZIP321.request(url) { _ -> true }
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
 
             (parserResult is SingleAddress) shouldBe true
             val recipientAddress = (parserResult as SingleAddress).singleRecipient
@@ -55,7 +51,7 @@ class ZIP321ParsingTests : FreeSpec({
             val label = "apple"
             val url = "zcash:$address?label=$label"
 
-            val parserResult = ZIP321.request(url) { _ -> true }
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
 
             (parserResult is Request) shouldBe true
             val paymentRequest = (parserResult as Request).paymentRequest
@@ -75,7 +71,7 @@ class ZIP321ParsingTests : FreeSpec({
             val label = "apple"
             val url = "zcash:?address=$address&label=$label"
 
-            val parserResult = ZIP321.request(url) { _ -> true }
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
 
             (parserResult is Request) shouldBe true
             val paymentRequest = (parserResult as Request).paymentRequest
@@ -95,7 +91,7 @@ class ZIP321ParsingTests : FreeSpec({
             val label = "apple"
             val url = "zcash:?address.1=$address&label.1=$label"
 
-            val parserResult = ZIP321.request(url) { _ -> true }
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
             (parserResult is Request) shouldBe true
             val paymentRequest = (parserResult as Request).paymentRequest
             paymentRequest.payments.size shouldBe 1
@@ -114,7 +110,7 @@ class ZIP321ParsingTests : FreeSpec({
             val amount = "123.45"
             val url = "zcash:$address?label=$label&amount=$amount"
 
-            val parserResult = ZIP321.request(url) { _ -> true }
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
 
             (parserResult is Request) shouldBe true
             val paymentRequest = (parserResult as Request).paymentRequest
@@ -134,7 +130,7 @@ class ZIP321ParsingTests : FreeSpec({
             val amount = "123.45"
             val url = "zcash:?address=$address&label=$label&amount=$amount"
 
-            val parserResult = ZIP321.request(url) { _ -> true }
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
 
             (parserResult is Request) shouldBe true
             val paymentRequest = (parserResult as Request).paymentRequest
@@ -154,7 +150,7 @@ class ZIP321ParsingTests : FreeSpec({
             val amount = "123.45"
             val url = "zcash:?address.1=$address&label.1=$label&amount.1=$amount"
 
-            val parserResult = ZIP321.request(url) { _ -> true }
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
             (parserResult is Request) shouldBe true
             val paymentRequest = (parserResult as Request).paymentRequest
             paymentRequest.payments.size shouldBe 1
@@ -174,7 +170,7 @@ class ZIP321ParsingTests : FreeSpec({
             val value = "bar"
             val url = "zcash:$address?amount=$amount&$key=$value"
 
-            val parserResult = ZIP321.request(url) { _ -> true }
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
 
             (parserResult is Request) shouldBe true
             val paymentRequest = (parserResult as Request).paymentRequest
@@ -195,7 +191,7 @@ class ZIP321ParsingTests : FreeSpec({
             val value = "bar"
             val url = "zcash:?address=$address&amount=$amount&$key=$value"
 
-            val parserResult = ZIP321.request(url) { _ -> true }
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
 
             (parserResult is Request) shouldBe true
             val paymentRequest = (parserResult as Request).paymentRequest
@@ -216,7 +212,7 @@ class ZIP321ParsingTests : FreeSpec({
             val value = "bar"
             val url = "zcash:?address.1=$address&amount.1=$amount&$key.1=$value"
 
-            val parserResult = ZIP321.request(url) { _ -> true }
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
 
             (parserResult is Request) shouldBe true
             val paymentRequest = (parserResult as Request).paymentRequest
@@ -237,7 +233,7 @@ class ZIP321ParsingTests : FreeSpec({
             val value = ""
             val url = "zcash:$address?amount=$amount&$key=$value"
 
-            val parserResult = ZIP321.request(url) { _ -> true }
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
 
             (parserResult is Request) shouldBe true
             val paymentRequest = (parserResult as Request).paymentRequest
@@ -258,7 +254,7 @@ class ZIP321ParsingTests : FreeSpec({
             val value = ""
             val url = "zcash:?address=$address&amount=$amount&$key=$value"
 
-            val parserResult = ZIP321.request(url) { _ -> true }
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
 
             (parserResult is Request) shouldBe true
             val paymentRequest = (parserResult as Request).paymentRequest
@@ -279,7 +275,7 @@ class ZIP321ParsingTests : FreeSpec({
             val value = ""
             val url = "zcash:?address.1=$address&amount.1=$amount&$key.1=$value"
 
-            val parserResult = ZIP321.request(url) { _ -> true }
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
 
             (parserResult is Request) shouldBe true
             val paymentRequest = (parserResult as Request).paymentRequest
@@ -300,7 +296,7 @@ class ZIP321ParsingTests : FreeSpec({
             val param = "foo"
             val url = "zcash:$address?amount=$amount&$param"
 
-            val parserResult = ZIP321.request(url) { _ -> true }
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
 
             (parserResult is Request) shouldBe true
             val paymentRequest = (parserResult as Request).paymentRequest
@@ -321,7 +317,7 @@ class ZIP321ParsingTests : FreeSpec({
             val param = "foo"
             val url = "zcash:?address=$address&amount=$amount&$param"
 
-            val parserResult = ZIP321.request(url) { _ -> true }
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
 
             (parserResult is Request) shouldBe true
             val paymentRequest = (parserResult as Request).paymentRequest
@@ -342,7 +338,7 @@ class ZIP321ParsingTests : FreeSpec({
             val param = "foo"
             val url = "zcash:?address.1=$address&amount.1=$amount&$param.1"
 
-            val parserResult = ZIP321.request(url) { _ -> true }
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
 
             (parserResult is Request) shouldBe true
             val paymentRequest = (parserResult as Request).paymentRequest
