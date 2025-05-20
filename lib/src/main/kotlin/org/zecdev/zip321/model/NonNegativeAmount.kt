@@ -60,7 +60,7 @@ class NonNegativeAmount {
 
         @Throws(AmountError::class)
         private fun validateDecimal(value: BigDecimal) {
-            require(value > BigDecimal.ZERO) { throw AmountError.NegativeAmount }
+            require(value >= BigDecimal.ZERO) { throw AmountError.NegativeAmount }
             require(value <= maxSupply) { throw AmountError.GreaterThanSupply }
             requireFractionalDigits(value)
         }
