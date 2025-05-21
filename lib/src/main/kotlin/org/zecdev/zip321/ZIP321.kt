@@ -154,16 +154,21 @@ object ZIP321 {
             omitAddressLabel = true
         )
     ): String {
+
         return when (formattingOptions) {
-            is FormattingOptions.UseEmptyParamIndex -> "zcash:".plus(
-                Render.parameter(
-                    recipient,
-                    index = null,
-                    omittingAddressLabel = formattingOptions.omitAddressLabel
+
+            is FormattingOptions.UseEmptyParamIndex -> {
+                val scheme = if (formattingOptions.omitAddressLabel) "zcash:" else "zcash:?"
+                scheme.plus(
+                    Render.parameter(
+                        recipient,
+                        index = null,
+                        omittingAddressLabel = formattingOptions.omitAddressLabel
+                    )
                 )
-            )
-            else -> "zcash:".plus(
-                Render.parameter(recipient, index = null, omittingAddressLabel = false)
+            }
+            else -> "zcash:?".plus(
+                Render.parameter(recipient, index = 1u, omittingAddressLabel = false)
             )
         }
     }

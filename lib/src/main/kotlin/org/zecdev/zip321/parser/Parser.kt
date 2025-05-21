@@ -254,13 +254,19 @@ class Parser(
         }
 
         // remaining text is not empty there's still work to do
-        return ParserResult.Request(
-            PaymentRequest(
-                mapToPayments(
-                    parseParameters(remainingText, node.value)
+        val payments = mapToPayments(
+            parseParameters(remainingText, node.value)
+        )
+
+        return if (payments.size == 1 && payments.first().isSingleAddress()) {
+            ParserResult.SingleAddress(payments.first().recipientAddress)
+        } else {
+            ParserResult.Request(
+                PaymentRequest(
+                    payments
                 )
             )
-        )
+        }
     }
 }
 
@@ -303,7 +309,7 @@ fun Payment.Companion.fromUniqueIndexedParameters(index: UInt, parameters: List<
 
     return Payment(
         recipient,
-        amount ?: NonNegativeAmount(BigDecimal(0)),
+        amount,
         memo,
         label,
         message,

@@ -80,28 +80,37 @@ object Render {
 
         if (index == null && omittingAddressLabel) {
             result += "?"
-        } else {
-            result += "&"
         }
 
-        result += parameter(payment.nonNegativeAmount, index)
-
-        payment.memo?.let { result += "&${parameter(it, index)}" }
+        payment.nonNegativeAmount?.let {
+            if (result.last() != '?') {
+                result += "&"
+            }
+            result += parameter(it, index)
+        }
+        payment.memo?.let {
+            if (result.last() != '?') {
+                result += "&"
+            }
+            result += parameter(it, index)
+        }
         payment.label?.let {
-            result += "&${
-                parameterLabel(
-                    label = it,
-                    index
-                )
-            }"
+            if (result.last() != '?') {
+                result += "&"
+            }
+            result += parameterLabel(
+                label = it,
+                index
+            )
         }
         payment.message?.let {
-            result += "&${
-                parameterMessage(
-                    message = it,
-                    index
-                )
-            }"
+            if (result.last() != '?') {
+                result += "&"
+            }
+            result += parameterMessage(
+                message = it,
+                index
+            )
         }
 
         return result
