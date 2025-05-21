@@ -125,6 +125,8 @@ object Render {
             if (payments.isNotEmpty()) {
                 result += "&"
             }
+        } else {
+            result += "?"
         }
 
         val count = payments.size

@@ -6,6 +6,7 @@ import org.zecdev.zip321.ZIP321.FormattingOptions.UseEmptyParamIndex
 import org.zecdev.zip321.ZIP321.ParserResult.Request
 import org.zecdev.zip321.ZIP321.ParserResult.SingleAddress
 import org.zecdev.zip321.parser.ParserContext
+import org.zecdev.zip321.ZIP321.FormattingOptions.EnumerateAllPayments
 
 class RoundTripTests : FreeSpec({
     "Round-Trip Tests" - {
@@ -56,15 +57,14 @@ class RoundTripTests : FreeSpec({
             roundTrip shouldBe url
         }
 
-        // FIXME: Fails because `?` is missing from URL
-//        "Round-trip parsing and encoding via uriString() of single payment with label and amount, with all payments enumerated" {
-//            val url = "zcash:?address.1=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount.1=123.45&label.1=apple"
-//            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
-//            (parserResult is Request) shouldBe true
-//            val paymentRequest = (parserResult as Request).paymentRequest
-//            val roundTrip = ZIP321.uriString(paymentRequest, EnumerateAllPayments)
-//            roundTrip shouldBe url
-//        }
+        "Round-trip parsing and encoding via uriString() of single payment with label and amount, with all payments enumerated" {
+            val url = "zcash:?address.1=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount.1=123.45&label.1=apple"
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
+            (parserResult is Request) shouldBe true
+            val paymentRequest = (parserResult as Request).paymentRequest
+            val roundTrip = ZIP321.uriString(paymentRequest, EnumerateAllPayments)
+            roundTrip shouldBe url
+        }
 
         "Round-trip parsing and encoding via uriString() of single payment with amount and label containing delimiter, with empty param index and address label omitted" {
             val url = "zcash:tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU?amount=123.45&label=apple+banana"
@@ -85,14 +85,14 @@ class RoundTripTests : FreeSpec({
         }
 
         // FIXME: Fails because `?` is missing from URL and because `+` is decoded to ` ` and then encoded to `%20`
-//        "Round-trip parsing and encoding via uriString() of single payment with amount and label containing delimiter, with all payments enumerated" {
-//            val url = "zcash:?address.1=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount.1=123.45&label.1=apple+banana"
-//            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
-//            (parserResult is Request) shouldBe true
-//            val paymentRequest = (parserResult as Request).paymentRequest
-//            val roundTrip = ZIP321.uriString(paymentRequest, EnumerateAllPayments)
-//            roundTrip shouldBe url
-//        }
+        "Round-trip parsing and encoding via uriString() of single payment with amount and label containing delimiter, with all payments enumerated" {
+            val url = "zcash:?address.1=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount.1=123.45&label.1=apple+banana"
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
+            (parserResult is Request) shouldBe true
+            val paymentRequest = (parserResult as Request).paymentRequest
+            val roundTrip = ZIP321.uriString(paymentRequest, EnumerateAllPayments)
+            roundTrip shouldBe url
+        }
 
         // FIXME: Parsing fails with spurious NegativeAmount error
 //        "Round-trip parsing and encoding via uriString() of single payment with label but no amount, with empty param index and address label omitted" {
@@ -144,7 +144,6 @@ class RoundTripTests : FreeSpec({
 //            roundTrip shouldBe url
 //        }
 
-        // FIXME: Fails because `?` and unknown parameter are missing from URL
 //        "Round-trip parsing and encoding via uriString() of single payment with amount and unknown parameter, with all payments enumerated" {
 //            val url = "zcash:?address.1=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount.1=123.45&foo.1=bar"
 //            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
@@ -172,7 +171,6 @@ class RoundTripTests : FreeSpec({
             roundTrip shouldBe url
         }
 
-        // FIXME: Fails because `?` is missing from URL
 //        "Round-trip parsing and encoding of multiple payments with all payments enumerated" {
 //            val url = "zcash:?address.1=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU?amount.1=123.45&label.1=apple&address.2=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.2=1.2345&label.2=banana"
 //            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
