@@ -1,21 +1,11 @@
 package org.zecdev.zip321.extensions
 
-fun String.qcharEncoded(): String? {
-    val qcharEncodeAllowed = setOf(
-        '-', '.', '_', '~', '!', '$', '\'', '(', ')', '*', '+', ',', ';', '@', ':'
-    )
-        .map { it.toString() }
-    return this.replace(Regex("[^A-Za-z0-9\\-._~!$'()*+,;@:]")) { matched ->
-        if (matched.value in qcharEncodeAllowed) {
-            matched.value
-        } else {
-            "%" + matched.value.toCharArray().joinToString("%") { byte ->
-                "%02X".format(byte.code.toByte())
-            }
-        }
-    }
+import org.zecdev.zip321.encodings.QCharCodec
+
+fun String.qcharEncoded(): String {
+    return QCharCodec.encode(this)
 }
 
-fun String.qcharDecode(): String? {
-    return java.net.URLDecoder.decode(this, "UTF-8")
+fun String.qcharDecode(): String {
+    return QCharCodec.decode(this)
 }

@@ -36,18 +36,8 @@ sealed class Param {
                         throw ZIP321.Errors.AmountTooSmall(index)
                     }
                 }
-                ParamName.LABEL.value -> {
-                    when (val qcharDecoded = value.qcharDecode()) {
-                        null -> throw ZIP321.Errors.QcharDecodeFailed(index.mapToParamIndex(), queryKey, value)
-                        else -> Label(qcharDecoded)
-                    }
-                }
-                ParamName.MESSAGE.value -> {
-                    when (val qcharDecoded = value.qcharDecode()) {
-                        null -> throw ZIP321.Errors.QcharDecodeFailed(index.mapToParamIndex(), queryKey, value)
-                        else -> Message(qcharDecoded)
-                    }
-                }
+                ParamName.LABEL.value -> Label(value.qcharDecode())
+                ParamName.MESSAGE.value -> Message(value.qcharDecode())
                 ParamName.MEMO.value -> {
                     try {
                         Memo(MemoBytes.fromBase64URL(value))
@@ -59,11 +49,7 @@ sealed class Param {
                     if (queryKey.startsWith("req-")) {
                         throw ZIP321.Errors.UnknownRequiredParameter(queryKey)
                     }
-
-                    when (val qcharDecoded = value.qcharDecode()) {
-                        null -> throw ZIP321.Errors.InvalidParamValue("message", index)
-                        else -> Other(queryKey, qcharDecoded)
-                    }
+                    Other(queryKey, value.qcharDecode())
                 }
             }
         }
