@@ -152,32 +152,31 @@ class RendererTests : FreeSpec({
             Render.payment(payment1, 1u, omittingAddressLabel = true) shouldBe expected
         }
 
-        // FIXME: Fails because `?` is missing from URL
-//        "Payment request renderer increments index when start index is given" {
-//            val expected = "zcash:?address.1=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount.1=123.45&label.1=apple&address.2=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.2=1.2345&label.2=banana"
-//
-//            val payment1 = Payment(
-//                recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"),
-//                nonNegativeAmount = NonNegativeAmount("123.45"),
-//                memo = null,
-//                label = "apple",
-//                message = null,
-//                otherParams = null
-//            )
-//
-//            val payment2 = Payment(
-//                recipientAddress = RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez"),
-//                nonNegativeAmount = NonNegativeAmount("1.2345"),
-//                memo = null,
-//                label = "banana",
-//                message = null,
-//                otherParams = null
-//            )
-//
-//            val paymentRequest = PaymentRequest(listOf(payment1, payment2))
-//
-//            Render.request(paymentRequest, 1u) shouldBe expected
-//        }
+        "Payment request renderer increments index when start index is given" {
+            val expected = "zcash:?address.1=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount.1=123.45&label.1=apple&address.2=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.2=1.2345&label.2=banana"
+
+            val payment1 = Payment(
+                recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"),
+                nonNegativeAmount = NonNegativeAmount("123.45"),
+                memo = null,
+                label = "apple",
+                message = null,
+                otherParams = null
+            )
+
+            val payment2 = Payment(
+                recipientAddress = RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez"),
+                nonNegativeAmount = NonNegativeAmount("1.2345"),
+                memo = null,
+                label = "banana",
+                message = null,
+                otherParams = null
+            )
+
+            val paymentRequest = PaymentRequest(listOf(payment1, payment2))
+
+            Render.request(paymentRequest, 1u) shouldBe expected
+        }
 
         "Payment request renderer increments index when start index is null" {
             val expected = "zcash:?address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount=123.45&label=apple&address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=1.2345&label.1=banana"
