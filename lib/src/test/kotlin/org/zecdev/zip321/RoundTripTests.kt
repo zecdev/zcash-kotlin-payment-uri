@@ -119,35 +119,43 @@ class RoundTripTests : FreeSpec({
             roundTrip shouldBe url
         }
 
-        // FIXME: Fails because unknown parameter is missing from URL
-//        "Round-trip parsing and encoding via uriString() of single payment with amount and unknown parameter, with empty param index and address label omitted" {
-//            val url = "zcash:tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU?amount=123.45&foo=bar"
-//            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
-//            (parserResult is Request) shouldBe true
-//            val paymentRequest = (parserResult as Request).paymentRequest
-//            val roundTrip = ZIP321.uriString(paymentRequest, UseEmptyParamIndex(true))
-//            roundTrip shouldBe url
-//        }
 
-        // FIXME: Fails because unknown parameter is missing from URL
-//        "Round-trip parsing and encoding via uriString() of single payment with amount and unknown parameter, with empty param index and address label not omitted" {
-//            val url = "zcash:?address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount=123.45&foo=bar"
-//            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
-//            (parserResult is Request) shouldBe true
-//            val paymentRequest = (parserResult as Request).paymentRequest
-//            val roundTrip = ZIP321.uriString(paymentRequest, UseEmptyParamIndex(false))
-//            roundTrip shouldBe url
-//        }
+        "Round-trip parsing and encoding via uriString() of single payment with amount and unknown parameter, with empty param index and address label omitted" {
+            val url = "zcash:tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU?amount=123.45&foo=bar"
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
+            (parserResult is Request) shouldBe true
+            val paymentRequest = (parserResult as Request).paymentRequest
+            val roundTrip = ZIP321.uriString(paymentRequest, UseEmptyParamIndex(true))
+            roundTrip shouldBe url
+        }
 
-//        // FIXME: Fails because unknown parameter is missing from URL
-//        "Round-trip parsing and encoding via uriString() of single payment with amount and unknown parameter, with all payments enumerated" {
-//            val url = "zcash:?address.1=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount.1=123.45&foo.1=bar"
-//            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
-//            (parserResult is Request) shouldBe true
-//            val paymentRequest = (parserResult as Request).paymentRequest
-//            val roundTrip = ZIP321.uriString(paymentRequest, EnumerateAllPayments)
-//            roundTrip shouldBe url
-//        }
+        "Round-trip parsing and encoding via uriString() of single payment with amount and many 'other' parameters, with empty param index and address label omitted" {
+            val url = "zcash:tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU?amount=123.45&foo=bar&bar=foo"
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
+            (parserResult is Request) shouldBe true
+            val paymentRequest = (parserResult as Request).paymentRequest
+            val roundTrip = ZIP321.uriString(paymentRequest, UseEmptyParamIndex(true))
+            roundTrip shouldBe url
+        }
+
+        "Round-trip parsing and encoding via uriString() of single payment with amount and unknown parameter, with empty param index and address label not omitted" {
+            val url = "zcash:?address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount=123.45&foo=bar"
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
+            (parserResult is Request) shouldBe true
+            val paymentRequest = (parserResult as Request).paymentRequest
+            val roundTrip = ZIP321.uriString(paymentRequest, UseEmptyParamIndex(false))
+            roundTrip shouldBe url
+        }
+
+//
+        "Round-trip parsing and encoding via uriString() of single payment with amount and unknown parameter, with all payments enumerated" {
+            val url = "zcash:?address.1=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount.1=123.45&foo.1=bar"
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
+            (parserResult is Request) shouldBe true
+            val paymentRequest = (parserResult as Request).paymentRequest
+            val roundTrip = ZIP321.uriString(paymentRequest, EnumerateAllPayments)
+            roundTrip shouldBe url
+        }
 
         "Round-trip parsing and encoding of multiple payments with empty param index and address label omitted" {
             val url = "zcash:tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU?amount=123.45&label=apple&address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=1.2345&label.1=banana"

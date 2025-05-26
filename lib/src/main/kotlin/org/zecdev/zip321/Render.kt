@@ -69,6 +69,8 @@ object Render {
         ) ?: ""
     }
 
+
+
     fun payment(payment: Payment, index: UInt?, omittingAddressLabel: Boolean = false): String {
         var result = ""
 
@@ -111,6 +113,15 @@ object Render {
                 message = it,
                 index
             )
+        }
+
+        payment.otherParams?. let {
+            for (param in it) {
+                if (result.last() != '?') {
+                    result += "&"
+                }
+                result += parameter(param.key, param.value, index)
+            }
         }
 
         return result
