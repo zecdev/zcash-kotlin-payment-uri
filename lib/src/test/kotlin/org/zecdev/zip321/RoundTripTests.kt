@@ -37,6 +37,15 @@ class RoundTripTests : FreeSpec({
             roundTrip shouldBe url
         }
 
+        "Round-trip parsing and encoding via uriString() of single payment with label and zero amount, with empty param index and address label omitted" {
+            val url = "zcash:tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU?amount=0&label=rehearsal"
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
+            (parserResult is Request) shouldBe true
+            val paymentRequest = (parserResult as Request).paymentRequest
+            val roundTrip = ZIP321.uriString(paymentRequest, UseEmptyParamIndex(true))
+            roundTrip shouldBe url
+        }
+
         "Round-trip parsing and encoding via uriString() of single payment with label and amount, with empty param index and address label omitted" {
             val url = "zcash:tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU?amount=123.45&label=apple"
             val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
