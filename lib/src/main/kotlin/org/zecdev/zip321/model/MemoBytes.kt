@@ -74,7 +74,7 @@ fun String.decodeBase64URL(): ByteArray? {
         val paddedBase64 = base64URL + "=".repeat((4 - base64URL.length % 4) % 4)
 
         // Decode the Base64 string into a byte array
-        Base64.getDecoder().decode(paddedBase64.toByteArray(Charset.defaultCharset()))
+        Base64.getDecoder().decode(paddedBase64.encodeToByteArray())
     } catch (e: IllegalArgumentException) {
         // Handle decoding failure and return null
         null
