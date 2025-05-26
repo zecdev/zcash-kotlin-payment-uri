@@ -1,7 +1,9 @@
 
 package org.zecdev.zip321.parser
 
+import com.copperleaf.kudzu.node.mapped.ValueNode
 import com.copperleaf.kudzu.parser.ParserContext
+import com.copperleaf.kudzu.parser.ParserException
 import com.copperleaf.kudzu.parser.chars.AnyCharParser
 import com.copperleaf.kudzu.parser.chars.CharInParser
 import com.copperleaf.kudzu.parser.chars.DigitParser
@@ -22,11 +24,10 @@ import org.zecdev.zip321.model.Payment
 import org.zecdev.zip321.model.PaymentRequest
 import org.zecdev.zip321.model.RecipientAddress
 import org.zecdev.zip321.parser.CharsetValidations.Companion.QcharCharacterSet
-import java.math.BigDecimal
 
 class Parser(
     private val context: org.zecdev.zip321.parser.ParserContext,
-    private val addressValidation: ((String) -> Boolean)?
+    addressValidation: ((String) -> Boolean)?
 ) {
 
     val defaultValidation = addressValidation?.let { customValidation ->
@@ -230,18 +231,27 @@ class Parser(
 
     @Throws(ZIP321.Errors::class)
     fun parse(uriString: String): ParserResult {
-        val (node, remainingText) = maybeLeadingAddressParse.parse(
-            ParserContext.fromString(uriString)
-        )
+        val maybeNode: ValueNode<IndexedParameter?>?
+        val maybeRemainingText: ParserContext?
+        try {
+            val (node, remainingText) = maybeLeadingAddressParse.parse(
+                ParserContext.fromString(uriString)
+            )
+            maybeNode = node
+            maybeRemainingText = remainingText
+        } catch (e: ParserException) {
+            throw ZIP321.Errors.InvalidAddress(null)
+        }
 
-        val leadingAddress = node.value
+
+        val leadingAddress = maybeNode.value
 
         // no remaining text to parse and no address found. Not a valid URI
-        if (remainingText.isEmpty() && leadingAddress == null) {
+        if (maybeRemainingText.isEmpty() && leadingAddress == null) {
             throw ZIP321.Errors.InvalidURI
         }
 
-        if (remainingText.isEmpty() && leadingAddress != null) {
+        if (maybeRemainingText.isEmpty() && leadingAddress != null) {
             leadingAddress.let {
                 when (val param = it.param) {
                     is Param.Address -> return ParserResult.SingleAddress(param.recipientAddress)
@@ -255,7 +265,7 @@ class Parser(
 
         // remaining text is not empty there's still work to do
         val payments = mapToPayments(
-            parseParameters(remainingText, node.value)
+            parseParameters(maybeRemainingText, maybeNode.value)
         )
 
         return if (payments.size == 1 && payments.first().isSingleAddress()) {
