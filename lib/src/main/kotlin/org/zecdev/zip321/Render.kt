@@ -120,7 +120,7 @@ object Render {
                 if (result.last() != '?') {
                     result += "&"
                 }
-                result += parameter(param.key, param.value, index)
+                result += parameter(param.key.value, param.value, index)
             }
         }
 

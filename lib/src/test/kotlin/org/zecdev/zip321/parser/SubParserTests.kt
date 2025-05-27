@@ -211,7 +211,7 @@ class SubParserTests : FreeSpec({
             val value = "VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"
             val input = Pair<Pair<String, UInt?>, String>(Pair(query, null), value)
             Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).zcashParameter(input) shouldBe
-                IndexedParameter(0u, Param.Other(query, value))
+                IndexedParameter(0u, Param.Other(ParamNameString(query), value))
         }
     }
 
@@ -258,10 +258,10 @@ class SubParserTests : FreeSpec({
                 Param.Amount(NonNegativeAmount("1")),
                 Param.Message("Thanks"),
                 Param.Label("payment"),
-                Param.Other("future", "is awesome")
+                Param.Other(ParamNameString("future"), "is awesome")
             )
 
-            params.hasDuplicateParam(Param.Other("future", "is dystopic")) shouldBe true
+            params.hasDuplicateParam(Param.Other(ParamNameString("future"), "is dystopic")) shouldBe true
         }
 
         "Duplicate address params are detected" {
@@ -270,7 +270,7 @@ class SubParserTests : FreeSpec({
                 Param.Amount(NonNegativeAmount("1")),
                 Param.Message("Thanks"),
                 Param.Label("payment"),
-                Param.Other("future", "is awesome")
+                Param.Other(ParamNameString("future"), "is awesome")
             )
 
             params.hasDuplicateParam(Param.Address(RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET))) shouldBe true
@@ -286,7 +286,7 @@ class SubParserTests : FreeSpec({
                 Param.Amount(NonNegativeAmount("1")),
                 Param.Message("Thanks"),
                 Param.Label("payment"),
-                Param.Other("future", "is awesome")
+                Param.Other(ParamNameString("future"), "is awesome")
             )
 
             val payment = Payment.fromUniqueIndexedParameters(index = 1u, parameters = params)
@@ -297,7 +297,7 @@ class SubParserTests : FreeSpec({
                 memo = null,
                 label = "payment",
                 message = "Thanks",
-                otherParams = listOf(OtherParam("future", "is awesome"))
+                otherParams = listOf(OtherParam(ParamNameString("future"), "is awesome"))
             )
         }
 
@@ -312,7 +312,7 @@ class SubParserTests : FreeSpec({
                 IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
                 IndexedParameter(index = 0u, param = Param.Label("payment")),
                 IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
-                IndexedParameter(index = 0u, param = Param.Other("future", "is awesome"))
+                IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is awesome"))
             )
 
             shouldThrow<ZIP321.Errors> {
@@ -331,7 +331,7 @@ class SubParserTests : FreeSpec({
                 IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
                 IndexedParameter(index = 0u, param = Param.Label("payment")),
                 IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount(value = BigDecimal(2)))),
-                IndexedParameter(index = 0u, param = Param.Other("future", "is awesome"))
+                IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is awesome"))
             )
 
             shouldThrow<ZIP321.Errors> {
@@ -351,7 +351,7 @@ class SubParserTests : FreeSpec({
                 IndexedParameter(index = 0u, param = Param.Message("Thanks")),
                 IndexedParameter(index = 0u, param = Param.Label("payment")),
                 IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount(value = BigDecimal(2)))),
-                IndexedParameter(index = 0u, param = Param.Other("future", "is awesome"))
+                IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is awesome"))
             )
 
             shouldThrow<ZIP321.Errors> {
@@ -370,7 +370,7 @@ class SubParserTests : FreeSpec({
                 IndexedParameter(index = 0u, param = Param.Message("Thanks")),
                 IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
                 IndexedParameter(index = 0u, param = Param.Label("payment")),
-                IndexedParameter(index = 0u, param = Param.Other("future", "is awesome"))
+                IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is awesome"))
             )
 
             shouldThrow<ZIP321.Errors> {
@@ -387,9 +387,9 @@ class SubParserTests : FreeSpec({
                 IndexedParameter(index = 0u, param = Param.Label("payment")),
                 IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount(value = BigDecimal(1)))),
                 IndexedParameter(index = 0u, param = Param.Message("Thanks")),
-                IndexedParameter(index = 0u, param = Param.Other("future", "is dystopian")),
+                IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is dystopian")),
                 IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
-                IndexedParameter(index = 0u, param = Param.Other("future", "is awesome"))
+                IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is awesome"))
             )
 
             shouldThrow<ZIP321.Errors> {

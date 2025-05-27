@@ -1,5 +1,7 @@
 package org.zecdev.zip321.model
 
+import org.zecdev.zip321.parser.ParamNameString
+
 data class Payment(
     val recipientAddress: RecipientAddress,
     val nonNegativeAmount: NonNegativeAmount?,
@@ -44,4 +46,24 @@ data class Payment(
     }
 }
 
-data class OtherParam(val key: String, val value: String)
+data class OtherParam(val key: ParamNameString, val value: String) {
+    override fun toString(): String {
+        return "$key=$value"
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is OtherParam) return false
+
+        if (key != other.key) return false
+        if (value != other.value) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = key.hashCode()
+        result = 31 * result + value.hashCode()
+        return result
+    }
+}

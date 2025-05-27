@@ -82,3 +82,7 @@ class CharsetValidations {
 fun Char.isAsciiLetterOrDigit(): Boolean {
     return isLetterOrDigit() && this.code < 128
 }
+
+fun Char.isAsciiLetter(): Boolean {
+    return isLetter() && this.code < 128
+}

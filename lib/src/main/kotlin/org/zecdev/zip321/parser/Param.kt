@@ -50,7 +50,7 @@ sealed class Param {
                     if (queryKey.startsWith("req-")) {
                         throw ZIP321.Errors.UnknownRequiredParameter(queryKey)
                     }
-                    Other(queryKey, value.qcharDecode())
+                    Other(ParamNameString(queryKey), value.qcharDecode())
                 }
             }
         }
@@ -61,7 +61,7 @@ sealed class Param {
     data class Memo(val memoBytes: MemoBytes) : Param()
     data class Label(val label: String) : Param()
     data class Message(val message: String) : Param()
-    data class Other(val paramName: String, val value: String) : Param()
+    data class Other(val paramName: ParamNameString, val value: String) : Param()
 
     val name: String
         get() = when (this) {
@@ -70,7 +70,7 @@ sealed class Param {
             is Memo -> ParamName.MEMO.name.lowercase()
             is Label -> ParamName.LABEL.name.lowercase()
             is Message -> ParamName.MESSAGE.name.lowercase()
-            is Other -> paramName
+            is Other -> paramName.value
         }
 
     override fun equals(other: Any?): Boolean {
@@ -139,4 +139,38 @@ fun List<Param>.hasDuplicateParam(param: Param): Boolean {
         if (i.partiallyEqual(param)) return true else continue
     }
     return false
+}
+
+/**
+ *  A  `paramname` encoded string according to [ZIP-321](https://zips.z.cash/zip-0321)
+ *
+ *  ZIP-321 defines:
+ *  ```
+ *   paramname       = ALPHA *( ALPHA / DIGIT / "+" / "-" )
+ */
+class ParamNameString(val value: String) {
+    init {
+        // String can't be empty
+        require(value.isNotEmpty()) { throw ZIP321.Errors.InvalidParamName(value) }
+        // String can't start with a digit, "+" or "-"
+        require(value.first().isAsciiLetter())
+        // The whole String conforms to the character set defined in ZIP-321
+        require(value.map {
+                CharsetValidations.Companion.ParamNameCharacterSet.characters.contains(it)
+            }.reduce { acc, b -> acc && b }
+        ) { throw ZIP321.Errors.InvalidParamName(value) }
+    }
+
+    override fun toString(): String {
+        return value
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is ParamNameString) return false
+
+        if (value != other.value) return false
+
+        return true
+    }
 }

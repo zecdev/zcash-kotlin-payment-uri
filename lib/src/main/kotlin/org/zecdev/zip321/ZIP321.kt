@@ -102,6 +102,11 @@ object ZIP321 {
          * are not recognized, but that are not prefixed with a req-, SHOULD be ignored.)
          */
         data class UnknownRequiredParameter(val value: String) : Errors()
+
+        /**
+         * the parser found a `paramname` with the wrong encoding
+         */
+        data class InvalidParamName(val paramName: String) : Errors()
     }
 
     sealed class ParserResult {

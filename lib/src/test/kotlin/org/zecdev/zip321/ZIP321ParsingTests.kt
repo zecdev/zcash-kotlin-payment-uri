@@ -8,6 +8,7 @@ import org.zecdev.zip321.ZIP321.ParserResult.Request
 import org.zecdev.zip321.ZIP321.ParserResult.SingleAddress
 import org.zecdev.zip321.model.OtherParam
 import org.zecdev.zip321.model.RecipientAddress
+import org.zecdev.zip321.parser.ParamNameString
 import org.zecdev.zip321.parser.ParserContext
 
 class ZIP321ParsingTests : FreeSpec({
@@ -177,7 +178,7 @@ class ZIP321ParsingTests : FreeSpec({
             payment.label shouldBe null
             payment.memo shouldBe null
             payment.message shouldBe null
-            payment.otherParams shouldBe listOf(OtherParam(key, value))
+            payment.otherParams shouldBe listOf(OtherParam(ParamNameString(key), value))
             payment.nonNegativeAmount?.value.toString() shouldBe amount
         }
 
@@ -198,7 +199,7 @@ class ZIP321ParsingTests : FreeSpec({
             payment.label shouldBe null
             payment.memo shouldBe null
             payment.message shouldBe null
-            payment.otherParams shouldBe listOf(OtherParam(key, value))
+            payment.otherParams shouldBe listOf(OtherParam(ParamNameString(key), value))
             payment.nonNegativeAmount?.value.toString() shouldBe amount
         }
 
@@ -219,7 +220,7 @@ class ZIP321ParsingTests : FreeSpec({
             payment.label shouldBe null
             payment.memo shouldBe null
             payment.message shouldBe null
-            payment.otherParams shouldBe listOf(OtherParam(key, value))
+            payment.otherParams shouldBe listOf(OtherParam(ParamNameString(key), value))
             payment.nonNegativeAmount?.value.toString() shouldBe amount
         }
 
@@ -263,7 +264,7 @@ class ZIP321ParsingTests : FreeSpec({
             payment.label shouldBe null
             payment.memo shouldBe null
             payment.message shouldBe null
-            payment.otherParams shouldBe listOf(OtherParam(key, value))
+            payment.otherParams shouldBe listOf(OtherParam(ParamNameString(key), value))
             payment.nonNegativeAmount?.value.toString() shouldBe amount
         }
 //         FIXME: Fails with ParserException
