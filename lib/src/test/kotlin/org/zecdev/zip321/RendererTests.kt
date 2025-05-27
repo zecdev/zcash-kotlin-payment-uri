@@ -7,6 +7,7 @@ import org.zecdev.zip321.model.NonNegativeAmount
 import org.zecdev.zip321.model.Payment
 import org.zecdev.zip321.model.PaymentRequest
 import org.zecdev.zip321.model.RecipientAddress
+import org.zecdev.zip321.parser.ParserContext
 
 class RendererTests : FreeSpec({
     "Amount Tests" - {
@@ -26,7 +27,7 @@ class RendererTests : FreeSpec({
             val expected = "address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
             val address0 = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
 
-            val recipient0 = RecipientAddress(value = address0)
+            val recipient0 = RecipientAddress(value = address0, ParserContext.TESTNET)
             Render.parameter(recipient0, null) shouldBe expected
         }
 
@@ -34,7 +35,7 @@ class RendererTests : FreeSpec({
             val expected = "address.1=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
             val address0 = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
 
-            val recipient0 = RecipientAddress(value = address0)
+            val recipient0 = RecipientAddress(value = address0, ParserContext.TESTNET)
             Render.parameter(recipient0, 1u) shouldBe expected
         }
 
@@ -86,7 +87,7 @@ class RendererTests : FreeSpec({
             val expected = "address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount=123.456"
             val address0 = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
 
-            val recipient0 = RecipientAddress(value = address0)
+            val recipient0 = RecipientAddress(value = address0, ParserContext.TESTNET)
             val payment0 = Payment(
                 recipientAddress = recipient0,
                 nonNegativeAmount = NonNegativeAmount(123.456.toBigDecimal()),
@@ -104,7 +105,7 @@ class RendererTests : FreeSpec({
                 "address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=0.789&memo.1=VGhpcyBpcyBhIHVuaWNvZGUgbWVtbyDinKjwn6aE8J-PhvCfjok"
             val address1 = "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez"
 
-            val recipient1 = RecipientAddress(value = address1)
+            val recipient1 = RecipientAddress(value = address1, ParserContext.TESTNET)
             val payment1 = Payment(
                 recipientAddress = recipient1,
                 nonNegativeAmount = NonNegativeAmount(0.789.toBigDecimal()),
@@ -121,7 +122,7 @@ class RendererTests : FreeSpec({
             val expected = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU?amount=123.456"
             val address0 = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
 
-            val recipient0 = RecipientAddress(value = address0)
+            val recipient0 = RecipientAddress(value = address0, ParserContext.TESTNET)
             val payment0 = Payment(
                 recipientAddress = recipient0,
                 nonNegativeAmount = NonNegativeAmount(123.456.toBigDecimal()),
@@ -139,7 +140,7 @@ class RendererTests : FreeSpec({
                 "address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=0.789&memo.1=VGhpcyBpcyBhIHVuaWNvZGUgbWVtbyDinKjwn6aE8J-PhvCfjok"
             val address1 = "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez"
 
-            val recipient1 = RecipientAddress(value = address1)
+            val recipient1 = RecipientAddress(value = address1, ParserContext.TESTNET)
             val payment1 = Payment(
                 recipientAddress = recipient1,
                 nonNegativeAmount = NonNegativeAmount(0.789.toBigDecimal()),
@@ -156,7 +157,7 @@ class RendererTests : FreeSpec({
             val expected = "zcash:?address.1=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount.1=123.45&label.1=apple&address.2=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.2=1.2345&label.2=banana"
 
             val payment1 = Payment(
-                recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"),
+                recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
                 nonNegativeAmount = NonNegativeAmount("123.45"),
                 memo = null,
                 label = "apple",
@@ -165,7 +166,7 @@ class RendererTests : FreeSpec({
             )
 
             val payment2 = Payment(
-                recipientAddress = RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez"),
+                recipientAddress = RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET),
                 nonNegativeAmount = NonNegativeAmount("1.2345"),
                 memo = null,
                 label = "banana",
@@ -182,7 +183,7 @@ class RendererTests : FreeSpec({
             val expected = "zcash:?address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount=123.45&label=apple&address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=1.2345&label.1=banana"
 
             val payment1 = Payment(
-                recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"),
+                recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
                 nonNegativeAmount = NonNegativeAmount("123.45"),
                 memo = null,
                 label = "apple",
@@ -191,7 +192,7 @@ class RendererTests : FreeSpec({
             )
 
             val payment2 = Payment(
-                recipientAddress = RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez"),
+                recipientAddress = RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET),
                 nonNegativeAmount = NonNegativeAmount("1.2345"),
                 memo = null,
                 label = "banana",
@@ -208,7 +209,7 @@ class RendererTests : FreeSpec({
             val expected = "zcash:tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU?amount=123.45&label=apple&address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=1.2345&label.1=banana"
 
             val payment1 = Payment(
-                recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"),
+                recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
                 nonNegativeAmount = NonNegativeAmount("123.45"),
                 memo = null,
                 label = "apple",
@@ -217,7 +218,7 @@ class RendererTests : FreeSpec({
             )
 
             val payment2 = Payment(
-                recipientAddress = RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez"),
+                recipientAddress = RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET),
                 nonNegativeAmount = NonNegativeAmount("1.2345"),
                 memo = null,
                 label = "banana",

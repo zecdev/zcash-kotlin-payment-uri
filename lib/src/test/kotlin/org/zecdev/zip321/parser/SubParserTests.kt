@@ -167,7 +167,7 @@ class SubParserTests : FreeSpec({
             val index = 1u
             val value = "Thank%20You%20For%20Your%20Purchase"
             val input = Pair<Pair<String, UInt?>, String>(Pair(query, index), value)
-            val qcharDecodedValue = value.qcharDecode() ?: ""
+            val qcharDecodedValue = value.qcharDecode()
             qcharDecodedValue shouldNotBe ""
 
             Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).zcashParameter(input) shouldBe
@@ -179,7 +179,7 @@ class SubParserTests : FreeSpec({
             val index = 1u
             val value = "Thank%20You%20For%20Your%20Purchase"
             val input = Pair<Pair<String, UInt?>, String>(Pair(query, index), value)
-            val qcharDecodedValue = value.qcharDecode() ?: ""
+            val qcharDecodedValue = value.qcharDecode()
             qcharDecodedValue shouldNotBe ""
 
             Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).zcashParameter(input) shouldBe
@@ -220,7 +220,7 @@ class SubParserTests : FreeSpec({
             val remainingString = "?address=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount=1&memo=VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg&message=Thank%20you%20for%20your%20purchase"
 
             val recipient =
-                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez")
+                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET)
 
             val expected = listOf(
                 IndexedParameter(0u, Param.Address(recipient)),
@@ -237,7 +237,7 @@ class SubParserTests : FreeSpec({
         val remainingString = "?amount=1&memo=VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg&message=Thank%20you%20for%20your%20purchase"
 
         val recipient =
-            RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez")
+            RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET)
 
         val expected = listOf(
             IndexedParameter(0u, Param.Address(recipient)),
@@ -254,7 +254,7 @@ class SubParserTests : FreeSpec({
     "Duplicate Params are caught" - {
         "Duplicate other params are detected" {
             val params = listOf(
-                Param.Address(RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez")),
+                Param.Address(RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET)),
                 Param.Amount(NonNegativeAmount("1")),
                 Param.Message("Thanks"),
                 Param.Label("payment"),
@@ -266,20 +266,20 @@ class SubParserTests : FreeSpec({
 
         "Duplicate address params are detected" {
             val params = listOf(
-                Param.Address(RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez")),
+                Param.Address(RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET)),
                 Param.Amount(NonNegativeAmount("1")),
                 Param.Message("Thanks"),
                 Param.Label("payment"),
                 Param.Other("future", "is awesome")
             )
 
-            params.hasDuplicateParam(Param.Address(RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez"))) shouldBe true
+            params.hasDuplicateParam(Param.Address(RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET))) shouldBe true
         }
     }
 
     "Payment can be created from uniquely indexed Params" - {
         "Payment is created from indexed parameters" {
-            val recipient = RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez")
+            val recipient = RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET)
 
             val params = listOf(
                 Param.Address(recipient),
@@ -303,7 +303,7 @@ class SubParserTests : FreeSpec({
 
         "duplicate addresses are detected" {
             val shieldedRecipient =
-                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez")
+                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET)
 
             val duplicateAddressParams: List<IndexedParameter> = listOf(
                 IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
@@ -322,7 +322,7 @@ class SubParserTests : FreeSpec({
 
         "duplicate amounts are detected" {
             val shieldedRecipient =
-                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez")
+                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET)
 
             val duplicateAmountParams: List<IndexedParameter> = listOf(
                 IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
@@ -341,7 +341,7 @@ class SubParserTests : FreeSpec({
 
         "duplicate message are detected" {
             val shieldedRecipient =
-                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez")
+                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET)
 
             val duplicateParams: List<IndexedParameter> = listOf(
                 IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
@@ -361,7 +361,7 @@ class SubParserTests : FreeSpec({
 
         "duplicate memos are detected" {
             val shieldedRecipient =
-                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez")
+                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET)
 
             val duplicateParams: List<IndexedParameter> = listOf(
                 IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
@@ -380,7 +380,7 @@ class SubParserTests : FreeSpec({
 
         "duplicate other params are detected" {
             val shieldedRecipient =
-                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez")
+                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET)
 
             val duplicateParams: List<IndexedParameter> = listOf(
                 IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),

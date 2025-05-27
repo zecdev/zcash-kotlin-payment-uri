@@ -20,7 +20,7 @@ class ZIP321ParsingTests : FreeSpec({
 
             (parserResult is SingleAddress) shouldBe true
             val recipientAddress = (parserResult as SingleAddress).singleRecipient
-            recipientAddress shouldBe RecipientAddress(address)
+            recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
         }
 
         "request(String, FormattingOptions) parses single address, with empty param index and address label not omitted" {
@@ -31,7 +31,7 @@ class ZIP321ParsingTests : FreeSpec({
 
             (parserResult is SingleAddress) shouldBe true
             val recipientAddress = (parserResult as SingleAddress).singleRecipient
-            recipientAddress shouldBe RecipientAddress(address)
+            recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
         }
 
         "request(String, FormattingOptions) parses single address, with all payments enumerated" {
@@ -42,7 +42,7 @@ class ZIP321ParsingTests : FreeSpec({
 
             (parserResult is SingleAddress) shouldBe true
             val recipientAddress = (parserResult as SingleAddress).singleRecipient
-            recipientAddress shouldBe RecipientAddress(address)
+            recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
         }
 
         "request(String, FormattingOptions) parses single payment with label but no amount, with empty param index and address label omitted" {
@@ -56,7 +56,7 @@ class ZIP321ParsingTests : FreeSpec({
             val paymentRequest = (parserResult as Request).paymentRequest
             paymentRequest.payments.size shouldBe 1
             val payment = paymentRequest.payments[0]
-            payment.recipientAddress shouldBe RecipientAddress(address)
+            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
             payment.label shouldBe label
             payment.memo shouldBe null
             payment.message shouldBe null
@@ -75,7 +75,7 @@ class ZIP321ParsingTests : FreeSpec({
             val paymentRequest = (parserResult as Request).paymentRequest
             paymentRequest.payments.size shouldBe 1
             val payment = paymentRequest.payments[0]
-            payment.recipientAddress shouldBe RecipientAddress(address)
+            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
             payment.label shouldBe label
             payment.memo shouldBe null
             payment.message shouldBe null
@@ -93,7 +93,7 @@ class ZIP321ParsingTests : FreeSpec({
             val paymentRequest = (parserResult as Request).paymentRequest
             paymentRequest.payments.size shouldBe 1
             val payment = paymentRequest.payments[0]
-            payment.recipientAddress shouldBe RecipientAddress(address)
+            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
             payment.label shouldBe label
             payment.memo shouldBe null
             payment.message shouldBe null
@@ -113,7 +113,7 @@ class ZIP321ParsingTests : FreeSpec({
             val paymentRequest = (parserResult as Request).paymentRequest
             paymentRequest.payments.size shouldBe 1
             val payment = paymentRequest.payments[0]
-            payment.recipientAddress shouldBe RecipientAddress(address)
+            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
             payment.label shouldBe label
             payment.memo shouldBe null
             payment.message shouldBe null
@@ -133,7 +133,7 @@ class ZIP321ParsingTests : FreeSpec({
             val paymentRequest = (parserResult as Request).paymentRequest
             paymentRequest.payments.size shouldBe 1
             val payment = paymentRequest.payments[0]
-            payment.recipientAddress shouldBe RecipientAddress(address)
+            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
             payment.label shouldBe label
             payment.memo shouldBe null
             payment.message shouldBe null
@@ -152,7 +152,7 @@ class ZIP321ParsingTests : FreeSpec({
             val paymentRequest = (parserResult as Request).paymentRequest
             paymentRequest.payments.size shouldBe 1
             val payment = paymentRequest.payments[0]
-            payment.recipientAddress shouldBe RecipientAddress(address)
+            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
             payment.label shouldBe label
             payment.memo shouldBe null
             payment.message shouldBe null
@@ -173,7 +173,7 @@ class ZIP321ParsingTests : FreeSpec({
             val paymentRequest = (parserResult as Request).paymentRequest
             paymentRequest.payments.size shouldBe 1
             val payment = paymentRequest.payments[0]
-            payment.recipientAddress shouldBe RecipientAddress(address)
+            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
             payment.label shouldBe null
             payment.memo shouldBe null
             payment.message shouldBe null
@@ -194,7 +194,7 @@ class ZIP321ParsingTests : FreeSpec({
             val paymentRequest = (parserResult as Request).paymentRequest
             paymentRequest.payments.size shouldBe 1
             val payment = paymentRequest.payments[0]
-            payment.recipientAddress shouldBe RecipientAddress(address)
+            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
             payment.label shouldBe null
             payment.memo shouldBe null
             payment.message shouldBe null
@@ -215,7 +215,7 @@ class ZIP321ParsingTests : FreeSpec({
             val paymentRequest = (parserResult as Request).paymentRequest
             paymentRequest.payments.size shouldBe 1
             val payment = paymentRequest.payments[0]
-            payment.recipientAddress shouldBe RecipientAddress(address)
+            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
             payment.label shouldBe null
             payment.memo shouldBe null
             payment.message shouldBe null
@@ -237,7 +237,7 @@ class ZIP321ParsingTests : FreeSpec({
 //            val paymentRequest = (parserResult as Request).paymentRequest
 //            paymentRequest.payments.size shouldBe 1
 //            val payment = paymentRequest.payments[0]
-//            payment.recipientAddress shouldBe RecipientAddress(address)
+//            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
 //            payment.label shouldBe null
 //            payment.memo shouldBe null
 //            payment.message shouldBe null
@@ -259,7 +259,7 @@ class ZIP321ParsingTests : FreeSpec({
             val paymentRequest = (parserResult as Request).paymentRequest
             paymentRequest.payments.size shouldBe 1
             val payment = paymentRequest.payments[0]
-            payment.recipientAddress shouldBe RecipientAddress(address)
+            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
             payment.label shouldBe null
             payment.memo shouldBe null
             payment.message shouldBe null
@@ -280,7 +280,7 @@ class ZIP321ParsingTests : FreeSpec({
 //            val paymentRequest = (parserResult as Request).paymentRequest
 //            paymentRequest.payments.size shouldBe 1
 //            val payment = paymentRequest.payments[0]
-//            payment.recipientAddress shouldBe RecipientAddress(address)
+//            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
 //            payment.label shouldBe null
 //            payment.memo shouldBe null
 //            payment.message shouldBe null
@@ -301,7 +301,7 @@ class ZIP321ParsingTests : FreeSpec({
 //            val paymentRequest = (parserResult as Request).paymentRequest
 //            paymentRequest.payments.size shouldBe 1
 //            val payment = paymentRequest.payments[0]
-//            payment.recipientAddress shouldBe RecipientAddress(address)
+//            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
 //            payment.label shouldBe null
 //            payment.memo shouldBe null
 //            payment.message shouldBe null
@@ -322,7 +322,7 @@ class ZIP321ParsingTests : FreeSpec({
 //            val paymentRequest = (parserResult as Request).paymentRequest
 //            paymentRequest.payments.size shouldBe 1
 //            val payment = paymentRequest.payments[0]
-//            payment.recipientAddress shouldBe RecipientAddress(address)
+//            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
 //            payment.label shouldBe null
 //            payment.memo shouldBe null
 //            payment.message shouldBe null
@@ -343,7 +343,7 @@ class ZIP321ParsingTests : FreeSpec({
 //            val paymentRequest = (parserResult as Request).paymentRequest
 //            paymentRequest.payments.size shouldBe 1
 //            val payment = paymentRequest.payments[0]
-//            payment.recipientAddress shouldBe RecipientAddress(address)
+//            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
 //            payment.label shouldBe null
 //            payment.memo shouldBe null
 //            payment.message shouldBe null

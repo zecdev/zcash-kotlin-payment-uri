@@ -13,12 +13,13 @@ sealed class Param {
             queryKey: String,
             value: String,
             index: UInt,
+            context: ParserContext,
             validatingAddress: ((String) -> Boolean)? = null
         ): Param {
             return when (queryKey) {
                 ParamName.ADDRESS.value -> {
                     try {
-                        Address(RecipientAddress(value, validatingAddress))
+                        Address(RecipientAddress(value, context, validatingAddress))
                     } catch (error: RecipientAddress.RecipientAddressError.InvalidRecipient) {
                         throw ZIP321.Errors.InvalidAddress(if (index > 0u) index else null)
                     }

@@ -54,6 +54,7 @@ class Parser(
                 param = Param.Address(
                     RecipientAddress(
                         textNode.text,
+                        context,
                         validating = defaultValidation
                     )
                 )
@@ -163,6 +164,7 @@ class Parser(
             queryKey,
             queryValue,
             queryKeyIndex,
+            context,
             validatingAddress
         )
 
