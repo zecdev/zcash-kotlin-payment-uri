@@ -5,6 +5,7 @@ import com.copperleaf.kudzu.parser.ParserException
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
+import org.zecdev.zip321.ZIP321
 import org.zecdev.zip321.model.RecipientAddress
 
 class ParserTests : FreeSpec({
@@ -45,7 +46,7 @@ class ParserTests : FreeSpec({
         }
 
         "rejects single recipient with leading address that contains unicode characters" {
-            shouldThrow<ParserException> {
+            shouldThrow<ZIP321.Errors.ParseError> {
                 // This URI contains Unicode letters `ʔ`, `ꘌ`, `ꓸ` and `ẟ` that resemble the delimiters `?`, `=`, `.` and `&`
                 val invalidURI = "zcash:tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpUʔamountꘌ1ꓸ234ẟmessageꘌThanks"
                 Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).parse(

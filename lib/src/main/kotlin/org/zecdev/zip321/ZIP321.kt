@@ -124,7 +124,7 @@ object ZIP321 {
     /**
      * Transforms a [PaymentRequest] into a ZIP-321 payment request [String].
      *
-     * @param request The payment request.
+     * @param from The payment request.
      * @param formattingOptions The formatting options.
      * @return The ZIP-321 payment request [String].
      */

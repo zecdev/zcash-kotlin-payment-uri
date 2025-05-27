@@ -231,51 +231,55 @@ class Parser(
 
     @Throws(ZIP321.Errors::class)
     fun parse(uriString: String): ParserResult {
-        val maybeNode: ValueNode<IndexedParameter?>?
-        val maybeRemainingText: ParserContext?
         try {
-            val (node, remainingText) = maybeLeadingAddressParse.parse(
-                ParserContext.fromString(uriString)
-            )
-            maybeNode = node
-            maybeRemainingText = remainingText
-        } catch (e: ParserException) {
-            throw ZIP321.Errors.InvalidAddress(null)
-        }
+            val maybeNode: ValueNode<IndexedParameter?>?
+            val maybeRemainingText: ParserContext?
+            try {
+                val (node, remainingText) = maybeLeadingAddressParse.parse(
+                    ParserContext.fromString(uriString)
+                )
+                maybeNode = node
+                maybeRemainingText = remainingText
+            } catch (e: ParserException) {
+                throw ZIP321.Errors.InvalidAddress(null)
+            }
 
 
-        val leadingAddress = maybeNode.value
+            val leadingAddress = maybeNode.value
 
-        // no remaining text to parse and no address found. Not a valid URI
-        if (maybeRemainingText.isEmpty() && leadingAddress == null) {
-            throw ZIP321.Errors.InvalidURI
-        }
+            // no remaining text to parse and no address found. Not a valid URI
+            if (maybeRemainingText.isEmpty() && leadingAddress == null) {
+                throw ZIP321.Errors.InvalidURI
+            }
 
-        if (maybeRemainingText.isEmpty() && leadingAddress != null) {
-            leadingAddress.let {
-                when (val param = it.param) {
-                    is Param.Address -> return ParserResult.SingleAddress(param.recipientAddress)
-                    else ->
-                        throw ZIP321.Errors.ParseError(
-                            "leading parameter after `zcash:` that is not an address"
-                        )
+            if (maybeRemainingText.isEmpty() && leadingAddress != null) {
+                leadingAddress.let {
+                    when (val param = it.param) {
+                        is Param.Address -> return ParserResult.SingleAddress(param.recipientAddress)
+                        else ->
+                            throw ZIP321.Errors.ParseError(
+                                "leading parameter after `zcash:` that is not an address"
+                            )
+                    }
                 }
             }
-        }
 
-        // remaining text is not empty there's still work to do
-        val payments = mapToPayments(
-            parseParameters(maybeRemainingText, maybeNode.value)
-        )
-
-        return if (payments.size == 1 && payments.first().isSingleAddress()) {
-            ParserResult.SingleAddress(payments.first().recipientAddress)
-        } else {
-            ParserResult.Request(
-                PaymentRequest(
-                    payments
-                )
+            // remaining text is not empty there's still work to do
+            val payments = mapToPayments(
+                parseParameters(maybeRemainingText, maybeNode.value)
             )
+
+            return if (payments.size == 1 && payments.first().isSingleAddress()) {
+                ParserResult.SingleAddress(payments.first().recipientAddress)
+            } else {
+                ParserResult.Request(
+                    PaymentRequest(
+                        payments
+                    )
+                )
+            }
+        } catch (e: ParserException) {
+            throw ZIP321.Errors.ParseError(e.message)
         }
     }
 }
