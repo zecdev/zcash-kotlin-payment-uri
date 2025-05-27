@@ -3,6 +3,7 @@
  */
 package org.zecdev.zip321
 
+import com.copperleaf.kudzu.parser.ParserException
 import org.zecdev.zip321.model.Payment
 import org.zecdev.zip321.model.PaymentRequest
 import org.zecdev.zip321.model.RecipientAddress
@@ -127,6 +128,7 @@ object ZIP321 {
      * @param formattingOptions The formatting options.
      * @return The ZIP-321 payment request [String].
      */
+    @Throws(Errors::class)
     fun uriString(
         from: PaymentRequest,
         formattingOptions: FormattingOptions = FormattingOptions.EnumerateAllPayments
@@ -148,6 +150,7 @@ object ZIP321 {
      * @param formattingOptions The formatting options.
      * @return The ZIP-321 payment URI [String].
      */
+    @Throws(Errors::class)
     fun request(
         recipient: RecipientAddress,
         formattingOptions: FormattingOptions = FormattingOptions.UseEmptyParamIndex(
@@ -180,6 +183,7 @@ object ZIP321 {
      * @param formattingOptions The formatting options.
      * @return The ZIP-321 payment request [String].
      */
+    @Throws(Errors::class)
     fun request(
         payment: Payment,
         formattingOptions: FormattingOptions = FormattingOptions.EnumerateAllPayments
