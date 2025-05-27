@@ -3,6 +3,7 @@ package org.zecdev.zip321.parser
 import org.zecdev.zip321.ParamName
 import org.zecdev.zip321.ZIP321
 import org.zecdev.zip321.extensions.qcharDecode
+import org.zecdev.zip321.extensions.qcharEncoded
 import org.zecdev.zip321.model.MemoBytes
 import org.zecdev.zip321.model.NonNegativeAmount
 import org.zecdev.zip321.model.RecipientAddress
@@ -172,5 +173,47 @@ class ParamNameString(val value: String) {
         if (value != other.value) return false
 
         return true
+    }
+
+    override fun hashCode(): Int {
+        return value.hashCode()
+    }
+}
+
+
+class QcharString private constructor(val encoded: String) {
+    companion object {
+        /**
+         * Initializes a [QcharString] from a non-empty, non-qchar-encoded input string.
+         *
+         * This constructor checks whether decoding the input string would change it,
+         * in order to avoid nested or duplicate encodings.
+         *
+         * @param value The raw string to be qchar-encoded.
+         * @param strict If `true`, the initializer will fail if decoding the input string
+         *                   yields a different result — which suggests the input is already qchar-encoded.
+         *
+         * @return A [QcharString] instance, or `null` if encoding fails or strict mode detects an issue.
+         */
+        fun from(value: String, strict: Boolean = false): QcharString? {
+            // String can't be empty
+            require(value.isNotEmpty()) { return null }
+            // check whether value is already qchar-encoded or partially
+            if (strict) {
+                val qcharDecode = value.qcharDecode()
+
+                if (qcharDecode != value) return null
+            }
+
+            return QcharString(value.qcharEncoded())
+        }
+    }
+
+    fun stringValue(): String {
+        return encoded.qcharDecode()
+    }
+
+    fun qcharValue(): String {
+        return encoded
     }
 }
