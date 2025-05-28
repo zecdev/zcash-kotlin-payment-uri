@@ -6,6 +6,7 @@ import com.copperleaf.kudzu.parser.ParserContext
 import com.copperleaf.kudzu.parser.ParserException
 import com.copperleaf.kudzu.parser.chars.AnyCharParser
 import com.copperleaf.kudzu.parser.chars.CharInParser
+import com.copperleaf.kudzu.parser.chars.CharNotInParser
 import com.copperleaf.kudzu.parser.chars.DigitParser
 import com.copperleaf.kudzu.parser.choice.PredictiveChoiceParser
 import com.copperleaf.kudzu.parser.many.ManyParser
@@ -91,6 +92,7 @@ class Parser(
             UntilParser(
                 AnyCharParser(),
                 PredictiveChoiceParser(
+                    LiteralTokenParser("&"),
                     LiteralTokenParser("."),
                     LiteralTokenParser("=")
                 )
@@ -118,13 +120,17 @@ class Parser(
     val queryKeyAndValueParser = MappedParser(
         SequenceParser(
             optionallyIndexedParamName,
-            LiteralTokenParser("="),
-            ManyParser(
-                CharInParser(QcharCharacterSet.characters.toList())
+            MaybeParser(
+                SequenceParser(
+                    LiteralTokenParser("="),
+                    ManyParser(
+                        CharInParser(QcharCharacterSet.characters.toList())
+                    )
+                )
             )
         )
     ) {
-        Pair(it.node1.value, it.node3.text)
+        Pair(it.node1.value, it.node2.node?.node2?.text)
     }
 
     /**
@@ -146,8 +152,9 @@ class Parser(
      * maps a parsed Query Parameter key and value into an `IndexedParameter`
      * providing validation of Query keys and values. An address validation can be provided.
      */
+    @Throws(ZIP321.Errors.InvalidParamValue::class)
     fun zcashParameter(
-        parsedQueryKeyValue: Pair<Pair<String, UInt?>, String>,
+        parsedQueryKeyValue: Pair<Pair<String, UInt?>, String?>,
         validatingAddress: ((String) -> Boolean)? = null
     ): IndexedParameter {
         val queryKey = parsedQueryKeyValue.first.first
@@ -270,6 +277,12 @@ class Parser(
             val payments = mapToPayments(
                 parseParameters(maybeRemainingText, maybeNode.value)
             )
+
+            val totalPayments = payments.size.toUInt()
+
+            if  (totalPayments > ZIP321.maxPaymentsAllowed) {
+                throw ZIP321.Errors.TooManyPayments(totalPayments)
+            }
 
             return if (payments.size == 1 && payments.first().isSingleAddress()) {
                 ParserResult.SingleAddress(payments.first().recipientAddress)

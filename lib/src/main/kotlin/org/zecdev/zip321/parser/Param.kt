@@ -2,6 +2,7 @@ package org.zecdev.zip321.parser
 
 import org.zecdev.zip321.ParamName
 import org.zecdev.zip321.ZIP321
+import org.zecdev.zip321.ZIP321.Errors.TooManyPayments
 import org.zecdev.zip321.extensions.qcharDecode
 import org.zecdev.zip321.extensions.qcharEncoded
 import org.zecdev.zip321.model.MemoBytes
@@ -10,15 +11,28 @@ import org.zecdev.zip321.model.RecipientAddress
 
 sealed class Param {
     companion object {
+        @Throws(ZIP321.Errors::class)
         fun from(
             queryKey: String,
-            value: String,
+            value: String?,
             index: UInt,
             context: ParserContext,
             validatingAddress: ((String) -> Boolean)? = null
         ): Param {
+            if (queryKey.isEmpty()) {
+                throw ZIP321.Errors.InvalidParamName("paramName cannot be empty")
+            }
+
+            if ((index + 1u) >= ZIP321.maxPaymentsAllowed) {
+                throw TooManyPayments(index + 1u)
+            }
             return when (queryKey) {
                 ParamName.ADDRESS.value -> {
+                    // ADDRESS param can't have no value
+                    if (value == null) {
+                        throw ZIP321.Errors.InvalidParamValue(queryKey, index)
+                    }
+
                     try {
                         Address(RecipientAddress(value, context, validatingAddress))
                     } catch (error: RecipientAddress.RecipientAddressError.InvalidRecipient) {
@@ -26,6 +40,11 @@ sealed class Param {
                     }
                 }
                 ParamName.AMOUNT.value -> {
+                    // AMOUNT param can't have no value
+                    if (value == null) {
+                        throw ZIP321.Errors.InvalidParamValue(queryKey, index)
+                    }
+
                     try {
                         Amount(NonNegativeAmount(decimalString = value))
                     } catch (error: NonNegativeAmount.AmountError.NegativeAmount) {
@@ -38,9 +57,25 @@ sealed class Param {
                         throw ZIP321.Errors.AmountTooSmall(index)
                     }
                 }
-                ParamName.LABEL.value -> Label(value.qcharDecode())
-                ParamName.MESSAGE.value -> Message(value.qcharDecode())
+                ParamName.LABEL.value -> {
+                    // LABEL param can't have no value
+                    if (value == null) {
+                        throw ZIP321.Errors.InvalidParamValue(queryKey, index)
+                    }
+                    Label(value.qcharDecode())
+                }
+                ParamName.MESSAGE.value -> {
+                    // MESSAGE param can't have no value
+                    if (value == null) {
+                        throw ZIP321.Errors.InvalidParamValue(queryKey, index)
+                    }
+                    Message(value.qcharDecode())
+                }
                 ParamName.MEMO.value -> {
+                    // MEMO param can't have no value
+                    if (value == null) {
+                        throw ZIP321.Errors.InvalidParamValue(queryKey, index)
+                    }
                     try {
                         Memo(MemoBytes.fromBase64URL(value))
                     } catch (error: MemoBytes.MemoError) {
@@ -51,7 +86,7 @@ sealed class Param {
                     if (queryKey.startsWith("req-")) {
                         throw ZIP321.Errors.UnknownRequiredParameter(queryKey)
                     }
-                    Other(ParamNameString(queryKey), value.qcharDecode())
+                    Other(ParamNameString(queryKey), value?.qcharDecode())
                 }
             }
         }
@@ -159,7 +194,9 @@ class ParamNameString(val value: String) {
         require(value.map {
                 CharsetValidations.Companion.ParamNameCharacterSet.characters.contains(it)
             }.reduce { acc, b -> acc && b }
-        ) { throw ZIP321.Errors.InvalidParamName(value) }
+        ) {
+            throw ZIP321.Errors.InvalidParamName(value)
+        }
     }
 
     override fun toString(): String {

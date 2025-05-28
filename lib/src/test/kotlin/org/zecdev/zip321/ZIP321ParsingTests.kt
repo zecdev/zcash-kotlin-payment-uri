@@ -224,29 +224,27 @@ class ZIP321ParsingTests : FreeSpec({
             payment.nonNegativeAmount?.value.toString() shouldBe amount
         }
 
-        //         FIXME: Fails with ParserException
-//        "request(String, FormattingOptions) parses single payment with amount and unknown parameter with empty value, with empty param index and address label omitted" {
-//            val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
-//            val amount = "123.45"
-//            val key = "foo"
-//            val value = ""
-//            val url = "zcash:$address?amount=$amount&$key=$value"
-//
-//            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
-//
-//            (parserResult is Request) shouldBe true
-//            val paymentRequest = (parserResult as Request).paymentRequest
-//            paymentRequest.payments.size shouldBe 1
-//            val payment = paymentRequest.payments[0]
-//            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
-//            payment.label shouldBe null
-//            payment.memo shouldBe null
-//            payment.message shouldBe null
-//            payment.otherParams shouldBe listOf(OtherParam(key, value))
-//            payment.nonNegativeAmount?.value.toString() shouldBe amount
-//        }
+        "request(String, FormattingOptions) parses single payment with amount and unknown parameter with empty value, with empty param index and address label omitted" {
+            val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
+            val amount = "123.45"
+            val key = "foo"
+            val value = ""
+            val url = "zcash:$address?amount=$amount&$key=$value"
 
-         //FIXME: Fails with ParserException
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
+
+            (parserResult is Request) shouldBe true
+            val paymentRequest = (parserResult as Request).paymentRequest
+            paymentRequest.payments.size shouldBe 1
+            val payment = paymentRequest.payments[0]
+            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
+            payment.label shouldBe null
+            payment.memo shouldBe null
+            payment.message shouldBe null
+            payment.otherParams shouldBe listOf(OtherParam(ParamNameString(key), value))
+            payment.nonNegativeAmount?.value.toString() shouldBe amount
+        }
+
         "request(String, FormattingOptions) parses single payment with amount and unknown parameter with empty value, with empty param index and address label not omitted" {
             val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
             val amount = "123.45"
@@ -267,90 +265,130 @@ class ZIP321ParsingTests : FreeSpec({
             payment.otherParams shouldBe listOf(OtherParam(ParamNameString(key), value))
             payment.nonNegativeAmount?.value.toString() shouldBe amount
         }
-//         FIXME: Fails with ParserException
-//        "request(String, FormattingOptions) parses single payment with amount and unknown parameter with empty value, with all payments enumerated" {
-//            val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
-//            val amount = "123.45"
-//            val key = "foo"
-//            val value = ""
-//            val url = "zcash:?address.1=$address&amount.1=$amount&$key.1=$value"
-//
-//            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
-//
-//            (parserResult is Request) shouldBe true
-//            val paymentRequest = (parserResult as Request).paymentRequest
-//            paymentRequest.payments.size shouldBe 1
-//            val payment = paymentRequest.payments[0]
-//            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
-//            payment.label shouldBe null
-//            payment.memo shouldBe null
-//            payment.message shouldBe null
-//            payment.otherParams shouldBe listOf(OtherParam(key, value))
-//            payment.nonNegativeAmount?.value.toString() shouldBe amount
-//        }
 
-        // FIXME: Fails with ParserException
-//        "request(String, FormattingOptions) parses single payment with amount and unknown parameter with no value, with empty param index and address label omitted" {
-//            val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
-//            val amount = "123.45"
-//            val param = "foo"
-//            val url = "zcash:$address?amount=$amount&$param"
-//
-//            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
-//
-//            (parserResult is Request) shouldBe true
-//            val paymentRequest = (parserResult as Request).paymentRequest
-//            paymentRequest.payments.size shouldBe 1
-//            val payment = paymentRequest.payments[0]
-//            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
-//            payment.label shouldBe null
-//            payment.memo shouldBe null
-//            payment.message shouldBe null
-//            // FIXME: payment.otherParams shouldBe listOf(OtherParam(param, null))
-//            payment.nonNegativeAmount.value.toString() shouldBe amount
-//        }
+        "request(String, FormattingOptions) parses single payment with amount and unknown parameter with empty value, with all payments enumerated" {
+            val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
+            val amount = "123.45"
+            val key = "foo"
+            val value = ""
+            val url = "zcash:?address.1=$address&amount.1=$amount&$key.1=$value"
 
-        // FIXME: Fails with ParserException
-//        "request(String, FormattingOptions) parses single payment with amount and unknown parameter with no value, with empty param index and address label not omitted" {
-//            val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
-//            val amount = "123.45"
-//            val param = "foo"
-//            val url = "zcash:?address=$address&amount=$amount&$param"
-//
-//            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
-//
-//            (parserResult is Request) shouldBe true
-//            val paymentRequest = (parserResult as Request).paymentRequest
-//            paymentRequest.payments.size shouldBe 1
-//            val payment = paymentRequest.payments[0]
-//            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
-//            payment.label shouldBe null
-//            payment.memo shouldBe null
-//            payment.message shouldBe null
-//            // FIXME: payment.otherParams shouldBe listOf(OtherParam(param, null))
-//            payment.nonNegativeAmount.value.toString() shouldBe amount
-//        }
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
 
-        // FIXME: Fails with ParserException
-//        "request(String, FormattingOptions) parses single payment with amount and unknown parameter with no value, with all payments enumerated" {
-//            val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
-//            val amount = "123.45"
-//            val param = "foo"
-//            val url = "zcash:?address.1=$address&amount.1=$amount&$param.1"
-//
-//            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
-//
-//            (parserResult is Request) shouldBe true
-//            val paymentRequest = (parserResult as Request).paymentRequest
-//            paymentRequest.payments.size shouldBe 1
-//            val payment = paymentRequest.payments[0]
-//            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
-//            payment.label shouldBe null
-//            payment.memo shouldBe null
-//            payment.message shouldBe null
-//            // FIXME: payment.otherParams shouldBe listOf(OtherParam(param, null))
-//            payment.nonNegativeAmount.value.toString() shouldBe amount
-//        }
+            (parserResult is Request) shouldBe true
+            val paymentRequest = (parserResult as Request).paymentRequest
+            paymentRequest.payments.size shouldBe 1
+            val payment = paymentRequest.payments[0]
+            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
+            payment.label shouldBe null
+            payment.memo shouldBe null
+            payment.message shouldBe null
+            payment.otherParams shouldBe listOf(OtherParam(ParamNameString(key), value))
+            payment.nonNegativeAmount?.value.toString() shouldBe amount
+        }
+
+        "request(String, FormattingOptions) parses single payment with amount and unknown parameter with no value, with empty param index and address label omitted" {
+            val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
+            val amount = "123.45"
+            val param = "foo"
+            val url = "zcash:$address?amount=$amount&$param"
+
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
+
+            (parserResult is Request) shouldBe true
+            val paymentRequest = (parserResult as Request).paymentRequest
+            paymentRequest.payments.size shouldBe 1
+            val payment = paymentRequest.payments[0]
+            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
+            payment.label shouldBe null
+            payment.memo shouldBe null
+            payment.message shouldBe null
+            payment.nonNegativeAmount?.value.toString() shouldBe amount
+            payment.otherParams shouldBe listOf(OtherParam(ParamNameString(param), null))
+
+
+        }
+
+        "request(String, FormattingOptions) fails to parse payment URI with an amount param that has no value" {
+            val url = "zcash:tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU?amount&foo"
+
+            shouldThrow<ZIP321.Errors.InvalidParamValue> { ZIP321.request(url, ParserContext.TESTNET) { _ -> true } }
+        }
+
+        "request(String, FormattingOptions) fails to parse payment URI with an address param that has no value" {
+            val amount = "123.45"
+            val param = "foo"
+            val url = "zcash:?address&amount=$amount&$param"
+
+            shouldThrow<ZIP321.Errors.InvalidParamValue> { ZIP321.request(url, ParserContext.TESTNET) { _ -> true } }
+        }
+
+        "request(String, FormattingOptions) fails to parse payment URI with a memo param that has no value" {
+            val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
+            val amount = "123.45"
+            val param = "foo"
+            val url = "zcash:$address?amount=$amount&$param&memo"
+
+            shouldThrow<ZIP321.Errors.InvalidParamValue> { ZIP321.request(url, ParserContext.TESTNET) { _ -> true } }
+        }
+
+        "request(String, FormattingOptions) fails to parse payment URI with a label param that has no value" {
+            val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
+            val amount = "123.45"
+            val param = "foo"
+            val url = "zcash:$address?amount=$amount&$param&label"
+
+            shouldThrow<ZIP321.Errors.InvalidParamValue> { ZIP321.request(url, ParserContext.TESTNET) { _ -> true } }
+        }
+
+        "request(String, FormattingOptions) fails to parse payment URI with a message param that has no value" {
+            val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
+            val amount = "123.45"
+            val param = "foo"
+            val url = "zcash:$address?amount=$amount&$param&message"
+
+            shouldThrow<ZIP321.Errors.InvalidParamValue> { ZIP321.request(url, ParserContext.TESTNET) { _ -> true } }
+        }
+
+        "request(String, FormattingOptions) parses single payment with amount and unknown parameter with no value, with empty param index and address label not omitted" {
+            val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
+            val amount = "123.45"
+            val param = "foo"
+            val url = "zcash:?address=$address&amount=$amount&$param"
+
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
+
+            (parserResult is Request) shouldBe true
+            val paymentRequest = (parserResult as Request).paymentRequest
+            paymentRequest.payments.size shouldBe 1
+            val payment = paymentRequest.payments[0]
+            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
+            payment.label shouldBe null
+            payment.memo shouldBe null
+            payment.message shouldBe null
+            payment.otherParams shouldBe listOf(OtherParam(ParamNameString(param), null))
+            payment.nonNegativeAmount?.value.toString() shouldBe amount
+        }
+
+        "request(String, FormattingOptions) parses single payment with amount and unknown parameter with no value, with all payments enumerated" {
+            val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
+            val amount = "123.45"
+            val param = "foo"
+            val url = "zcash:?address.1=$address&amount.1=$amount&$param.1"
+
+            val parserResult = ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
+
+            (parserResult is Request) shouldBe true
+            val paymentRequest = (parserResult as Request).paymentRequest
+            paymentRequest.payments.size shouldBe 1
+            val payment = paymentRequest.payments[0]
+            payment.recipientAddress shouldBe RecipientAddress(address, ParserContext.TESTNET)
+            payment.label shouldBe null
+            payment.memo shouldBe null
+            payment.message shouldBe null
+            payment.otherParams shouldBe listOf(OtherParam(ParamNameString(param), null))
+            payment.nonNegativeAmount?.value.toString() shouldBe amount
+        }
 
         "request(String, FormattingOptions) fails to parse address with wrong characters" {
             val url =

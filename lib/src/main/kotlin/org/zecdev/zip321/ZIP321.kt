@@ -14,6 +14,11 @@ import org.zecdev.zip321.parser.ParserContext
  * ZIP-321 object for handling formatting options.
  */
 object ZIP321 {
+    /**
+     * ZIP-321 allows a maximum of 2109 payments in a single URI string
+     */
+    val maxPaymentsAllowed = 2109u
+
     sealed class Errors : Exception() {
         /**
          * There's a payment exceeding the max supply as [ZIP-321](https://zips.z.cash/zip-0321) forbids.
@@ -59,7 +64,7 @@ object ZIP321 {
          * The [ZIP-321](https://zips.z.cash/zip-0321) request included more payments than can be created within a single Zcash transaction.
          * The associated value is the number of payments in the request.
          */
-        data class TooManyPayments(val value: Long) : Errors()
+        data class TooManyPayments(val value: UInt) : Errors()
 
         /**
          * The payment at the associated value attempted to include a memo when sending to a transparent recipient address,
