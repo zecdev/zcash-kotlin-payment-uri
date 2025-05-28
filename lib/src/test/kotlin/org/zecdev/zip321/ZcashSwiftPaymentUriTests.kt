@@ -9,6 +9,7 @@ import org.zecdev.zip321.model.NonNegativeAmount
 import org.zecdev.zip321.model.Payment
 import org.zecdev.zip321.model.PaymentRequest
 import org.zecdev.zip321.model.RecipientAddress
+import org.zecdev.zip321.model.roundZec
 import java.math.BigDecimal
 
 /* ktlint-disable line-length */
@@ -57,7 +58,7 @@ class ZcashSwiftPaymentUriTests : FreeSpec({
         val recipient0 = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET)
         val payment0 = Payment(
             recipientAddress = recipient0,
-            nonNegativeAmount = NonNegativeAmount.create(BigDecimal(123.456)),
+            nonNegativeAmount = NonNegativeAmount(BigDecimal(123.456).roundZec()),
             memo = null,
             label = null,
             message = null,
@@ -68,7 +69,7 @@ class ZcashSwiftPaymentUriTests : FreeSpec({
             RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)
         val payment1 = Payment(
             recipientAddress = recipient1,
-            nonNegativeAmount = NonNegativeAmount.create(BigDecimal(0.789)),
+            nonNegativeAmount = NonNegativeAmount(BigDecimal(0.789).roundZec()),
             memo = MemoBytes("This is a unicode memo ✨🦄🏆🎉"),
             label = null,
             message = null,
@@ -87,7 +88,7 @@ class ZcashSwiftPaymentUriTests : FreeSpec({
         val recipient0 = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET)
         val payment0 = Payment(
             recipientAddress = recipient0,
-            nonNegativeAmount = NonNegativeAmount.create(BigDecimal(123.456)),
+            nonNegativeAmount = NonNegativeAmount(BigDecimal(123.456).roundZec()),
             memo = null,
             label = null,
             message = null,
@@ -98,7 +99,7 @@ class ZcashSwiftPaymentUriTests : FreeSpec({
             RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)
         val payment1 = Payment(
             recipientAddress = recipient1,
-            nonNegativeAmount = NonNegativeAmount.create(BigDecimal(0.789)),
+            nonNegativeAmount = NonNegativeAmount(BigDecimal(0.789).roundZec()),
             memo = MemoBytes("This is a unicode memo ✨🦄🏆🎉"),
             label = null,
             message = null,

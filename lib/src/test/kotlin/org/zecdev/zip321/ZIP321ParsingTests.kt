@@ -119,7 +119,7 @@ class ZIP321ParsingTests : FreeSpec({
             payment.memo shouldBe null
             payment.message shouldBe null
             payment.otherParams shouldBe null
-            payment.nonNegativeAmount?.value.toString() shouldBe amount
+            payment.nonNegativeAmount?.toZecValueString() shouldBe amount
         }
 
         "request(String, FormattingOptions) parses single payment with label and amount, with empty param index and address label not omitted" {
@@ -139,7 +139,7 @@ class ZIP321ParsingTests : FreeSpec({
             payment.memo shouldBe null
             payment.message shouldBe null
             payment.otherParams shouldBe null
-            payment.nonNegativeAmount?.value.toString() shouldBe amount
+            payment.nonNegativeAmount?.toZecValueString() shouldBe amount
         }
 
         "request(String, FormattingOptions) parses single payment with label and amount, with all payments enumerated" {
@@ -158,7 +158,7 @@ class ZIP321ParsingTests : FreeSpec({
             payment.memo shouldBe null
             payment.message shouldBe null
             payment.otherParams shouldBe null
-            payment.nonNegativeAmount?.value.toString() shouldBe amount
+            payment.nonNegativeAmount?.toZecValueString() shouldBe amount
         }
 
         "request(String, FormattingOptions) parses single payment with amount and unknown parameter, with empty param index and address label omitted" {
@@ -179,7 +179,7 @@ class ZIP321ParsingTests : FreeSpec({
             payment.memo shouldBe null
             payment.message shouldBe null
             payment.otherParams shouldBe listOf(OtherParam(ParamNameString(key), value))
-            payment.nonNegativeAmount?.value.toString() shouldBe amount
+            payment.nonNegativeAmount?.toZecValueString() shouldBe amount
         }
 
         "request(String, FormattingOptions) parses single payment with amount and unknown parameter, with empty param index and address label not omitted" {
@@ -200,7 +200,7 @@ class ZIP321ParsingTests : FreeSpec({
             payment.memo shouldBe null
             payment.message shouldBe null
             payment.otherParams shouldBe listOf(OtherParam(ParamNameString(key), value))
-            payment.nonNegativeAmount?.value.toString() shouldBe amount
+            payment.nonNegativeAmount?.toZecValueString() shouldBe amount
         }
 
         "request(String, FormattingOptions) parses single payment with amount and unknown parameter, with all payments enumerated" {
@@ -221,7 +221,7 @@ class ZIP321ParsingTests : FreeSpec({
             payment.memo shouldBe null
             payment.message shouldBe null
             payment.otherParams shouldBe listOf(OtherParam(ParamNameString(key), value))
-            payment.nonNegativeAmount?.value.toString() shouldBe amount
+            payment.nonNegativeAmount?.toZecValueString() shouldBe amount
         }
 
         "request(String, FormattingOptions) parses single payment with amount and unknown parameter with empty value, with empty param index and address label omitted" {
@@ -242,7 +242,7 @@ class ZIP321ParsingTests : FreeSpec({
             payment.memo shouldBe null
             payment.message shouldBe null
             payment.otherParams shouldBe listOf(OtherParam(ParamNameString(key), value))
-            payment.nonNegativeAmount?.value.toString() shouldBe amount
+            payment.nonNegativeAmount?.toZecValueString() shouldBe amount
         }
 
         "request(String, FormattingOptions) parses single payment with amount and unknown parameter with empty value, with empty param index and address label not omitted" {
@@ -263,7 +263,7 @@ class ZIP321ParsingTests : FreeSpec({
             payment.memo shouldBe null
             payment.message shouldBe null
             payment.otherParams shouldBe listOf(OtherParam(ParamNameString(key), value))
-            payment.nonNegativeAmount?.value.toString() shouldBe amount
+            payment.nonNegativeAmount?.toZecValueString() shouldBe amount
         }
 
         "request(String, FormattingOptions) parses single payment with amount and unknown parameter with empty value, with all payments enumerated" {
@@ -284,7 +284,7 @@ class ZIP321ParsingTests : FreeSpec({
             payment.memo shouldBe null
             payment.message shouldBe null
             payment.otherParams shouldBe listOf(OtherParam(ParamNameString(key), value))
-            payment.nonNegativeAmount?.value.toString() shouldBe amount
+            payment.nonNegativeAmount?.toZecValueString() shouldBe amount
         }
 
         "request(String, FormattingOptions) parses single payment with amount and unknown parameter with no value, with empty param index and address label omitted" {
@@ -303,7 +303,7 @@ class ZIP321ParsingTests : FreeSpec({
             payment.label shouldBe null
             payment.memo shouldBe null
             payment.message shouldBe null
-            payment.nonNegativeAmount?.value.toString() shouldBe amount
+            payment.nonNegativeAmount?.toZecValueString() shouldBe amount
             payment.otherParams shouldBe listOf(OtherParam(ParamNameString(param), null))
 
 
@@ -367,7 +367,7 @@ class ZIP321ParsingTests : FreeSpec({
             payment.memo shouldBe null
             payment.message shouldBe null
             payment.otherParams shouldBe listOf(OtherParam(ParamNameString(param), null))
-            payment.nonNegativeAmount?.value.toString() shouldBe amount
+            payment.nonNegativeAmount?.toZecValueString() shouldBe amount
         }
 
         "request(String, FormattingOptions) parses single payment with amount and unknown parameter with no value, with all payments enumerated" {
@@ -387,7 +387,7 @@ class ZIP321ParsingTests : FreeSpec({
             payment.memo shouldBe null
             payment.message shouldBe null
             payment.otherParams shouldBe listOf(OtherParam(ParamNameString(param), null))
-            payment.nonNegativeAmount?.value.toString() shouldBe amount
+            payment.nonNegativeAmount?.toZecValueString() shouldBe amount
         }
 
         "request(String, FormattingOptions) fails to parse address with wrong characters" {

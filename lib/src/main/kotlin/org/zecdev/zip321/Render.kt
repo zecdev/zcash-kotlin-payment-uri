@@ -36,7 +36,7 @@ object Render {
             parameterIndex(
                 index
             )
-        }=$nonNegativeAmount"
+        }=${nonNegativeAmount.toZecValueString()}"
     }
 
     fun parameter(memo: MemoBytes, index: UInt?): String {

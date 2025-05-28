@@ -307,7 +307,9 @@ class SubParserTests : FreeSpec({
 
             val duplicateAddressParams: List<IndexedParameter> = listOf(
                 IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
-                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount(value = BigDecimal(1)))),
+                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount(
+                    value = BigDecimal(1)
+                ))),
                 IndexedParameter(index = 0u, param = Param.Message("Thanks")),
                 IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
                 IndexedParameter(index = 0u, param = Param.Label("payment")),
@@ -326,11 +328,15 @@ class SubParserTests : FreeSpec({
 
             val duplicateAmountParams: List<IndexedParameter> = listOf(
                 IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
-                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount(value = BigDecimal(1)))),
+                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount(
+                    value = BigDecimal(1)
+                ))),
                 IndexedParameter(index = 0u, param = Param.Message("Thanks")),
                 IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
                 IndexedParameter(index = 0u, param = Param.Label("payment")),
-                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount(value = BigDecimal(2)))),
+                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount(
+                    value = BigDecimal(2)
+                ))),
                 IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is awesome"))
             )
 
@@ -345,12 +351,16 @@ class SubParserTests : FreeSpec({
 
             val duplicateParams: List<IndexedParameter> = listOf(
                 IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
-                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount(value = BigDecimal(1)))),
+                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount(
+                    value = BigDecimal(1)
+                ))),
                 IndexedParameter(index = 0u, param = Param.Message("Thanks")),
                 IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
                 IndexedParameter(index = 0u, param = Param.Message("Thanks")),
                 IndexedParameter(index = 0u, param = Param.Label("payment")),
-                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount(value = BigDecimal(2)))),
+                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount(
+                    value = BigDecimal(2)
+                ))),
                 IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is awesome"))
             )
 
@@ -366,7 +376,9 @@ class SubParserTests : FreeSpec({
             val duplicateParams: List<IndexedParameter> = listOf(
                 IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
                 IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
-                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount(value = BigDecimal(1)))),
+                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount(
+                    value = BigDecimal(1)
+                ))),
                 IndexedParameter(index = 0u, param = Param.Message("Thanks")),
                 IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
                 IndexedParameter(index = 0u, param = Param.Label("payment")),
@@ -385,7 +397,9 @@ class SubParserTests : FreeSpec({
             val duplicateParams: List<IndexedParameter> = listOf(
                 IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
                 IndexedParameter(index = 0u, param = Param.Label("payment")),
-                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount(value = BigDecimal(1)))),
+                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount(
+                    value = BigDecimal(1)
+                ))),
                 IndexedParameter(index = 0u, param = Param.Message("Thanks")),
                 IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is dystopian")),
                 IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
