@@ -62,7 +62,7 @@ sealed class Param {
     data class Memo(val memoBytes: MemoBytes) : Param()
     data class Label(val label: String) : Param()
     data class Message(val message: String) : Param()
-    data class Other(val paramName: ParamNameString, val value: String) : Param()
+    data class Other(val paramName: ParamNameString, val value: String?) : Param()
 
     val name: String
         get() = when (this) {
@@ -181,7 +181,7 @@ class ParamNameString(val value: String) {
 }
 
 
-class QcharString private constructor(val encoded: String) {
+class QcharString private constructor(private val encoded: String) {
     companion object {
         /**
          * Initializes a [QcharString] from a non-empty, non-qchar-encoded input string.

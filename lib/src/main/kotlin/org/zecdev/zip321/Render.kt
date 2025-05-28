@@ -20,8 +20,14 @@ object Render {
         return idx?.let { ".$it" } ?: ""
     }
 
-    fun parameter(label: String, value: String, index: UInt?): String? {
-        val qcharValue = value.qcharEncoded() ?: return null
+    fun otherParameter(key: String, maybeValue: String?, index: UInt?): String {
+        return maybeValue?.let {
+            parameter(key, it, index)
+        } ?: "$key${parameterIndex(index)}"
+    }
+
+    fun parameter(label: String, value: String, index: UInt?): String {
+        val qcharValue = value.qcharEncoded()
         return "$label${parameterIndex(index)}=$qcharValue"
     }
 
@@ -120,7 +126,7 @@ object Render {
                 if (result.last() != '?') {
                     result += "&"
                 }
-                result += parameter(param.key.value, param.value, index)
+                result += otherParameter(param.key.value, param.value, index)
             }
         }
 

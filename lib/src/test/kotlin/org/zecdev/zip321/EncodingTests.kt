@@ -53,14 +53,14 @@ class EncodingTests : FunSpec({
         unallowedCharacters.forEach { unallowed ->
             val qcharEncoded = unallowed.qcharEncoded()
             qcharEncoded should {
-                it != null && it.contains("%")
+                it.contains("%")
             }
         }
 
         (0x00..0x1F).map { it.toChar().toString() }.forEach { controlChar ->
             val qcharEncoded = controlChar.qcharEncoded()
             qcharEncoded should {
-                it != null && it.contains("%")
+               it.contains("%")
             }
         }
     }
@@ -72,7 +72,6 @@ class EncodingTests : FunSpec({
                 "Use Coupon [ZEC4LIFE] to get a 20% discount on your next purchase!!",
             "Order%20%23321" to "Order #321",
             "Your%20Ben%20%26%20Jerry's%20Order" to "Your Ben & Jerry's Order",
-            // FIXME: Fails because `+` is decoded to ` `
             "-._~!\$'()*+,;@:" to "-._~!\$'()*+,;@:",
             "%00" to "\u0000",
             "%20" to " ",

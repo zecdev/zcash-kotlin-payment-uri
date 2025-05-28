@@ -46,8 +46,11 @@ data class Payment(
     }
 }
 
-data class OtherParam(val key: ParamNameString, val value: String) {
+data class OtherParam(val key: ParamNameString, val value: String?) {
     override fun toString(): String {
+        if (value == null) {
+            return key.toString()
+        }
         return "$key=$value"
     }
 
