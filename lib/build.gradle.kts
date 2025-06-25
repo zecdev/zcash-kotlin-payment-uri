@@ -49,6 +49,11 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("com.code-intelligence:jazzer-junit:0.24.0")
+
+    // Jazzer
+    testImplementation("com.code-intelligence:jazzer-junit:0.24.0") // JUnit glue
+    testImplementation("com.code-intelligence:jazzer-api:0.24.0")   // <-- supplies FuzzedDataProvider
+    testRuntimeOnly("com.code-intelligence:jazzer:0.24.0")          // native Jazzer engine
 }
 
 detekt {

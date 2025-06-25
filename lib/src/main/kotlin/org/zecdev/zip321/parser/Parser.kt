@@ -240,6 +240,10 @@ class Parser(
 
     @Throws(ZIP321.Errors::class)
     fun parse(uriString: String): ParserResult {
+        if (uriString.isEmpty() || !uriString.startsWith("zcash:")) {
+            throw ZIP321.Errors.InvalidURI
+        }
+
         try {
             val maybeNode: ValueNode<IndexedParameter?>?
             val maybeRemainingText: ParserContext?
@@ -293,7 +297,10 @@ class Parser(
                     )
                 )
             }
-        } catch (e: ParserException) {
+        } catch (e: IllegalArgumentException) {
+            val message = e.message ?: """parser failed with unknown error"""
+            throw ZIP321.Errors.ParseError(message)
+        } catch (e: com.copperleaf.kudzu.parser.ParserException) {
             throw ZIP321.Errors.ParseError(e.message)
         }
     }

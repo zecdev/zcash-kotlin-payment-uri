@@ -398,6 +398,18 @@ class ZIP321ParsingTests : FreeSpec({
                 ZIP321.request(url, ParserContext.TESTNET) { _ -> true }
             }
         }
+
+        "request(String, FormattingOptions) fails when empty string is provided" {
+            shouldThrow<ZIP321.Errors.InvalidURI> {
+                ZIP321.request("", ParserContext.TESTNET) { _ -> true }
+            }
+        }
+
+        "request(String, FormattingOptions) fails when no URI Scheme string is detected" {
+            shouldThrow<ZIP321.Errors.InvalidURI> {
+                ZIP321.request("bitcoin:asdfasdfasdfasdfasdfasdfa", ParserContext.TESTNET) { _ -> true }
+            }
+        }
     }
 
 })
