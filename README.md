@@ -38,7 +38,7 @@ can be parsed by several applications across the ecosystem
 Payments requests that do not specify any other information than recipient address.
 
 ````kotlin
- val recipient = RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez")
+ val recipient = RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)
         
 ZIP321.request(recipient)
 ````
@@ -49,7 +49,7 @@ Desired Payment URI
 
 ````Kotlin
  val recipient =
-            RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez")
+            RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)
 val payment = Payment(
     recipientAddress = recipient,
     amount = Amount(BigDecimal(1)),
@@ -63,11 +63,13 @@ val paymentRequest = PaymentRequest(payments = listOf(payment))
 
 ZIP321.uriString(
     paymentRequest,
+    ParserContext.TESTNET,
     ZIP321.FormattingOptions.UseEmptyParamIndex(omitAddressLabel = true)
 )
 
 ZIP321.request(
     payment,
+    ParserContext.TESTNET,
     ZIP321.FormattingOptions.UseEmptyParamIndex(omitAddressLabel = true)
 ) 
 ````
@@ -80,7 +82,7 @@ Desired Payment URI:
 This payment Request is using `paramlabel`s with empty `paramindex` and number indices. This Request String generation API allows callers to specify their format of choice for parameters and indices.
 
 ````kotlin
-val recipient0 = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU")
+val recipient0 = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET)
 val payment0 = Payment(
     recipientAddress = recipient0,
     amount = Amount.create(BigDecimal(123.456)),
@@ -91,7 +93,7 @@ val payment0 = Payment(
 )
 
 val recipient1 =
-    RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez")
+    RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)
 val payment1 = Payment(
     recipientAddress = recipient1,
     amount = Amount.create(BigDecimal(0.789)),
@@ -112,7 +114,7 @@ ZIP321.uriString(paymentRequest, ZIP321.FormattingOptions.UseEmptyParamIndex(omi
 val validURI =
             "zcash:?address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount=123.456&address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=0.789&memo.1=VGhpcyBpcyBhIHVuaWNvZGUgbWVtbyDinKjwn6aE8J-PhvCfjok"
 
- val paymentRequest = ZIP321.request(validURI, null)
+ val paymentRequest = ZIP321.request(validURI, ParserContext.TESTNET, null)
 ```
 
 ### Providing Address validation
