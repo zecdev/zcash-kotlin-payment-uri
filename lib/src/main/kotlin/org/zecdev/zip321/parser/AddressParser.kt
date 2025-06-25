@@ -2,9 +2,9 @@ package org.zecdev.zip321.parser
 
 import com.copperleaf.kudzu.parser.text.BaseTextParser
 
-class AddressTextParser : BaseTextParser(
-    isValidChar = { _, char -> char.isLetterOrDigit() },
-    isValidText = { it.isNotEmpty() },
+class AddressTextParser(parserContext: ParserContext) : BaseTextParser(
+    isValidChar = { _, char -> char.isAsciiLetterOrDigit() },
+    isValidText = { parserContext.isValid(it) },
     allowEmptyInput = false,
-    invalidTextErrorMessage = { "Expected bech32 or Base58 text, got '$it'" }
+    invalidTextErrorMessage = { "Expected valid Zcash address, got '$it'" }
 )

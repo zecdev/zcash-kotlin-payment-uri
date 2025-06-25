@@ -1,11 +1,11 @@
 package org.zecdev.zip321
 
-import MemoBytes
-import NonNegativeAmount
-import Payment
-import PaymentRequest
-import RecipientAddress
 import org.zecdev.zip321.extensions.qcharEncoded
+import org.zecdev.zip321.model.MemoBytes
+import org.zecdev.zip321.model.NonNegativeAmount
+import org.zecdev.zip321.model.Payment
+import org.zecdev.zip321.model.PaymentRequest
+import org.zecdev.zip321.model.RecipientAddress
 
 enum class ParamName(val value: String) {
     ADDRESS("address"),
@@ -20,22 +20,28 @@ object Render {
         return idx?.let { ".$it" } ?: ""
     }
 
-    fun parameter(label: String, value: String, index: UInt?): String? {
-        val qcharValue = value.qcharEncoded() ?: return null
-        return "$label${org.zecdev.zip321.Render.parameterIndex(index)}=$qcharValue"
+    fun otherParameter(key: String, maybeValue: String?, index: UInt?): String {
+        return maybeValue?.let {
+            parameter(key, it, index)
+        } ?: "$key${parameterIndex(index)}"
+    }
+
+    fun parameter(label: String, value: String, index: UInt?): String {
+        val qcharValue = value.qcharEncoded()
+        return "$label${parameterIndex(index)}=$qcharValue"
     }
 
     fun parameter(nonNegativeAmount: NonNegativeAmount, index: UInt?): String {
-        return "${org.zecdev.zip321.ParamName.AMOUNT.value}${
-            org.zecdev.zip321.Render.parameterIndex(
+        return "${ParamName.AMOUNT.value}${
+            parameterIndex(
                 index
             )
-        }=$nonNegativeAmount"
+        }=${nonNegativeAmount.toZecValueString()}"
     }
 
     fun parameter(memo: MemoBytes, index: UInt?): String {
-        return "${org.zecdev.zip321.ParamName.MEMO.value}${
-            org.zecdev.zip321.Render.parameterIndex(
+        return "${ParamName.MEMO.value}${
+            parameterIndex(
                 index
             )
         }=${memo.toBase64URL()}"
@@ -45,8 +51,8 @@ object Render {
         return if (index == null && omittingAddressLabel) {
             address.value
         } else {
-            "${org.zecdev.zip321.ParamName.ADDRESS.value}${
-                org.zecdev.zip321.Render.parameterIndex(
+            "${ParamName.ADDRESS.value}${
+                parameterIndex(
                     index
                 )
             }=${address.value}"
@@ -54,25 +60,27 @@ object Render {
     }
 
     fun parameterLabel(label: String, index: UInt?): String {
-        return org.zecdev.zip321.Render.parameter(
-            org.zecdev.zip321.ParamName.LABEL.value,
+        return parameter(
+            ParamName.LABEL.value,
             label,
             index
         ) ?: ""
     }
 
     fun parameterMessage(message: String, index: UInt?): String {
-        return org.zecdev.zip321.Render.parameter(
-            org.zecdev.zip321.ParamName.MESSAGE.value,
+        return parameter(
+            ParamName.MESSAGE.value,
             message,
             index
         ) ?: ""
     }
 
+
+
     fun payment(payment: Payment, index: UInt?, omittingAddressLabel: Boolean = false): String {
         var result = ""
 
-        result += org.zecdev.zip321.Render.parameter(
+        result += parameter(
             payment.recipientAddress,
             index,
             omittingAddressLabel
@@ -80,28 +88,46 @@ object Render {
 
         if (index == null && omittingAddressLabel) {
             result += "?"
-        } else {
-            result += "&"
         }
 
-        result += "${org.zecdev.zip321.Render.parameter(payment.nonNegativeAmount, index)}"
-
-        payment.memo?.let { result += "&${org.zecdev.zip321.Render.parameter(it, index)}" }
+        payment.nonNegativeAmount?.let {
+            if (result.last() != '?') {
+                result += "&"
+            }
+            result += parameter(it, index)
+        }
+        payment.memo?.let {
+            if (result.last() != '?') {
+                result += "&"
+            }
+            result += parameter(it, index)
+        }
         payment.label?.let {
-            result += "&${
-                org.zecdev.zip321.Render.parameterLabel(
-                    label = it,
-                    index
-                )
-            }"
+            if (result.last() != '?') {
+                result += "&"
+            }
+            result += parameterLabel(
+                label = it,
+                index
+            )
         }
         payment.message?.let {
-            result += "&${
-                org.zecdev.zip321.Render.parameterMessage(
-                    message = it,
-                    index
-                )
-            }"
+            if (result.last() != '?') {
+                result += "&"
+            }
+            result += parameterMessage(
+                message = it,
+                index
+            )
+        }
+
+        payment.otherParams?. let {
+            for (param in it) {
+                if (result.last() != '?') {
+                    result += "&"
+                }
+                result += otherParameter(param.key.value, param.value, index)
+            }
         }
 
         return result
@@ -114,7 +140,7 @@ object Render {
 
         if (startIndex == null) {
             result += if (omittingFirstAddressLabel) "" else "?"
-            result += org.zecdev.zip321.Render.payment(
+            result += payment(
                 payments[0],
                 startIndex,
                 omittingFirstAddressLabel
@@ -125,13 +151,15 @@ object Render {
             if (payments.isNotEmpty()) {
                 result += "&"
             }
+        } else {
+            result += "?"
         }
 
         val count = payments.size
 
         for ((elementIndex, element) in payments.withIndex()) {
             val paramIndex = elementIndex.toUInt() + paramIndexOffset
-            result += org.zecdev.zip321.Render.payment(element, paramIndex)
+            result += payment(element, paramIndex)
 
             if (paramIndex < count.toUInt()) {
                 result += "&"

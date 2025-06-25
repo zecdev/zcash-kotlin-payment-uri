@@ -3,15 +3,22 @@
  */
 package org.zecdev.zip321
 
-import Payment
-import PaymentRequest
-import RecipientAddress
+import com.copperleaf.kudzu.parser.ParserException
+import org.zecdev.zip321.model.Payment
+import org.zecdev.zip321.model.PaymentRequest
+import org.zecdev.zip321.model.RecipientAddress
 import org.zecdev.zip321.parser.Parser
+import org.zecdev.zip321.parser.ParserContext
 
 /**
  * ZIP-321 object for handling formatting options.
  */
 object ZIP321 {
+    /**
+     * ZIP-321 allows a maximum of 2109 payments in a single URI string
+     */
+    val maxPaymentsAllowed = 2109u
+
     sealed class Errors : Exception() {
         /**
          * There's a payment exceeding the max supply as [ZIP-321](https://zips.z.cash/zip-0321) forbids.
@@ -36,12 +43,16 @@ object ZIP321 {
         /**
          * A memo field in the ZIP 321 URI was not properly base-64 encoded according to [ZIP-321](https://zips.z.cash/zip-0321)
          */
-        object InvalidBase64 : Errors()
+        object InvalidBase64 : Errors() {
+            private fun readResolve(): Any = InvalidBase64
+        }
 
         /**
          * not even a Zcash URI
          */
-        object InvalidURI : Errors()
+        object InvalidURI : Errors() {
+            private fun readResolve(): Any = InvalidURI
+        }
 
         /**
          * A memo value exceeded 512 bytes in length or could not be interpreted as a UTF-8 string
@@ -53,7 +64,7 @@ object ZIP321 {
          * The [ZIP-321](https://zips.z.cash/zip-0321) request included more payments than can be created within a single Zcash transaction.
          * The associated value is the number of payments in the request.
          */
-        data class TooManyPayments(val value: Long) : Errors()
+        data class TooManyPayments(val value: UInt) : Errors()
 
         /**
          * The payment at the associated value attempted to include a memo when sending to a transparent recipient address,
@@ -96,6 +107,11 @@ object ZIP321 {
          * are not recognized, but that are not prefixed with a req-, SHOULD be ignored.)
          */
         data class UnknownRequiredParameter(val value: String) : Errors()
+
+        /**
+         * the parser found a `paramname` with the wrong encoding
+         */
+        data class InvalidParamName(val paramName: String) : Errors()
     }
 
     sealed class ParserResult {
@@ -118,17 +134,18 @@ object ZIP321 {
     /**
      * Transforms a [PaymentRequest] into a ZIP-321 payment request [String].
      *
-     * @param request The payment request.
+     * @param from The payment request.
      * @param formattingOptions The formatting options.
      * @return The ZIP-321 payment request [String].
      */
+    @Throws(Errors::class)
     fun uriString(
         from: PaymentRequest,
         formattingOptions: FormattingOptions = FormattingOptions.EnumerateAllPayments
     ): String {
         return when (formattingOptions) {
-            is FormattingOptions.EnumerateAllPayments -> org.zecdev.zip321.Render.request(from, 1u, false)
-            is FormattingOptions.UseEmptyParamIndex -> org.zecdev.zip321.Render.request(
+            is FormattingOptions.EnumerateAllPayments -> Render.request(from, 1u, false)
+            is FormattingOptions.UseEmptyParamIndex -> Render.request(
                 from,
                 startIndex = null,
                 omittingFirstAddressLabel = formattingOptions.omitAddressLabel
@@ -143,23 +160,36 @@ object ZIP321 {
      * @param formattingOptions The formatting options.
      * @return The ZIP-321 payment URI [String].
      */
+    @Throws(Errors::class, Errors.ParseError::class)
     fun request(
         recipient: RecipientAddress,
         formattingOptions: FormattingOptions = FormattingOptions.UseEmptyParamIndex(
             omitAddressLabel = true
         )
     ): String {
-        return when (formattingOptions) {
-            is FormattingOptions.UseEmptyParamIndex -> "zcash:".plus(
-                org.zecdev.zip321.Render.parameter(
-                    recipient,
-                    index = null,
-                    omittingAddressLabel = formattingOptions.omitAddressLabel
+        try {
+            return when (formattingOptions) {
+
+                is FormattingOptions.UseEmptyParamIndex -> {
+                    val scheme = if (formattingOptions.omitAddressLabel) "zcash:" else "zcash:?"
+                    scheme.plus(
+                        Render.parameter(
+                            recipient,
+                            index = null,
+                            omittingAddressLabel = formattingOptions.omitAddressLabel
+                        )
+                    )
+                }
+                else -> "zcash:?".plus(
+                    Render.parameter(recipient, index = 1u, omittingAddressLabel = false)
                 )
-            )
-            else -> "zcash:".plus(
-                org.zecdev.zip321.Render.parameter(recipient, index = null, omittingAddressLabel = false)
-            )
+            }
+        } catch (e: IllegalArgumentException) {
+            val message = e.message ?: "parser failed with unknown error"
+            throw Errors.ParseError(message)
+        } catch (e: com.copperleaf.kudzu.parser.ParserException) {
+            val message = e.message ?: "parser failed with unknown error"
+            throw Errors.ParseError(message)
         }
     }
 
@@ -170,6 +200,7 @@ object ZIP321 {
      * @param formattingOptions The formatting options.
      * @return The ZIP-321 payment request [String].
      */
+    @Throws(Errors::class)
     fun request(
         payment: Payment,
         formattingOptions: FormattingOptions = FormattingOptions.EnumerateAllPayments
@@ -184,7 +215,11 @@ object ZIP321 {
      * @param validatingRecipients a lambda that validates all found recipients
      * @return The ZIP-321 payment request result [ParserResult].
      */
-    fun request(uriString: String, validatingRecipients: ((String) -> Boolean)?): ParserResult {
-        return Parser(validatingRecipients).parse(uriString)
+    @Throws(Errors::class)
+    fun request(
+        uriString: String,
+        context: ParserContext,
+        validatingRecipients: ((String) -> Boolean)?): ParserResult {
+        return Parser(context, validatingRecipients).parse(uriString)
     }
 }

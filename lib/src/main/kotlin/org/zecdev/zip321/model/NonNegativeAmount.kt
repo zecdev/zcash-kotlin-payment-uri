@@ -1,5 +1,12 @@
+package org.zecdev.zip321.model
+
+
 import java.math.BigDecimal
+import java.math.MathContext
 import java.math.RoundingMode
+
+
+private const val maxFractionalDecimalDigits: Int = 8
 
 /**
  * An non-negative decimal ZEC amount represented as specified in ZIP-321.
@@ -8,7 +15,20 @@ import java.math.RoundingMode
  * @property value The decimal value of the ZEC amount.
  */
 class NonNegativeAmount {
-    val value: BigDecimal
+    private val value: Long
+
+    /**
+     * Initializes a a NonNegativeAmount from a value expressed in Zatoshis.
+     *
+     * @param zatoshis Integer representation of the Zcash amount in Zatoshis
+     * considering 100_000_000 zatoshis per ZEC
+     */
+    @Throws(AmountError::class)
+    constructor(value: Long) {
+        require(value >= 0) { throw  AmountError.NegativeAmount }
+        require(value <= maxZatoshiSupply) { throw  AmountError.GreaterThanSupply}
+        this.value = value
+    }
 
     /**
      * Initializes an Amount from a `BigDecimal` number.
@@ -21,83 +41,81 @@ class NonNegativeAmount {
     @Throws(AmountError::class)
     constructor(value: BigDecimal) {
         validateDecimal(value)
-        this.value = value
+        this.value = zecToZatoshi(value)
     }
+
+
 
     @Throws(AmountError::class)
     constructor(decimalString: String) {
-        val decimal = decimalFromString(decimalString)
-        validateDecimal(decimal)
-        this.value = decimal
+        this.value = zecToZatoshi(BigDecimal(decimalString))
     }
 
     /**
      * Enum representing errors that can occur during Amount operations.
      */
     sealed class AmountError(message: String) : Exception(message) {
-        object NegativeAmount : AmountError("Amount cannot be negative")
-        object GreaterThanSupply : AmountError("Amount cannot be greater than the maximum supply")
-        object TooManyFractionalDigits : AmountError("Amount has too many fractional digits")
-        object InvalidTextInput : AmountError("Invalid text input for amount")
+        object NegativeAmount : AmountError("Amount cannot be negative") {
+            private fun readResolve(): Any = NegativeAmount
+        }
+
+        object GreaterThanSupply : AmountError("Amount cannot be greater than the maximum supply") {
+            private fun readResolve(): Any = GreaterThanSupply
+        }
+
+        object TooManyFractionalDigits : AmountError("Amount has too many fractional digits") {
+            private fun readResolve(): Any = TooManyFractionalDigits
+        }
+
+        object InvalidTextInput : AmountError("Invalid text input for amount") {
+            private fun readResolve(): Any = InvalidTextInput
+        }
     }
 
     companion object {
-        private const val maxFractionalDecimalDigits: Int = 8
-        private val maxSupply: BigDecimal = BigDecimal("21000000")
+        private val maxZecSupply: BigDecimal = BigDecimal("21000000")
+        private val zatoshiPerZec: Long = 100_000_000
+        private val maxZatoshiSupply: Long = 21000000 * zatoshiPerZec
+        private val mathContext = MathContext(maxFractionalDecimalDigits, RoundingMode.HALF_EVEN)
+        /**
+         * Convert a decimal amount of ZEC into Zatoshis.
+         *
+         * @param coins number of coins
+         * @return number of Zatoshis
+         * @throws ArithmeticException if value has too much precision or will not fit in a long
+         */
+        @Throws(AmountError::class)
+        fun zecToZatoshi(coins: BigDecimal): Long {
+            validateDecimal(coins)
+            try {
+                return coins.movePointRight(maxFractionalDecimalDigits).longValueExact()
+            } catch(e: ArithmeticException){
+                throw AmountError.GreaterThanSupply
+            }
+        }
 
+        /**
+         * Convert a long amount of Zatoshis into ZEC.
+         *
+         * @param zatoshis number of zatoshis
+         * @return number of ZEC in decimal
+         * @throws AmountError if value has too much precision or will not fit in a long
+         */
+        @Throws(AmountError::class)
+        fun zatoshiToZEC(zatoshis: Long): BigDecimal {
+            try {
+                val zec = BigDecimal(zatoshis, mathContext).movePointLeft(maxFractionalDecimalDigits)
+                validateDecimal(zec)
+                return zec
+            } catch (e: ArithmeticException) {
+                throw AmountError.GreaterThanSupply
+            }
+        }
         @Throws(AmountError::class)
         private fun validateDecimal(value: BigDecimal) {
-            require(value > BigDecimal.ZERO) { throw AmountError.NegativeAmount }
-            require(value <= maxSupply) { throw AmountError.GreaterThanSupply }
+            require(value >= BigDecimal.ZERO) { throw AmountError.NegativeAmount }
+            require(value <= maxZecSupply) { throw AmountError.GreaterThanSupply }
             requireFractionalDigits(value)
-        }
-
-        /**
-         * Rounds the given `BigDecimal` value according to bankers rounding.
-         *
-         * @return The rounded value.
-         */
-        private fun BigDecimal.round(): BigDecimal {
-            return this.setScale(maxFractionalDecimalDigits, RoundingMode.HALF_EVEN)
-        }
-
-        /**
-         * Creates an Amount from a `BigDecimal` value.
-         *
-         * @param value The decimal representation of the desired amount.
-         * @return A valid ZEC amount.
-         * @throws AmountError if the provided value cannot represent or cannot be rounded to a
-         * non-negative non-zero ZEC decimal amount.
-         */
-        @Throws(AmountError::class)
-        fun create(value: BigDecimal): NonNegativeAmount {
-            return NonNegativeAmount(value.round())
-        }
-
-        /**
-         * Creates an Amount from a string representation.
-         *
-         * @param string String representation of the ZEC amount.
-         * @return A valid ZEC amount.
-         * @throws AmountError if the string cannot be parsed or if the parsed value violates ZEC
-         * amount constraints.
-         */
-        @Throws(AmountError::class)
-        fun createFromString(string: String): NonNegativeAmount {
-            return create(decimalFromString(string))
-        }
-
-        @Throws(AmountError::class)
-        fun decimalFromString(string: String): BigDecimal {
-            try {
-                val decimal = BigDecimal(string)
-
-                requireFractionalDigits(decimal)
-
-                return decimal
-            } catch (e: NumberFormatException) {
-                throw AmountError.InvalidTextInput
-            }
         }
 
         private fun requireFractionalDigits(value: BigDecimal) {
@@ -107,14 +125,23 @@ class NonNegativeAmount {
         }
     }
 
+    @Throws(AmountError::class)
+    fun toZecValueString():String {
+        return zatoshiToZEC(value)
+            .setScale(maxFractionalDecimalDigits, RoundingMode.HALF_EVEN)
+            .stripTrailingZeros()
+            .toPlainString()
+    }
+
     /**
      * Converts the amount to a string representation.
      *
      * @return The string representation of the amount.
      */
     override fun toString(): String {
-        return value.setScale(maxFractionalDecimalDigits, RoundingMode.HALF_EVEN).stripTrailingZeros().toPlainString()
+        return value.toString()
     }
+
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -131,3 +158,9 @@ class NonNegativeAmount {
         return 31 * this.value.hashCode()
     }
 }
+
+fun BigDecimal.roundZec(): BigDecimal {
+    return this.setScale(maxFractionalDecimalDigits, RoundingMode.HALF_EVEN)
+}
+
+

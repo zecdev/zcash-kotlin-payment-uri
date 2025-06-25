@@ -1,31 +1,52 @@
 package org.zecdev.zip321.parser
 
-import MemoBytes
-import NonNegativeAmount
-import RecipientAddress
 import org.zecdev.zip321.ParamName
 import org.zecdev.zip321.ZIP321
+import org.zecdev.zip321.ZIP321.Errors.TooManyPayments
 import org.zecdev.zip321.extensions.qcharDecode
+import org.zecdev.zip321.extensions.qcharEncoded
+import org.zecdev.zip321.model.MemoBytes
+import org.zecdev.zip321.model.NonNegativeAmount
+import org.zecdev.zip321.model.RecipientAddress
 
 sealed class Param {
     companion object {
+        @Throws(ZIP321.Errors::class)
         fun from(
             queryKey: String,
-            value: String,
+            value: String?,
             index: UInt,
+            context: ParserContext,
             validatingAddress: ((String) -> Boolean)? = null
         ): Param {
+            if (queryKey.isEmpty()) {
+                throw ZIP321.Errors.InvalidParamName("paramName cannot be empty")
+            }
+
+            if ((index + 1u) >= ZIP321.maxPaymentsAllowed) {
+                throw TooManyPayments(index + 1u)
+            }
             return when (queryKey) {
-                org.zecdev.zip321.ParamName.ADDRESS.value -> {
+                ParamName.ADDRESS.value -> {
+                    // ADDRESS param can't have no value
+                    if (value == null) {
+                        throw ZIP321.Errors.InvalidParamValue(queryKey, index)
+                    }
+
                     try {
-                        Param.Address(RecipientAddress(value, validatingAddress))
+                        Address(RecipientAddress(value, context, validatingAddress))
                     } catch (error: RecipientAddress.RecipientAddressError.InvalidRecipient) {
                         throw ZIP321.Errors.InvalidAddress(if (index > 0u) index else null)
                     }
                 }
-                org.zecdev.zip321.ParamName.AMOUNT.value -> {
+                ParamName.AMOUNT.value -> {
+                    // AMOUNT param can't have no value
+                    if (value == null) {
+                        throw ZIP321.Errors.InvalidParamValue(queryKey, index)
+                    }
+
                     try {
-                        Param.Amount(NonNegativeAmount(decimalString = value))
+                        Amount(NonNegativeAmount(decimalString = value))
                     } catch (error: NonNegativeAmount.AmountError.NegativeAmount) {
                         throw ZIP321.Errors.AmountTooSmall(index)
                     } catch (error: NonNegativeAmount.AmountError.GreaterThanSupply) {
@@ -36,21 +57,27 @@ sealed class Param {
                         throw ZIP321.Errors.AmountTooSmall(index)
                     }
                 }
-                org.zecdev.zip321.ParamName.LABEL.value -> {
-                    when (val qcharDecoded = value.qcharDecode()) {
-                        null -> throw ZIP321.Errors.QcharDecodeFailed(index.mapToParamIndex(), queryKey, value)
-                        else -> Param.Label(qcharDecoded)
+                ParamName.LABEL.value -> {
+                    // LABEL param can't have no value
+                    if (value == null) {
+                        throw ZIP321.Errors.InvalidParamValue(queryKey, index)
                     }
+                    Label(value.qcharDecode())
                 }
-                org.zecdev.zip321.ParamName.MESSAGE.value -> {
-                    when (val qcharDecoded = value.qcharDecode()) {
-                        null -> throw ZIP321.Errors.QcharDecodeFailed(index.mapToParamIndex(), queryKey, value)
-                        else -> Param.Message(qcharDecoded)
+                ParamName.MESSAGE.value -> {
+                    // MESSAGE param can't have no value
+                    if (value == null) {
+                        throw ZIP321.Errors.InvalidParamValue(queryKey, index)
                     }
+                    Message(value.qcharDecode())
                 }
-                org.zecdev.zip321.ParamName.MEMO.value -> {
+                ParamName.MEMO.value -> {
+                    // MEMO param can't have no value
+                    if (value == null) {
+                        throw ZIP321.Errors.InvalidParamValue(queryKey, index)
+                    }
                     try {
-                        Param.Memo(MemoBytes.fromBase64URL(value))
+                        Memo(MemoBytes.fromBase64URL(value))
                     } catch (error: MemoBytes.MemoError) {
                         throw ZIP321.Errors.MemoBytesError(error, index)
                     }
@@ -59,11 +86,7 @@ sealed class Param {
                     if (queryKey.startsWith("req-")) {
                         throw ZIP321.Errors.UnknownRequiredParameter(queryKey)
                     }
-
-                    when (val qcharDecoded = value.qcharDecode()) {
-                        null -> throw ZIP321.Errors.InvalidParamValue("message", index)
-                        else -> Param.Other(queryKey, qcharDecoded)
-                    }
+                    Other(ParamNameString(queryKey), value?.qcharDecode())
                 }
             }
         }
@@ -74,16 +97,16 @@ sealed class Param {
     data class Memo(val memoBytes: MemoBytes) : Param()
     data class Label(val label: String) : Param()
     data class Message(val message: String) : Param()
-    data class Other(val paramName: String, val value: String) : Param()
+    data class Other(val paramName: ParamNameString, val value: String?) : Param()
 
     val name: String
         get() = when (this) {
-            is Address -> org.zecdev.zip321.ParamName.ADDRESS.name.lowercase()
-            is Amount -> org.zecdev.zip321.ParamName.AMOUNT.name.lowercase()
-            is Memo -> org.zecdev.zip321.ParamName.MEMO.name.lowercase()
-            is Label -> org.zecdev.zip321.ParamName.LABEL.name.lowercase()
-            is Message -> org.zecdev.zip321.ParamName.MESSAGE.name.lowercase()
-            is Other -> paramName
+            is Address -> ParamName.ADDRESS.name.lowercase()
+            is Amount -> ParamName.AMOUNT.name.lowercase()
+            is Memo -> ParamName.MEMO.name.lowercase()
+            is Label -> ParamName.LABEL.name.lowercase()
+            is Message -> ParamName.MESSAGE.name.lowercase()
+            is Other -> paramName.value
         }
 
     override fun equals(other: Any?): Boolean {
@@ -137,15 +160,12 @@ sealed class Param {
         if (name != other.name) return false
 
         return when (this) {
-            is Address -> (other as? Address) != null
-            is Amount -> (other as? Amount) != null
-            is Memo -> (other as? Memo) != null
-            is Label -> (other as? Label) != null
-            is Message -> (other as? Message) != null
-            is Other -> (other as? Other)?.let {
-                    p ->
-                p.paramName == paramName
-            } ?: false
+            is Address -> other is Address
+            is Amount -> other is Amount
+            is Memo -> other is Memo
+            is Label -> other is Label
+            is Message -> other is Message
+            is Other -> other is Other && other.paramName == paramName
         }
     }
 }
@@ -155,4 +175,82 @@ fun List<Param>.hasDuplicateParam(param: Param): Boolean {
         if (i.partiallyEqual(param)) return true else continue
     }
     return false
+}
+
+/**
+ *  A  `paramname` encoded string according to [ZIP-321](https://zips.z.cash/zip-0321)
+ *
+ *  ZIP-321 defines:
+ *  ```
+ *   paramname       = ALPHA *( ALPHA / DIGIT / "+" / "-" )
+ */
+class ParamNameString(val value: String) {
+    init {
+        // String can't be empty
+        require(value.isNotEmpty()) { throw ZIP321.Errors.InvalidParamName(value) }
+        // String can't start with a digit, "+" or "-"
+        require(value.first().isAsciiLetter())
+        // The whole String conforms to the character set defined in ZIP-321
+        require(value.map {
+                CharsetValidations.Companion.ParamNameCharacterSet.characters.contains(it)
+            }.reduce { acc, b -> acc && b }
+        ) {
+            throw ZIP321.Errors.InvalidParamName(value)
+        }
+    }
+
+    override fun toString(): String {
+        return value
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is ParamNameString) return false
+
+        if (value != other.value) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return value.hashCode()
+    }
+}
+
+
+class QcharString private constructor(private val encoded: String) {
+    companion object {
+        /**
+         * Initializes a [QcharString] from a non-empty, non-qchar-encoded input string.
+         *
+         * This constructor checks whether decoding the input string would change it,
+         * in order to avoid nested or duplicate encodings.
+         *
+         * @param value The raw string to be qchar-encoded.
+         * @param strict If `true`, the initializer will fail if decoding the input string
+         *                   yields a different result — which suggests the input is already qchar-encoded.
+         *
+         * @return A [QcharString] instance, or `null` if encoding fails or strict mode detects an issue.
+         */
+        fun from(value: String, strict: Boolean = false): QcharString? {
+            // String can't be empty
+            require(value.isNotEmpty()) { return null }
+            // check whether value is already qchar-encoded or partially
+            if (strict) {
+                val qcharDecode = value.qcharDecode()
+
+                if (qcharDecode != value) return null
+            }
+
+            return QcharString(value.qcharEncoded())
+        }
+    }
+
+    fun stringValue(): String {
+        return encoded.qcharDecode()
+    }
+
+    fun qcharValue(): String {
+        return encoded
+    }
 }

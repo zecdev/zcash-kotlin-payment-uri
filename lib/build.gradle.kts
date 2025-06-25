@@ -43,6 +43,17 @@ dependencies {
 
     // This dependency is used internally, and not exposed to consumers on their own compile classpath.
     implementation("com.google.guava:guava:31.1-jre")
+
+    // Fuzzing
+    testImplementation(platform("org.junit:junit-bom:5.11.4"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("com.code-intelligence:jazzer-junit:0.24.0")
+
+    // Jazzer
+    testImplementation("com.code-intelligence:jazzer-junit:0.24.0") // JUnit glue
+    testImplementation("com.code-intelligence:jazzer-api:0.24.0")   // <-- supplies FuzzedDataProvider
+    testRuntimeOnly("com.code-intelligence:jazzer:0.24.0")          // native Jazzer engine
 }
 
 detekt {
@@ -85,6 +96,9 @@ tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
 tasks.named<Test>("test") {
     // Use JUnit Platform for unit tests.
     useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed")
+    }
 }
 
 

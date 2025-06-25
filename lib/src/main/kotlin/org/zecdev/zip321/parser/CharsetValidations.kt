@@ -78,3 +78,11 @@ class CharsetValidations {
         val isValidParamNameChar: (Char) -> Boolean = { it in ParamNameCharacterSet.characters }
     }
 }
+
+fun Char.isAsciiLetterOrDigit(): Boolean {
+    return isLetterOrDigit() && this.code < 128
+}
+
+fun Char.isAsciiLetter(): Boolean {
+    return isLetter() && this.code < 128
+}

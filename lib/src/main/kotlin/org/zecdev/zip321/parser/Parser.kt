@@ -1,15 +1,12 @@
 
 package org.zecdev.zip321.parser
 
-import MemoBytes
-import NonNegativeAmount
-import OtherParam
-import Payment
-import PaymentRequest
-import RecipientAddress
+import com.copperleaf.kudzu.node.mapped.ValueNode
 import com.copperleaf.kudzu.parser.ParserContext
+import com.copperleaf.kudzu.parser.ParserException
 import com.copperleaf.kudzu.parser.chars.AnyCharParser
 import com.copperleaf.kudzu.parser.chars.CharInParser
+import com.copperleaf.kudzu.parser.chars.CharNotInParser
 import com.copperleaf.kudzu.parser.chars.DigitParser
 import com.copperleaf.kudzu.parser.choice.PredictiveChoiceParser
 import com.copperleaf.kudzu.parser.many.ManyParser
@@ -21,14 +18,33 @@ import com.copperleaf.kudzu.parser.sequence.SequenceParser
 import com.copperleaf.kudzu.parser.text.LiteralTokenParser
 import org.zecdev.zip321.ZIP321
 import org.zecdev.zip321.ZIP321.ParserResult
-import java.math.BigDecimal
+import org.zecdev.zip321.model.MemoBytes
+import org.zecdev.zip321.model.NonNegativeAmount
+import org.zecdev.zip321.model.OtherParam
+import org.zecdev.zip321.model.Payment
+import org.zecdev.zip321.model.PaymentRequest
+import org.zecdev.zip321.model.RecipientAddress
+import org.zecdev.zip321.parser.CharsetValidations.Companion.QcharCharacterSet
 
-class Parser(private val addressValidation: ((String) -> Boolean)?) {
+class Parser(
+    private val context: org.zecdev.zip321.parser.ParserContext,
+    addressValidation: ((String) -> Boolean)?
+) {
+
+    val defaultValidation = addressValidation?.let { customValidation ->
+        { address: String ->
+            context.isValid(address) && customValidation(address)
+        }
+    }?:
+        { address: String ->
+            context.isValid(address)
+        }
+
     val maybeLeadingAddressParse = MappedParser(
         SequenceParser(
             LiteralTokenParser("zcash:"),
             MaybeParser(
-                AddressTextParser()
+                AddressTextParser(context)
             )
         )
     ) {
@@ -39,7 +55,8 @@ class Parser(private val addressValidation: ((String) -> Boolean)?) {
                 param = Param.Address(
                     RecipientAddress(
                         textNode.text,
-                        validating = addressValidation
+                        context,
+                        validating = defaultValidation
                     )
                 )
             )
@@ -75,6 +92,7 @@ class Parser(private val addressValidation: ((String) -> Boolean)?) {
             UntilParser(
                 AnyCharParser(),
                 PredictiveChoiceParser(
+                    LiteralTokenParser("&"),
                     LiteralTokenParser("."),
                     LiteralTokenParser("=")
                 )
@@ -92,7 +110,7 @@ class Parser(private val addressValidation: ((String) -> Boolean)?) {
         if (!paramName.all { c -> CharsetValidations.isValidParamNameChar(c) }) {
             throw ZIP321.Errors.ParseError("Invalid paramname $paramName")
         } else {
-            Pair<String, UInt?>(
+            Pair(
                 it.node1.text,
                 it.node2.node?.node2?.value
             )
@@ -102,13 +120,17 @@ class Parser(private val addressValidation: ((String) -> Boolean)?) {
     val queryKeyAndValueParser = MappedParser(
         SequenceParser(
             optionallyIndexedParamName,
-            LiteralTokenParser("="),
-            ManyParser(
-                CharInParser(CharsetValidations.Companion.QcharCharacterSet.characters.toList())
+            MaybeParser(
+                SequenceParser(
+                    LiteralTokenParser("="),
+                    ManyParser(
+                        CharInParser(QcharCharacterSet.characters.toList())
+                    )
+                )
             )
         )
     ) {
-        Pair(it.node1.value, it.node3.text)
+        Pair(it.node1.value, it.node2.node?.node2?.text)
     }
 
     /**
@@ -130,8 +152,9 @@ class Parser(private val addressValidation: ((String) -> Boolean)?) {
      * maps a parsed Query Parameter key and value into an `IndexedParameter`
      * providing validation of Query keys and values. An address validation can be provided.
      */
+    @Throws(ZIP321.Errors.InvalidParamValue::class)
     fun zcashParameter(
-        parsedQueryKeyValue: Pair<Pair<String, UInt?>, String>,
+        parsedQueryKeyValue: Pair<Pair<String, UInt?>, String?>,
         validatingAddress: ((String) -> Boolean)? = null
     ): IndexedParameter {
         val queryKey = parsedQueryKeyValue.first.first
@@ -148,6 +171,7 @@ class Parser(private val addressValidation: ((String) -> Boolean)?) {
             queryKey,
             queryValue,
             queryKeyIndex,
+            context,
             validatingAddress
         )
 
@@ -162,7 +186,6 @@ class Parser(private val addressValidation: ((String) -> Boolean)?) {
     fun parseParameters(
         remainingString: ParserContext,
         leadingAddress: IndexedParameter?,
-        validatingAddress: ((String) -> Boolean)? = null
     ): List<IndexedParameter> {
         val list = ArrayList<IndexedParameter>()
 
@@ -172,7 +195,7 @@ class Parser(private val addressValidation: ((String) -> Boolean)?) {
             queryParamsParser.parse(remainingString)
                 .first
                 .value
-                .map { zcashParameter(it, validatingAddress) }
+                .map { zcashParameter(it, defaultValidation) }
         )
 
         if (list.isEmpty()) {
@@ -217,37 +240,69 @@ class Parser(private val addressValidation: ((String) -> Boolean)?) {
 
     @Throws(ZIP321.Errors::class)
     fun parse(uriString: String): ParserResult {
-        val (node, remainingText) = maybeLeadingAddressParse.parse(
-            ParserContext.fromString(uriString)
-        )
-
-        val leadingAddress = node.value
-
-        // no remaining text to parse and no address found. Not a valid URI
-        if (remainingText.isEmpty() && leadingAddress == null) {
+        if (uriString.isEmpty() || !uriString.startsWith("zcash:")) {
             throw ZIP321.Errors.InvalidURI
         }
 
-        if (remainingText.isEmpty() && leadingAddress != null) {
-            leadingAddress?.let {
-                when (val param = it.param) {
-                    is Param.Address -> return ParserResult.SingleAddress(param.recipientAddress)
-                    else ->
-                        throw ZIP321.Errors.ParseError(
-                            "leading parameter after `zcash:` that is not an address"
-                        )
+        try {
+            val maybeNode: ValueNode<IndexedParameter?>?
+            val maybeRemainingText: ParserContext?
+            try {
+                val (node, remainingText) = maybeLeadingAddressParse.parse(
+                    ParserContext.fromString(uriString)
+                )
+                maybeNode = node
+                maybeRemainingText = remainingText
+            } catch (e: ParserException) {
+                throw ZIP321.Errors.InvalidAddress(null)
+            }
+
+
+            val leadingAddress = maybeNode.value
+
+            // no remaining text to parse and no address found. Not a valid URI
+            if (maybeRemainingText.isEmpty() && leadingAddress == null) {
+                throw ZIP321.Errors.InvalidURI
+            }
+
+            if (maybeRemainingText.isEmpty() && leadingAddress != null) {
+                leadingAddress.let {
+                    when (val param = it.param) {
+                        is Param.Address -> return ParserResult.SingleAddress(param.recipientAddress)
+                        else ->
+                            throw ZIP321.Errors.ParseError(
+                                "leading parameter after `zcash:` that is not an address"
+                            )
+                    }
                 }
             }
-        }
 
-        // remaining text is not empty there's still work to do
-        return ParserResult.Request(
-            PaymentRequest(
-                mapToPayments(
-                    parseParameters(remainingText, node.value, addressValidation)
-                )
+            // remaining text is not empty there's still work to do
+            val payments = mapToPayments(
+                parseParameters(maybeRemainingText, maybeNode.value)
             )
-        )
+
+            val totalPayments = payments.size.toUInt()
+
+            if  (totalPayments > ZIP321.maxPaymentsAllowed) {
+                throw ZIP321.Errors.TooManyPayments(totalPayments)
+            }
+
+            return if (payments.size == 1 && payments.first().isSingleAddress()) {
+                ParserResult.SingleAddress(payments.first().recipientAddress)
+            } else {
+                ParserResult.Request(
+                    PaymentRequest(
+                        payments
+                    )
+                )
+            }
+        } catch (e: IllegalArgumentException) {
+            val message = e.message ?: """parser failed with unknown error"""
+            throw ZIP321.Errors.ParseError(message)
+        } catch (e: com.copperleaf.kudzu.parser.ParserException) {
+            throw ZIP321.Errors.ParseError(e.message)
+        }
     }
 }
 
@@ -290,7 +345,7 @@ fun Payment.Companion.fromUniqueIndexedParameters(index: UInt, parameters: List<
 
     return Payment(
         recipient,
-        amount ?: NonNegativeAmount(BigDecimal(0)),
+        amount,
         memo,
         label,
         message,
