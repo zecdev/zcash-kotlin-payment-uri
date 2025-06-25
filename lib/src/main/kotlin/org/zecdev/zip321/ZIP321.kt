@@ -160,29 +160,36 @@ object ZIP321 {
      * @param formattingOptions The formatting options.
      * @return The ZIP-321 payment URI [String].
      */
-    @Throws(Errors::class)
+    @Throws(Errors::class, Errors.ParseError::class)
     fun request(
         recipient: RecipientAddress,
         formattingOptions: FormattingOptions = FormattingOptions.UseEmptyParamIndex(
             omitAddressLabel = true
         )
     ): String {
+        try {
+            return when (formattingOptions) {
 
-        return when (formattingOptions) {
-
-            is FormattingOptions.UseEmptyParamIndex -> {
-                val scheme = if (formattingOptions.omitAddressLabel) "zcash:" else "zcash:?"
-                scheme.plus(
-                    Render.parameter(
-                        recipient,
-                        index = null,
-                        omittingAddressLabel = formattingOptions.omitAddressLabel
+                is FormattingOptions.UseEmptyParamIndex -> {
+                    val scheme = if (formattingOptions.omitAddressLabel) "zcash:" else "zcash:?"
+                    scheme.plus(
+                        Render.parameter(
+                            recipient,
+                            index = null,
+                            omittingAddressLabel = formattingOptions.omitAddressLabel
+                        )
                     )
+                }
+                else -> "zcash:?".plus(
+                    Render.parameter(recipient, index = 1u, omittingAddressLabel = false)
                 )
             }
-            else -> "zcash:?".plus(
-                Render.parameter(recipient, index = 1u, omittingAddressLabel = false)
-            )
+        } catch (e: IllegalArgumentException) {
+            val message = e.message ?: "parser failed with unknown error"
+            throw Errors.ParseError(message)
+        } catch (e: com.copperleaf.kudzu.parser.ParserException) {
+            val message = e.message ?: "parser failed with unknown error"
+            throw Errors.ParseError(message)
         }
     }
 
