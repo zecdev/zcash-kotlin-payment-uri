@@ -44,7 +44,7 @@ enum class ParserContext {
             TESTNET -> "textest"
             REGTEST -> "texregtest"
         }
-    private val trasparentAddressMinimumLength: Int = 35
+    private val transparentAddressMinimumLength: Int = 35
 
     private val saplingAddressMinimumLength: Int
         get() = when (this) {
@@ -80,11 +80,10 @@ enum class ParserContext {
     }
     fun isTransparent(address: String): Boolean {
         if (!address.isAsciiAlphanumeric()) return false
-        return address.length >= trasparentAddressMinimumLength &&
-                address.startsWith(p2pkhPrefix) ||
+        return address.length >= transparentAddressMinimumLength &&
+                (address.startsWith(p2pkhPrefix) ||
                 address.startsWith(p2shPrefix) ||
-                address.startsWith(texPrefix)
-
+                address.startsWith(texPrefix))
     }
 
     fun isSprout(address: String): Boolean {
