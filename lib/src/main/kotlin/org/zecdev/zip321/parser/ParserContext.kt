@@ -13,7 +13,7 @@ enum class ParserContext {
 
     private val saplingPrefix: String
         get() = when (this) {
-            MAINNET -> "zs"
+            MAINNET -> "zs1"
             TESTNET -> "ztestsapling"
             REGTEST -> "zregtestsapling"
         }
@@ -55,7 +55,7 @@ enum class ParserContext {
 
     private val unifiedAddressMinimumLength: Int
         get() = when (this) {
-            MAINNET -> 141
+            MAINNET -> 106
             TESTNET -> 154
             REGTEST -> 154
         }

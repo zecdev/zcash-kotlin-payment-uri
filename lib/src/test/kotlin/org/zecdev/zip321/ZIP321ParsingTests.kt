@@ -1,6 +1,7 @@
 package org.zecdev.zip321
 
 import com.copperleaf.kudzu.parser.ParserException
+import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
@@ -10,6 +11,8 @@ import org.zecdev.zip321.model.OtherParam
 import org.zecdev.zip321.model.RecipientAddress
 import org.zecdev.zip321.parser.ParamNameString
 import org.zecdev.zip321.parser.ParserContext
+import org.zecdev.zip321.util.TestVectors
+import org.zecdev.zip321.util.TestVectors.unifiedAddresses
 
 class ZIP321ParsingTests : FreeSpec({
     "ZIP321 Parsing Tests" - {
@@ -408,6 +411,20 @@ class ZIP321ParsingTests : FreeSpec({
         "request(String, FormattingOptions) fails when no URI Scheme string is detected" {
             shouldThrow<ZIP321.Errors.InvalidURI> {
                 ZIP321.request("bitcoin:asdfasdfasdfasdfasdfasdfa", ParserContext.TESTNET) { _ -> true }
+            }
+        }
+
+        "request(String, FormattingOptions) succeeds when tested against UA test vectors" {
+            shouldNotThrow<ZIP321.Errors> {
+                for (ua in TestVectors.unifiedAddresses) {
+                    ZIP321.request("zcash:$ua", ParserContext.MAINNET, null)
+                }
+            }
+        }
+
+        "request(String, FormattingOptions) succeeds parsing Sapling address" {
+            shouldNotThrow<ZIP321.Errors> {
+                ZIP321.request("zcash:zs1z7rejlpsa98s2rrrfkwmaxu53e4ue0ulcrw0h4x5g8jl04tak0d3mm47vdtahatqrlkngh9slya", ParserContext.MAINNET, null)
             }
         }
     }
