@@ -15,7 +15,7 @@ plugins {
     id("io.gitlab.arturbosch.detekt") version "1.23.7"
 
     `maven-publish`
-    id("org.jreleaser") version "1.14.0"
+    id("org.jreleaser") version "1.22.0"
     signing
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
@@ -133,7 +133,7 @@ jreleaser {
                     url.set("https://central.sonatype.com/api/v1/publisher")
                     stagingRepository("build/staging-deploy")
 
-                    // FIX: Jreleaser fails after attempt 61 but library is published
+                    // FIX: Jreleaser fails after attempt 61 but library is published anyway
                     maxRetries.set(180)
                     retryDelay.set(20)
                 }
