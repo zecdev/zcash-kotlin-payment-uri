@@ -15,7 +15,7 @@ plugins {
     id("io.gitlab.arturbosch.detekt") version "1.23.7"
 
     `maven-publish`
-    id("org.jreleaser") version "1.14.0"
+    id("org.jreleaser") version "1.22.0"
     signing
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
@@ -77,12 +77,6 @@ java {
     }
 }
 
-//tasks.jar{
-//    enabled = true
-//    // Remove `plain` postfix from jar file name
-//    archiveClassifier.set("")
-//}
-
 tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
     reports {
         html.required.set(true) // observe findings in your browser with structure and code snippets
@@ -139,6 +133,9 @@ jreleaser {
                     url.set("https://central.sonatype.com/api/v1/publisher")
                     stagingRepository("build/staging-deploy")
 
+                    // FIX: Jreleaser fails after attempt 61 but library is published anyway
+                    maxRetries.set(180)
+                    retryDelay.set(20)
                 }
             }
 
