@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.0.1
+This version fixes issues with Orchard-only UAs and Sapling addresses URIs
+
+### Fixes
+- [#44] Orchard-only UAs failed to be parsed as valid addresses
+- [#45] Payment request to Sapling Address fails to be parsed
 ## 1.0.0
 
 This version was audited by Least Authority. You can find the report [here](Docs/Least Authority -ZCG Kotlin and Swift Payment URI Prototypes Final Audit Report.pdf)
