@@ -55,9 +55,9 @@ enum class ParserContext {
 
     private val unifiedAddressMinimumLength: Int
         get() = when (this) {
-            MAINNET -> 106
-            TESTNET -> 154
-            REGTEST -> 154
+            MAINNET -> 44
+            TESTNET -> 48
+            REGTEST -> 51
         }
 
     private val texAddressLength: Int
