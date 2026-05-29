@@ -427,6 +427,18 @@ class ZIP321ParsingTests : FreeSpec({
                 ZIP321.request("zcash:zs1z7rejlpsa98s2rrrfkwmaxu53e4ue0ulcrw0h4x5g8jl04tak0d3mm47vdtahatqrlkngh9slya", ParserContext.MAINNET, null)
             }
         }
+
+        "request(String, FormattingOptions) succeeds parsing Sapling-only usified address" {
+            shouldNotThrow<ZIP321.Errors> {
+                ZIP321.request("zcash:u187vrwl4ampyxd5m6aj38n4ndkmj8v6gs97hkt23aps3sn5k89a0gk2smluexgdprcrtm56ezc5c7tjwlrnnl79tjtrxmqd42c5mpyz7g", ParserContext.MAINNET, null)
+            }
+        }
+
+        "request(String, FormattingOptions) succeeds parsing orchard only unified address" {
+            shouldNotThrow<ZIP321.Errors> {
+                ZIP321.request("zcash:u1ddnjsdcpm36r6aq79n3s68shjweksnmwtdltrh046s8m6xcws9ygyawalxx8n6hg6vegk0wh8zjnafxgh6msppjsljvyt0ynece3lvm0", ParserContext.MAINNET, null)
+            }
+        }
     }
 
 })
