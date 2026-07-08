@@ -96,6 +96,10 @@ detekt {
     allRules = false
     config.setFrom("$rootDir/tools/detekt.yml")
     autoCorrect = true
+    // Grandfather the pre-existing findings (detekt was never gated in CI, which
+    // runs only `test`). New code is still checked; regenerate with
+    // `./gradlew :lib:detektBaseline` when intentionally changing baselined code.
+    baseline = file("$rootDir/tools/detekt-baseline.xml")
     // KMP does not auto-wire detekt's default source set; point it at the
     // production Kotlin source directories explicitly.
     source.setFrom(
@@ -122,6 +126,19 @@ tasks.withType<Test>().configureEach {
     testLogging {
         events("passed", "skipped", "failed")
     }
+}
+
+// The iOS targets must COMPILE (the main klibs are built by `assemble`/`build`),
+// but linking and running the iOS *test* binaries requires a full Xcode install
+// and a booted simulator. There are no iOS test sources in this PR, so skip
+// those tasks to keep `./gradlew build` runnable without Xcode. iOS test
+// linking is re-enabled when kotest moves to commonTest (K1).
+tasks.matching { task ->
+    val name = task.name
+    name == "xcodeVersion" ||
+        (name.contains("Ios") && (name.startsWith("linkDebugTest") || name.endsWith("Test")))
+}.configureEach {
+    enabled = false
 }
 
 // ---------------------------------------------------------------------------

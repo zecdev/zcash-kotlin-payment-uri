@@ -37,12 +37,11 @@ class Parser(
 ) {
 
     val defaultValidation: (String) -> Boolean = addressValidation?.let { customValidation ->
-        { address: String ->
+        {
+                address: String ->
             context.isValid(address) && customValidation(address)
         }
-    } ?: { address: String ->
-        context.isValid(address)
-    }
+    } ?: { address: String -> context.isValid(address) }
 
     // -- leading address -----------------------------------------------------
 
