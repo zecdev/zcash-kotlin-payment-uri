@@ -4,7 +4,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class QCharCodecTests {
-
     @Test
     fun `should encode + correctly`() {
         val expected = "apple+bananas"
@@ -41,13 +40,14 @@ class QCharCodecTests {
 
     @Test
     fun `round-trip encoding and decoding should return the original string`() {
-        val inputs = listOf(
-            "simple",
-            "with spaces",
-            "with symbols !@#$%^&*()",
-            "unicode π≈ß漢字",
-            "edge-case: % & = ? /"
-        )
+        val inputs =
+            listOf(
+                "simple",
+                "with spaces",
+                "with symbols !@#$%^&*()",
+                "unicode π≈ß漢字",
+                "edge-case: % & = ? /",
+            )
         for (input in inputs) {
             assertEquals(input, QCharCodec.decode(QCharCodec.encode(input)))
         }

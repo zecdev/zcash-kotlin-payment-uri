@@ -7,7 +7,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class EncodingTests {
-
     @Test
     fun `qcharEncoded string contains allowed characters only`() {
         val message = "sk8:forever@!"
@@ -41,7 +40,7 @@ class EncodingTests {
             "`" to "%60",
             "{" to "%7B",
             "|" to "%7C",
-            "}" to "%7D"
+            "}" to "%7D",
         ).forEach { (input, expected) ->
             assertEquals(expected, input.qcharEncoded())
         }
@@ -49,9 +48,10 @@ class EncodingTests {
 
     @Test
     fun `unallowed characters are escaped`() {
-        val unallowedCharacters = listOf(
-            " ", "\"", "#", "%", "&", "/", "<", "=", ">", "?", "[", "\\", "]", "^", "`", "{", "|", "}"
-        )
+        val unallowedCharacters =
+            listOf(
+                " ", "\"", "#", "%", "&", "/", "<", "=", ">", "?", "[", "\\", "]", "^", "`", "{", "|", "}",
+            )
 
         unallowedCharacters.forEach { unallowed ->
             val qcharEncoded = unallowed.qcharEncoded()
@@ -91,7 +91,7 @@ class EncodingTests {
             "%60" to "`",
             "%7B" to "{",
             "%7C" to "|",
-            "%7D" to "}"
+            "%7D" to "}",
         ).forEach { (input, expected) ->
             assertEquals(expected, input.qcharDecode())
         }

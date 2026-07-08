@@ -19,7 +19,6 @@ import kotlin.test.assertTrue
  * disambiguated with a section suffix in the function name.
  */
 class AmountTests {
-
     // BigDecimal Conversion Tests: Constructor
 
     @Test
@@ -147,7 +146,7 @@ class AmountTests {
     fun `testAmountParsesMaxFractionalDigits`() {
         assertEquals(
             NonNegativeAmount(BigDecimal("0.12345678")).toZecValueString(),
-            NonNegativeAmount("0.12345678").toZecValueString()
+            NonNegativeAmount("0.12345678").toZecValueString(),
         )
     }
 
@@ -162,7 +161,7 @@ class AmountTests {
     fun `testAmountParsesMaxAmount`() {
         assertEquals(
             NonNegativeAmount(BigDecimal("21000000")).toZecValueString(),
-            NonNegativeAmount("21000000").toZecValueString()
+            NonNegativeAmount("21000000").toZecValueString(),
         )
     }
 
@@ -170,7 +169,7 @@ class AmountTests {
     fun `testAmountParsesMaxAmountWithTrailingZeroes`() {
         assertEquals(
             NonNegativeAmount(BigDecimal("21000000")).toZecValueString(),
-            NonNegativeAmount("21000000.00000000").toZecValueString()
+            NonNegativeAmount("21000000.00000000").toZecValueString(),
         )
     }
 
@@ -194,7 +193,7 @@ class AmountTests {
     fun `testAmountParsesMaxFractionalDigits factory method`() {
         assertEquals(
             NonNegativeAmount(BigDecimal("0.12345678")).toZecValueString(),
-            NonNegativeAmount("0.12345678").toZecValueString()
+            NonNegativeAmount("0.12345678").toZecValueString(),
         )
     }
 
@@ -209,7 +208,7 @@ class AmountTests {
     fun `testAmountParsesMaxAmount factory method`() {
         assertEquals(
             NonNegativeAmount(BigDecimal("21000000")).toZecValueString(),
-            NonNegativeAmount("21000000").toZecValueString()
+            NonNegativeAmount("21000000").toZecValueString(),
         )
     }
 
@@ -217,7 +216,7 @@ class AmountTests {
     fun `testAmountParsesMaxAmountWithTrailingZeroes factory method`() {
         assertEquals(
             NonNegativeAmount(BigDecimal("21000000")).toZecValueString(),
-            NonNegativeAmount("21000000.00000000").toZecValueString()
+            NonNegativeAmount("21000000.00000000").toZecValueString(),
         )
     }
 

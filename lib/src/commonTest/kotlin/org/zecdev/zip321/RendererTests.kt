@@ -16,7 +16,6 @@ import kotlin.test.assertEquals
  * every expected rendered string are unchanged.
  */
 class RendererTests {
-
     @Test
     fun `Amount parameter is rendered with no paramIndex`() {
         val expected = "amount=123.456"
@@ -107,14 +106,15 @@ class RendererTests {
         val address0 = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
 
         val recipient0 = RecipientAddress(value = address0, ParserContext.TESTNET)
-        val payment0 = Payment(
-            recipientAddress = recipient0,
-            nonNegativeAmount = NonNegativeAmount("123.456"),
-            memo = null,
-            label = null,
-            message = null,
-            otherParams = null
-        )
+        val payment0 =
+            Payment(
+                recipientAddress = recipient0,
+                nonNegativeAmount = NonNegativeAmount("123.456"),
+                memo = null,
+                label = null,
+                message = null,
+                otherParams = null,
+            )
 
         assertEquals(expected, Render.payment(payment0, null))
     }
@@ -126,14 +126,15 @@ class RendererTests {
         val address1 = "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez"
 
         val recipient1 = RecipientAddress(value = address1, ParserContext.TESTNET)
-        val payment1 = Payment(
-            recipientAddress = recipient1,
-            nonNegativeAmount = NonNegativeAmount("0.789"),
-            memo = MemoBytes("This is a unicode memo ✨🦄🏆🎉"),
-            label = null,
-            message = null,
-            otherParams = null
-        )
+        val payment1 =
+            Payment(
+                recipientAddress = recipient1,
+                nonNegativeAmount = NonNegativeAmount("0.789"),
+                memo = MemoBytes("This is a unicode memo ✨🦄🏆🎉"),
+                label = null,
+                message = null,
+                otherParams = null,
+            )
 
         assertEquals(expected, Render.payment(payment1, 1u))
     }
@@ -144,14 +145,15 @@ class RendererTests {
         val address0 = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
 
         val recipient0 = RecipientAddress(value = address0, ParserContext.TESTNET)
-        val payment0 = Payment(
-            recipientAddress = recipient0,
-            nonNegativeAmount = NonNegativeAmount("123.456"),
-            memo = null,
-            label = null,
-            message = null,
-            otherParams = null
-        )
+        val payment0 =
+            Payment(
+                recipientAddress = recipient0,
+                nonNegativeAmount = NonNegativeAmount("123.456"),
+                memo = null,
+                label = null,
+                message = null,
+                otherParams = null,
+            )
 
         assertEquals(expected, Render.payment(payment0, null, omittingAddressLabel = true))
     }
@@ -163,14 +165,15 @@ class RendererTests {
         val address1 = "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez"
 
         val recipient1 = RecipientAddress(value = address1, ParserContext.TESTNET)
-        val payment1 = Payment(
-            recipientAddress = recipient1,
-            nonNegativeAmount = NonNegativeAmount("0.789"),
-            memo = MemoBytes("This is a unicode memo ✨🦄🏆🎉"),
-            label = null,
-            message = null,
-            otherParams = null
-        )
+        val payment1 =
+            Payment(
+                recipientAddress = recipient1,
+                nonNegativeAmount = NonNegativeAmount("0.789"),
+                memo = MemoBytes("This is a unicode memo ✨🦄🏆🎉"),
+                label = null,
+                message = null,
+                otherParams = null,
+            )
 
         assertEquals(expected, Render.payment(payment1, 1u, omittingAddressLabel = true))
     }
@@ -179,23 +182,29 @@ class RendererTests {
     fun `Payment request renderer increments index when start index is given`() {
         val expected = "zcash:?address.1=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount.1=123.45&label.1=apple&address.2=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.2=1.2345&label.2=banana"
 
-        val payment1 = Payment(
-            recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
-            nonNegativeAmount = NonNegativeAmount("123.45"),
-            memo = null,
-            label = "apple",
-            message = null,
-            otherParams = null
-        )
+        val payment1 =
+            Payment(
+                recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
+                nonNegativeAmount = NonNegativeAmount("123.45"),
+                memo = null,
+                label = "apple",
+                message = null,
+                otherParams = null,
+            )
 
-        val payment2 = Payment(
-            recipientAddress = RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET),
-            nonNegativeAmount = NonNegativeAmount("1.2345"),
-            memo = null,
-            label = "banana",
-            message = null,
-            otherParams = null
-        )
+        val payment2 =
+            Payment(
+                recipientAddress =
+                    RecipientAddress(
+                        "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
+                        ParserContext.TESTNET,
+                    ),
+                nonNegativeAmount = NonNegativeAmount("1.2345"),
+                memo = null,
+                label = "banana",
+                message = null,
+                otherParams = null,
+            )
 
         val paymentRequest = PaymentRequest(listOf(payment1, payment2))
 
@@ -206,23 +215,29 @@ class RendererTests {
     fun `Payment request renderer increments index when start index is null`() {
         val expected = "zcash:?address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount=123.45&label=apple&address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=1.2345&label.1=banana"
 
-        val payment1 = Payment(
-            recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
-            nonNegativeAmount = NonNegativeAmount("123.45"),
-            memo = null,
-            label = "apple",
-            message = null,
-            otherParams = null
-        )
+        val payment1 =
+            Payment(
+                recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
+                nonNegativeAmount = NonNegativeAmount("123.45"),
+                memo = null,
+                label = "apple",
+                message = null,
+                otherParams = null,
+            )
 
-        val payment2 = Payment(
-            recipientAddress = RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET),
-            nonNegativeAmount = NonNegativeAmount("1.2345"),
-            memo = null,
-            label = "banana",
-            message = null,
-            otherParams = null
-        )
+        val payment2 =
+            Payment(
+                recipientAddress =
+                    RecipientAddress(
+                        "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
+                        ParserContext.TESTNET,
+                    ),
+                nonNegativeAmount = NonNegativeAmount("1.2345"),
+                memo = null,
+                label = "banana",
+                message = null,
+                otherParams = null,
+            )
 
         val paymentRequest = PaymentRequest(listOf(payment1, payment2))
 
@@ -233,23 +248,29 @@ class RendererTests {
     fun `Payment request renderer increments index when start index is null and address parameter is omitted`() {
         val expected = "zcash:tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU?amount=123.45&label=apple&address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=1.2345&label.1=banana"
 
-        val payment1 = Payment(
-            recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
-            nonNegativeAmount = NonNegativeAmount("123.45"),
-            memo = null,
-            label = "apple",
-            message = null,
-            otherParams = null
-        )
+        val payment1 =
+            Payment(
+                recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
+                nonNegativeAmount = NonNegativeAmount("123.45"),
+                memo = null,
+                label = "apple",
+                message = null,
+                otherParams = null,
+            )
 
-        val payment2 = Payment(
-            recipientAddress = RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET),
-            nonNegativeAmount = NonNegativeAmount("1.2345"),
-            memo = null,
-            label = "banana",
-            message = null,
-            otherParams = null
-        )
+        val payment2 =
+            Payment(
+                recipientAddress =
+                    RecipientAddress(
+                        "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
+                        ParserContext.TESTNET,
+                    ),
+                nonNegativeAmount = NonNegativeAmount("1.2345"),
+                memo = null,
+                label = "banana",
+                message = null,
+                otherParams = null,
+            )
 
         val paymentRequest = PaymentRequest(listOf(payment1, payment2))
 

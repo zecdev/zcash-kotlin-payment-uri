@@ -14,9 +14,8 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ZIP321ParsingTests {
-
     @Test
-    fun `request(String, FormattingOptions) parses single address, with empty param index and address label omitted`() {
+    fun `request String FormattingOptions parses single address with empty param index and address label omitted`() {
         val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val url = "zcash:$address"
 
@@ -28,7 +27,7 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) parses single address, with empty param index and address label not omitted`() {
+    fun `request String FormattingOptions parses single address with empty param index and address label not omitted`() {
         val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val url = "zcash:?address=$address"
 
@@ -40,7 +39,7 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) parses single address, with all payments enumerated`() {
+    fun `request String FormattingOptions parses single address with all payments enumerated`() {
         val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val url = "zcash:?address.1=$address"
 
@@ -52,7 +51,7 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) parses single payment with label but no amount, with empty param index and address label omitted`() {
+    fun `request String FormattingOptions parses single payment with label but no amount with empty param index and address label omitted`() {
         val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val label = "apple"
         val url = "zcash:$address?label=$label"
@@ -72,7 +71,7 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) parses single payment with label but no amount, with empty param index and address label not omitted`() {
+    fun `request String FormattingOptions parses single payment with label but no amount with empty param index and address label not omitted`() {
         val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val label = "apple"
         val url = "zcash:?address=$address&label=$label"
@@ -92,7 +91,7 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) parses single payment with label but no amount, with all payments enumerated`() {
+    fun `request String FormattingOptions parses single payment with label but no amount with all payments enumerated`() {
         val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val label = "apple"
         val url = "zcash:?address.1=$address&label.1=$label"
@@ -111,7 +110,7 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) parses single payment with label and amount, with empty param index and address label omitted`() {
+    fun `request String FormattingOptions parses single payment with label and amount with empty param index and address label omitted`() {
         val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val label = "apple"
         val amount = "123.45"
@@ -132,7 +131,7 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) parses single payment with label and amount, with empty param index and address label not omitted`() {
+    fun `request String FormattingOptions parses single payment with label and amount with empty param index and address label not omitted`() {
         val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val label = "apple"
         val amount = "123.45"
@@ -153,7 +152,7 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) parses single payment with label and amount, with all payments enumerated`() {
+    fun `request String FormattingOptions parses single payment with label and amount with all payments enumerated`() {
         val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val label = "apple"
         val amount = "123.45"
@@ -173,7 +172,7 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) parses single payment with amount and unknown parameter, with empty param index and address label omitted`() {
+    fun `request String FormattingOptions parses single payment with amount and unknown parameter with empty param index and address label omitted`() {
         val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val amount = "123.45"
         val key = "foo"
@@ -195,7 +194,7 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) parses single payment with amount and unknown parameter, with empty param index and address label not omitted`() {
+    fun `request String FormattingOptions parses single payment with amount and unknown parameter with empty param index and address label not omitted`() {
         val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val amount = "123.45"
         val key = "foo"
@@ -217,7 +216,7 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) parses single payment with amount and unknown parameter, with all payments enumerated`() {
+    fun `request String FormattingOptions parses single payment with amount and unknown parameter with all payments enumerated`() {
         val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val amount = "123.45"
         val key = "foo"
@@ -239,7 +238,7 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) parses single payment with amount and unknown parameter with empty value, with empty param index and address label omitted`() {
+    fun `request String FormattingOptions parses single payment with amount and unknown parameter with empty value with empty param index and address label omitted`() {
         val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val amount = "123.45"
         val key = "foo"
@@ -261,7 +260,7 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) parses single payment with amount and unknown parameter with empty value, with empty param index and address label not omitted`() {
+    fun `request String FormattingOptions parses single payment with amount and unknown parameter with empty value with empty param index and address label not omitted`() {
         val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val amount = "123.45"
         val key = "foo"
@@ -283,7 +282,7 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) parses single payment with amount and unknown parameter with empty value, with all payments enumerated`() {
+    fun `request String FormattingOptions parses single payment with amount and unknown parameter with empty value with all payments enumerated`() {
         val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val amount = "123.45"
         val key = "foo"
@@ -305,7 +304,7 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) parses single payment with amount and unknown parameter with no value, with empty param index and address label omitted`() {
+    fun `request String FormattingOptions parses single payment with amount and unknown parameter with no value with empty param index and address label omitted`() {
         val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val amount = "123.45"
         val param = "foo"
@@ -326,14 +325,14 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) fails to parse payment URI with an amount param that has no value`() {
+    fun `request String FormattingOptions fails to parse payment URI with an amount param that has no value`() {
         val url = "zcash:tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU?amount&foo"
 
         assertFailsWith<ZIP321.Errors.InvalidParamValue> { ZIP321.request(url, ParserContext.TESTNET) { _ -> true } }
     }
 
     @Test
-    fun `request(String, FormattingOptions) fails to parse payment URI with an address param that has no value`() {
+    fun `request String FormattingOptions fails to parse payment URI with an address param that has no value`() {
         val amount = "123.45"
         val param = "foo"
         val url = "zcash:?address&amount=$amount&$param"
@@ -342,7 +341,7 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) fails to parse payment URI with a memo param that has no value`() {
+    fun `request String FormattingOptions fails to parse payment URI with a memo param that has no value`() {
         val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val amount = "123.45"
         val param = "foo"
@@ -352,7 +351,7 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) fails to parse payment URI with a label param that has no value`() {
+    fun `request String FormattingOptions fails to parse payment URI with a label param that has no value`() {
         val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val amount = "123.45"
         val param = "foo"
@@ -362,7 +361,7 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) fails to parse payment URI with a message param that has no value`() {
+    fun `request String FormattingOptions fails to parse payment URI with a message param that has no value`() {
         val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val amount = "123.45"
         val param = "foo"
@@ -372,7 +371,7 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) parses single payment with amount and unknown parameter with no value, with empty param index and address label not omitted`() {
+    fun `request String FormattingOptions parses single payment with amount and unknown parameter with no value with empty param index and address label not omitted`() {
         val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val amount = "123.45"
         val param = "foo"
@@ -393,7 +392,7 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) parses single payment with amount and unknown parameter with no value, with all payments enumerated`() {
+    fun `request String FormattingOptions parses single payment with amount and unknown parameter with no value with all payments enumerated`() {
         val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val amount = "123.45"
         val param = "foo"
@@ -414,7 +413,7 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) fails to parse address with wrong characters`() {
+    fun `request String FormattingOptions fails to parse address with wrong characters`() {
         val url =
             "zcash:tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpUʔamount 1ꓸ234?message=Thanks%20for%20your%20payment%20for%20the%20correct%20&amount=20&Have=%20a%20nice%20day"
 
@@ -424,21 +423,21 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) fails when empty string is provided`() {
+    fun `request String FormattingOptions fails when empty string is provided`() {
         assertFailsWith<ZIP321.Errors.InvalidURI> {
             ZIP321.request("", ParserContext.TESTNET) { _ -> true }
         }
     }
 
     @Test
-    fun `request(String, FormattingOptions) fails when no URI Scheme string is detected`() {
+    fun `request String FormattingOptions fails when no URI Scheme string is detected`() {
         assertFailsWith<ZIP321.Errors.InvalidURI> {
             ZIP321.request("bitcoin:asdfasdfasdfasdfasdfasdfa", ParserContext.TESTNET) { _ -> true }
         }
     }
 
     @Test
-    fun `request(String, FormattingOptions) succeeds when tested against UA test vectors`() {
+    fun `request String FormattingOptions succeeds when tested against UA test vectors`() {
         // shouldNotThrow<ZIP321.Errors>: any exception fails the test.
         for (ua in TestVectors.unifiedAddresses) {
             ZIP321.request("zcash:$ua", ParserContext.MAINNET, null)
@@ -446,17 +445,25 @@ class ZIP321ParsingTests {
     }
 
     @Test
-    fun `request(String, FormattingOptions) succeeds parsing Sapling address`() {
+    fun `request String FormattingOptions succeeds parsing Sapling address`() {
         ZIP321.request("zcash:zs1z7rejlpsa98s2rrrfkwmaxu53e4ue0ulcrw0h4x5g8jl04tak0d3mm47vdtahatqrlkngh9slya", ParserContext.MAINNET, null)
     }
 
     @Test
-    fun `request(String, FormattingOptions) succeeds parsing Sapling-only usified address`() {
-        ZIP321.request("zcash:u187vrwl4ampyxd5m6aj38n4ndkmj8v6gs97hkt23aps3sn5k89a0gk2smluexgdprcrtm56ezc5c7tjwlrnnl79tjtrxmqd42c5mpyz7g", ParserContext.MAINNET, null)
+    fun `request String FormattingOptions succeeds parsing Sapling-only usified address`() {
+        ZIP321.request(
+            "zcash:u187vrwl4ampyxd5m6aj38n4ndkmj8v6gs97hkt23aps3sn5k89a0gk2smluexgdprcrtm56ezc5c7tjwlrnnl79tjtrxmqd42c5mpyz7g",
+            ParserContext.MAINNET,
+            null,
+        )
     }
 
     @Test
-    fun `request(String, FormattingOptions) succeeds parsing orchard only unified address`() {
-        ZIP321.request("zcash:u1ddnjsdcpm36r6aq79n3s68shjweksnmwtdltrh046s8m6xcws9ygyawalxx8n6hg6vegk0wh8zjnafxgh6msppjsljvyt0ynece3lvm0", ParserContext.MAINNET, null)
+    fun `request String FormattingOptions succeeds parsing orchard only unified address`() {
+        ZIP321.request(
+            "zcash:u1ddnjsdcpm36r6aq79n3s68shjweksnmwtdltrh046s8m6xcws9ygyawalxx8n6hg6vegk0wh8zjnafxgh6msppjsljvyt0ynece3lvm0",
+            ParserContext.MAINNET,
+            null,
+        )
     }
 }

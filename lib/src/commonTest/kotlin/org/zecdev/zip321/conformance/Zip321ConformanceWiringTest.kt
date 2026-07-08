@@ -9,7 +9,6 @@ import kotlin.test.assertTrue
  * checks themselves live in the generated `GeneratedZip321ConformanceTest`).
  */
 class Zip321ConformanceWiringTest {
-
     private val validVectors = ConformanceRunner.validVectors
     private val invalidVectors = ConformanceRunner.invalidVectors
     private val allNames = validVectors.map { it.name } + invalidVectors.map { it.name }
@@ -21,7 +20,7 @@ class Zip321ConformanceWiringTest {
         assertEquals(
             allNames.size,
             allNames.toSet().size,
-            "vector names must be unique corpus-wide"
+            "vector names must be unique corpus-wide",
         )
     }
 
@@ -30,12 +29,12 @@ class Zip321ConformanceWiringTest {
         assertTrue(
             allNames.containsAll(ExpectedFailures.conformance.keys),
             "stale names in ExpectedFailures.conformance: " +
-                (ExpectedFailures.conformance.keys - allNames.toSet())
+                (ExpectedFailures.conformance.keys - allNames.toSet()),
         )
         assertTrue(
             validVectors.map { it.name }.containsAll(ExpectedFailures.renderMismatch.keys),
             "stale names in ExpectedFailures.renderMismatch: " +
-                (ExpectedFailures.renderMismatch.keys - validVectors.map { it.name }.toSet())
+                (ExpectedFailures.renderMismatch.keys - validVectors.map { it.name }.toSet()),
         )
     }
 }

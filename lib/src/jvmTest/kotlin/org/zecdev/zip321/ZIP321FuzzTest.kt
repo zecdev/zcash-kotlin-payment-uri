@@ -6,7 +6,6 @@ import org.zecdev.zip321.ZIP321.request
 import org.zecdev.zip321.parser.ParserContext
 
 class ZIP321FuzzTest {
-
     @FuzzTest
     fun testRequestParsing(data: FuzzedDataProvider) {
         val request = data.consumeRemainingAsString()

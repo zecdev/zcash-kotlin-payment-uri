@@ -11,28 +11,33 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ZIP321EncodingTests {
-
     @Test
-    fun `uriString(PaymentRequest, FormattingOptions) encodes multiple payments, with default formatting options`() {
+    fun `uriString PaymentRequest FormattingOptions encodes multiple payments with default formatting options`() {
         val expected = "zcash:?address.1=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount.1=123.45&label.1=apple&address.2=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.2=1.2345&label.2=banana"
 
-        val payment1 = Payment(
-            recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
-            nonNegativeAmount = NonNegativeAmount("123.45"),
-            memo = null,
-            label = "apple",
-            message = null,
-            otherParams = null
-        )
+        val payment1 =
+            Payment(
+                recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
+                nonNegativeAmount = NonNegativeAmount("123.45"),
+                memo = null,
+                label = "apple",
+                message = null,
+                otherParams = null,
+            )
 
-        val payment2 = Payment(
-            recipientAddress = RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET),
-            nonNegativeAmount = NonNegativeAmount("1.2345"),
-            memo = null,
-            label = "banana",
-            message = null,
-            otherParams = null
-        )
+        val payment2 =
+            Payment(
+                recipientAddress =
+                    RecipientAddress(
+                        "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
+                        ParserContext.TESTNET,
+                    ),
+                nonNegativeAmount = NonNegativeAmount("1.2345"),
+                memo = null,
+                label = "banana",
+                message = null,
+                otherParams = null,
+            )
 
         val paymentRequest = PaymentRequest(listOf(payment1, payment2))
 
@@ -40,26 +45,32 @@ class ZIP321EncodingTests {
     }
 
     @Test
-    fun `uriString(PaymentRequest, FormattingOptions) encodes multiple payments, with empty param index and address label omitted`() {
+    fun `uriString PaymentRequest FormattingOptions encodes multiple payments with empty param index and address label omitted`() {
         val expected = "zcash:tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU?amount=123.45&label=apple&address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=1.2345&label.1=banana"
 
-        val payment1 = Payment(
-            recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
-            nonNegativeAmount = NonNegativeAmount("123.45"),
-            memo = null,
-            label = "apple",
-            message = null,
-            otherParams = null
-        )
+        val payment1 =
+            Payment(
+                recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
+                nonNegativeAmount = NonNegativeAmount("123.45"),
+                memo = null,
+                label = "apple",
+                message = null,
+                otherParams = null,
+            )
 
-        val payment2 = Payment(
-            recipientAddress = RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET),
-            nonNegativeAmount = NonNegativeAmount("1.2345"),
-            memo = null,
-            label = "banana",
-            message = null,
-            otherParams = null
-        )
+        val payment2 =
+            Payment(
+                recipientAddress =
+                    RecipientAddress(
+                        "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
+                        ParserContext.TESTNET,
+                    ),
+                nonNegativeAmount = NonNegativeAmount("1.2345"),
+                memo = null,
+                label = "banana",
+                message = null,
+                otherParams = null,
+            )
 
         val paymentRequest = PaymentRequest(listOf(payment1, payment2))
 
@@ -67,26 +78,32 @@ class ZIP321EncodingTests {
     }
 
     @Test
-    fun `uriString(PaymentRequest, FormattingOptions) encodes multiple payments, with empty param index and address label not omitted`() {
+    fun `uriString PaymentRequest FormattingOptions encodes multiple payments with empty param index and address label not omitted`() {
         val expected = "zcash:?address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount=123.45&label=apple&address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=1.2345&label.1=banana"
 
-        val payment1 = Payment(
-            recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
-            nonNegativeAmount = NonNegativeAmount("123.45"),
-            memo = null,
-            label = "apple",
-            message = null,
-            otherParams = null
-        )
+        val payment1 =
+            Payment(
+                recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
+                nonNegativeAmount = NonNegativeAmount("123.45"),
+                memo = null,
+                label = "apple",
+                message = null,
+                otherParams = null,
+            )
 
-        val payment2 = Payment(
-            recipientAddress = RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET),
-            nonNegativeAmount = NonNegativeAmount("1.2345"),
-            memo = null,
-            label = "banana",
-            message = null,
-            otherParams = null
-        )
+        val payment2 =
+            Payment(
+                recipientAddress =
+                    RecipientAddress(
+                        "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
+                        ParserContext.TESTNET,
+                    ),
+                nonNegativeAmount = NonNegativeAmount("1.2345"),
+                memo = null,
+                label = "banana",
+                message = null,
+                otherParams = null,
+            )
 
         val paymentRequest = PaymentRequest(listOf(payment1, payment2))
 
@@ -94,7 +111,7 @@ class ZIP321EncodingTests {
     }
 
     @Test
-    fun `request(RecipientAddress) encodes single address, with default formatting options`() {
+    fun `request RecipientAddress encodes single address with default formatting options`() {
         val expected = "zcash:tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET)
 
@@ -102,7 +119,7 @@ class ZIP321EncodingTests {
     }
 
     @Test
-    fun `request(RecipientAddress) encodes single address, with empty param index and address label not omitted`() {
+    fun `request RecipientAddress encodes single address with empty param index and address label not omitted`() {
         val expected = "zcash:?address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET)
 
@@ -110,7 +127,7 @@ class ZIP321EncodingTests {
     }
 
     @Test
-    fun `request(RecipientAddress) encodes single address, with all payments enumerated`() {
+    fun `request RecipientAddress encodes single address with all payments enumerated`() {
         val expected = "zcash:?address.1=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET)
 

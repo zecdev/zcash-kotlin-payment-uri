@@ -9,7 +9,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class QcharStringTests {
-
     @Test
     fun `QcharString is initialized from a valid raw string`() {
         val string = "valid QcharString"

@@ -6,7 +6,6 @@ import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
 class RecipientTests {
-
     @Test
     fun `Recipient init throws when validation fails`() {
         assertFailsWith<RecipientAddress.RecipientAddressError.InvalidRecipient> {

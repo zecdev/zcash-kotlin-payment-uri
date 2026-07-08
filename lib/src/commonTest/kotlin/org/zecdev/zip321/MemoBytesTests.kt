@@ -8,7 +8,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class MemoBytesTests {
-
     @Test
     fun `InitWithString`() {
         val expectedBase64 = "VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"
@@ -18,10 +17,11 @@ class MemoBytesTests {
 
     @Test
     fun `InitWithBytes`() {
-        val bytes = byteArrayOf(
-            0x54, 0x68, 0x69, 0x73, 0x20, 0x69, 0x73, 0x20, 0x61, 0x20, 0x73, 0x69, 0x6d, 0x70,
-            0x6c, 0x65, 0x20, 0x6d, 0x65, 0x6d, 0x6f, 0x2e
-        )
+        val bytes =
+            byteArrayOf(
+                0x54, 0x68, 0x69, 0x73, 0x20, 0x69, 0x73, 0x20, 0x61, 0x20, 0x73, 0x69, 0x6d, 0x70,
+                0x6c, 0x65, 0x20, 0x6d, 0x65, 0x6d, 0x6f, 0x2e,
+            )
         val expectedBase64 = "VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"
         val memo = MemoBytes(bytes)
         assertEquals(expectedBase64, memo.toBase64URL())

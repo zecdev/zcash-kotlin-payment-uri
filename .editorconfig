@@ -1,0 +1,20 @@
+root = true
+
+# Test sources embed complete ZIP-321 payment URIs and Zcash addresses as
+# single-line literals and use long descriptive backtick test names, so the
+# 140-character line limit is not meaningful there. The filename rule is
+# relaxed for the historical QcharCodecTests.kt / QCharCodecTests naming.
+[lib/src/{commonTest,jvmTest}/**.kt]
+max_line_length = off
+ktlint_standard_filename = disabled
+
+# Expected-failure registry for the conformance corpus: kept byte-identical
+# to the version reviewed in the K0 conformance PR (rename-only move in K1),
+# so style rules are not applied to it.
+[lib/src/commonTest/kotlin/org/zecdev/zip321/conformance/ExpectedFailures.kt]
+ktlint = disabled
+
+# Build outputs (the generated conformance vector sources embed raw corpus
+# JSON as very long string constants) are not hand-written code.
+[lib/build/**.kt]
+ktlint = disabled

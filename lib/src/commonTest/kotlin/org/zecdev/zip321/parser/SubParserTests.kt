@@ -25,7 +25,6 @@ import kotlin.test.assertTrue
 // carried assertions directly ("fails on leading zero many digits" and
 // "fails on too many digits") are now regular tests.
 class SubParserTests {
-
     // paramindex subparser
 
     @Test
@@ -33,13 +32,13 @@ class SubParserTests {
         assertEquals(
             1u,
             Parser(ParserContext.TESTNET, addressValidation = null)
-                .parseParameterIndex("1")
+                .parseParameterIndex("1"),
         )
 
         assertEquals(
             9u,
             Parser(ParserContext.TESTNET, addressValidation = null)
-                .parseParameterIndex("9")
+                .parseParameterIndex("9"),
         )
     }
 
@@ -56,12 +55,12 @@ class SubParserTests {
         assertEquals(
             12u,
             Parser(ParserContext.TESTNET, addressValidation = null)
-                .parseParameterIndex("12")
+                .parseParameterIndex("12"),
         )
         assertEquals(
             123u,
             Parser(ParserContext.TESTNET, addressValidation = null)
-                .parseParameterIndex("123")
+                .parseParameterIndex("123"),
         )
     }
 
@@ -88,7 +87,7 @@ class SubParserTests {
         assertEquals(
             Pair<String, UInt?>("address", null),
             Parser(ParserContext.TESTNET, addressValidation = null)
-                .parseOptionallyIndexedParamName("address")
+                .parseOptionallyIndexedParamName("address"),
         )
     }
 
@@ -97,7 +96,7 @@ class SubParserTests {
         assertEquals(
             Pair<String, UInt?>("address", 123u),
             Parser(ParserContext.TESTNET, addressValidation = null)
-                .parseOptionallyIndexedParamName("address.123")
+                .parseOptionallyIndexedParamName("address.123"),
         )
     }
 
@@ -137,8 +136,9 @@ class SubParserTests {
 
     @Test
     fun `parses a query key with no index`() {
-        val parsedQueryParam = Parser(ParserContext.TESTNET, addressValidation = null)
-            .parseQueryKeyAndValue("address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU")
+        val parsedQueryParam =
+            Parser(ParserContext.TESTNET, addressValidation = null)
+                .parseQueryKeyAndValue("address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU")
 
         assertEquals("address", parsedQueryParam.first.first)
         assertEquals(null, parsedQueryParam.first.second)
@@ -147,8 +147,9 @@ class SubParserTests {
 
     @Test
     fun `parses a query key with a valid index`() {
-        val parsedQueryParam = Parser(ParserContext.TESTNET, addressValidation = null)
-            .parseQueryKeyAndValue("address.123=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU")
+        val parsedQueryParam =
+            Parser(ParserContext.TESTNET, addressValidation = null)
+                .parseQueryKeyAndValue("address.123=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU")
 
         assertEquals("address", parsedQueryParam.first.first)
         assertEquals(123u, parsedQueryParam.first.second)
@@ -170,7 +171,7 @@ class SubParserTests {
         assertEquals(
             Pair(Pair("message", 1u), "Thank%20You%20For%20Your%20Purchase"),
             Parser(ParserContext.TESTNET, addressValidation = null)
-                .parseQueryKeyAndValue("message.1=Thank%20You%20For%20Your%20Purchase")
+                .parseQueryKeyAndValue("message.1=Thank%20You%20For%20Your%20Purchase"),
         )
     }
 
@@ -182,7 +183,7 @@ class SubParserTests {
         val input = Pair<Pair<String, UInt?>, String>(Pair(query, index), value)
         assertEquals(
             IndexedParameter(1u, Param.Amount(amount = NonNegativeAmount(value))),
-            Parser(ParserContext.TESTNET, addressValidation = null).zcashParameter(input)
+            Parser(ParserContext.TESTNET, addressValidation = null).zcashParameter(input),
         )
     }
 
@@ -197,7 +198,7 @@ class SubParserTests {
 
         assertEquals(
             IndexedParameter(1u, Param.Message(qcharDecodedValue)),
-            Parser(ParserContext.TESTNET, addressValidation = null).zcashParameter(input)
+            Parser(ParserContext.TESTNET, addressValidation = null).zcashParameter(input),
         )
     }
 
@@ -212,7 +213,7 @@ class SubParserTests {
 
         assertEquals(
             IndexedParameter(1u, Param.Label(qcharDecodedValue)),
-            Parser(ParserContext.TESTNET, addressValidation = null).zcashParameter(input)
+            Parser(ParserContext.TESTNET, addressValidation = null).zcashParameter(input),
         )
     }
 
@@ -225,7 +226,7 @@ class SubParserTests {
         val memo = MemoBytes.fromBase64URL(value)
         assertEquals(
             IndexedParameter(99u, Param.Memo(memo)),
-            Parser(ParserContext.TESTNET, addressValidation = null).zcashParameter(input)
+            Parser(ParserContext.TESTNET, addressValidation = null).zcashParameter(input),
         )
     }
 
@@ -239,8 +240,8 @@ class SubParserTests {
             input,
             Parser(ParserContext.TESTNET, addressValidation = null)
                 .parseQueryKeyAndValue(
-                    "memo.99=VGhpcyBpcyBhIHVuaWNvZGUgbWVtbyDinKjwn6aE8J-PhvCfjok"
-                )
+                    "memo.99=VGhpcyBpcyBhIHVuaWNvZGUgbWVtbyDinKjwn6aE8J-PhvCfjok",
+                ),
         )
     }
 
@@ -251,7 +252,7 @@ class SubParserTests {
         val input = Pair<Pair<String, UInt?>, String>(Pair(query, null), value)
         assertEquals(
             IndexedParameter(0u, Param.Other(ParamNameString(query), value)),
-            Parser(ParserContext.TESTNET, addressValidation = null).zcashParameter(input)
+            Parser(ParserContext.TESTNET, addressValidation = null).zcashParameter(input),
         )
     }
 
@@ -262,18 +263,22 @@ class SubParserTests {
         val remainingString = "?address=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount=1&memo=VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg&message=Thank%20you%20for%20your%20purchase"
 
         val recipient =
-            RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)
+            RecipientAddress(
+                "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
+                ParserContext.TESTNET,
+            )
 
-        val expected = listOf(
-            IndexedParameter(0u, Param.Address(recipient)),
-            IndexedParameter(0u, Param.Amount(NonNegativeAmount("1"))),
-            IndexedParameter(0u, Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
-            IndexedParameter(0u, Param.Message("Thank you for your purchase"))
-        )
+        val expected =
+            listOf(
+                IndexedParameter(0u, Param.Address(recipient)),
+                IndexedParameter(0u, Param.Amount(NonNegativeAmount("1"))),
+                IndexedParameter(0u, Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
+                IndexedParameter(0u, Param.Message("Thank you for your purchase")),
+            )
 
         assertEquals(
             expected,
-            Parser(ParserContext.TESTNET, addressValidation = null).parseParameters(remainingString, null)
+            Parser(ParserContext.TESTNET, addressValidation = null).parseParameters(remainingString, null),
         )
     }
 
@@ -282,20 +287,24 @@ class SubParserTests {
         val remainingString = "?amount=1&memo=VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg&message=Thank%20you%20for%20your%20purchase"
 
         val recipient =
-            RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)
+            RecipientAddress(
+                "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
+                ParserContext.TESTNET,
+            )
 
-        val expected = listOf(
-            IndexedParameter(0u, Param.Address(recipient)),
-            IndexedParameter(0u, Param.Amount(NonNegativeAmount("1"))),
-            IndexedParameter(0u, Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
-            IndexedParameter(0u, Param.Message("Thank you for your purchase"))
-        )
+        val expected =
+            listOf(
+                IndexedParameter(0u, Param.Address(recipient)),
+                IndexedParameter(0u, Param.Amount(NonNegativeAmount("1"))),
+                IndexedParameter(0u, Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
+                IndexedParameter(0u, Param.Message("Thank you for your purchase")),
+            )
 
         val leadingAddress = IndexedParameter(0u, Param.Address(recipient))
 
         assertEquals(
             expected,
-            Parser(ParserContext.TESTNET, addressValidation = null).parseParameters(remainingString, leadingAddress)
+            Parser(ParserContext.TESTNET, addressValidation = null).parseParameters(remainingString, leadingAddress),
         )
     }
 
@@ -303,43 +312,69 @@ class SubParserTests {
 
     @Test
     fun `Duplicate other params are detected`() {
-        val params = listOf(
-            Param.Address(RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)),
-            Param.Amount(NonNegativeAmount("1")),
-            Param.Message("Thanks"),
-            Param.Label("payment"),
-            Param.Other(ParamNameString("future"), "is awesome")
-        )
+        val params =
+            listOf(
+                Param.Address(
+                    RecipientAddress(
+                        "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
+                        ParserContext.TESTNET,
+                    ),
+                ),
+                Param.Amount(NonNegativeAmount("1")),
+                Param.Message("Thanks"),
+                Param.Label("payment"),
+                Param.Other(ParamNameString("future"), "is awesome"),
+            )
 
         assertTrue(params.hasDuplicateParam(Param.Other(ParamNameString("future"), "is dystopic")))
     }
 
     @Test
     fun `Duplicate address params are detected`() {
-        val params = listOf(
-            Param.Address(RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)),
-            Param.Amount(NonNegativeAmount("1")),
-            Param.Message("Thanks"),
-            Param.Label("payment"),
-            Param.Other(ParamNameString("future"), "is awesome")
-        )
+        val params =
+            listOf(
+                Param.Address(
+                    RecipientAddress(
+                        "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
+                        ParserContext.TESTNET,
+                    ),
+                ),
+                Param.Amount(NonNegativeAmount("1")),
+                Param.Message("Thanks"),
+                Param.Label("payment"),
+                Param.Other(ParamNameString("future"), "is awesome"),
+            )
 
-        assertTrue(params.hasDuplicateParam(Param.Address(RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET))))
+        assertTrue(
+            params.hasDuplicateParam(
+                Param.Address(
+                    RecipientAddress(
+                        "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
+                        ParserContext.TESTNET,
+                    ),
+                ),
+            ),
+        )
     }
 
     // Payment can be created from uniquely indexed Params
 
     @Test
     fun `Payment is created from indexed parameters`() {
-        val recipient = RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)
+        val recipient =
+            RecipientAddress(
+                "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
+                ParserContext.TESTNET,
+            )
 
-        val params = listOf(
-            Param.Address(recipient),
-            Param.Amount(NonNegativeAmount("1")),
-            Param.Message("Thanks"),
-            Param.Label("payment"),
-            Param.Other(ParamNameString("future"), "is awesome")
-        )
+        val params =
+            listOf(
+                Param.Address(recipient),
+                Param.Amount(NonNegativeAmount("1")),
+                Param.Message("Thanks"),
+                Param.Label("payment"),
+                Param.Other(ParamNameString("future"), "is awesome"),
+            )
 
         val payment = Payment.fromUniqueIndexedParameters(index = 1u, parameters = params)
 
@@ -350,115 +385,140 @@ class SubParserTests {
                 memo = null,
                 label = "payment",
                 message = "Thanks",
-                otherParams = listOf(OtherParam(ParamNameString("future"), "is awesome"))
+                otherParams = listOf(OtherParam(ParamNameString("future"), "is awesome")),
             ),
-            payment
+            payment,
         )
     }
 
     @Test
     fun `duplicate addresses are detected`() {
         val shieldedRecipient =
-            RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)
+            RecipientAddress(
+                "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
+                ParserContext.TESTNET,
+            )
 
-        val duplicateAddressParams: List<IndexedParameter> = listOf(
-            IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
-            IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount("1"))),
-            IndexedParameter(index = 0u, param = Param.Message("Thanks")),
-            IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
-            IndexedParameter(index = 0u, param = Param.Label("payment")),
-            IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
-            IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is awesome"))
-        )
+        val duplicateAddressParams: List<IndexedParameter> =
+            listOf(
+                IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
+                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount("1"))),
+                IndexedParameter(index = 0u, param = Param.Message("Thanks")),
+                IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
+                IndexedParameter(index = 0u, param = Param.Label("payment")),
+                IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
+                IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is awesome")),
+            )
 
-        val error = assertFailsWith<ZIP321.Errors> {
-            Parser(ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateAddressParams)
-        }
+        val error =
+            assertFailsWith<ZIP321.Errors> {
+                Parser(ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateAddressParams)
+            }
         assertEquals(ZIP321.Errors.DuplicateParameter("address", null), error)
     }
 
     @Test
     fun `duplicate amounts are detected`() {
         val shieldedRecipient =
-            RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)
+            RecipientAddress(
+                "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
+                ParserContext.TESTNET,
+            )
 
-        val duplicateAmountParams: List<IndexedParameter> = listOf(
-            IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
-            IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount("1"))),
-            IndexedParameter(index = 0u, param = Param.Message("Thanks")),
-            IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
-            IndexedParameter(index = 0u, param = Param.Label("payment")),
-            IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount("2"))),
-            IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is awesome"))
-        )
+        val duplicateAmountParams: List<IndexedParameter> =
+            listOf(
+                IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
+                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount("1"))),
+                IndexedParameter(index = 0u, param = Param.Message("Thanks")),
+                IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
+                IndexedParameter(index = 0u, param = Param.Label("payment")),
+                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount("2"))),
+                IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is awesome")),
+            )
 
-        val error = assertFailsWith<ZIP321.Errors> {
-            Parser(ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateAmountParams)
-        }
+        val error =
+            assertFailsWith<ZIP321.Errors> {
+                Parser(ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateAmountParams)
+            }
         assertEquals(ZIP321.Errors.DuplicateParameter("amount", null), error)
     }
 
     @Test
     fun `duplicate message are detected`() {
         val shieldedRecipient =
-            RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)
+            RecipientAddress(
+                "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
+                ParserContext.TESTNET,
+            )
 
-        val duplicateParams: List<IndexedParameter> = listOf(
-            IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
-            IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount("1"))),
-            IndexedParameter(index = 0u, param = Param.Message("Thanks")),
-            IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
-            IndexedParameter(index = 0u, param = Param.Message("Thanks")),
-            IndexedParameter(index = 0u, param = Param.Label("payment")),
-            IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount("2"))),
-            IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is awesome"))
-        )
+        val duplicateParams: List<IndexedParameter> =
+            listOf(
+                IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
+                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount("1"))),
+                IndexedParameter(index = 0u, param = Param.Message("Thanks")),
+                IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
+                IndexedParameter(index = 0u, param = Param.Message("Thanks")),
+                IndexedParameter(index = 0u, param = Param.Label("payment")),
+                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount("2"))),
+                IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is awesome")),
+            )
 
-        val error = assertFailsWith<ZIP321.Errors> {
-            Parser(ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateParams)
-        }
+        val error =
+            assertFailsWith<ZIP321.Errors> {
+                Parser(ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateParams)
+            }
         assertEquals(ZIP321.Errors.DuplicateParameter("message", null), error)
     }
 
     @Test
     fun `duplicate memos are detected`() {
         val shieldedRecipient =
-            RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)
+            RecipientAddress(
+                "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
+                ParserContext.TESTNET,
+            )
 
-        val duplicateParams: List<IndexedParameter> = listOf(
-            IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
-            IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
-            IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount("1"))),
-            IndexedParameter(index = 0u, param = Param.Message("Thanks")),
-            IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
-            IndexedParameter(index = 0u, param = Param.Label("payment")),
-            IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is awesome"))
-        )
+        val duplicateParams: List<IndexedParameter> =
+            listOf(
+                IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
+                IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
+                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount("1"))),
+                IndexedParameter(index = 0u, param = Param.Message("Thanks")),
+                IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
+                IndexedParameter(index = 0u, param = Param.Label("payment")),
+                IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is awesome")),
+            )
 
-        val error = assertFailsWith<ZIP321.Errors> {
-            Parser(ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateParams)
-        }
+        val error =
+            assertFailsWith<ZIP321.Errors> {
+                Parser(ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateParams)
+            }
         assertEquals(ZIP321.Errors.DuplicateParameter("memo", null), error)
     }
 
     @Test
     fun `duplicate other params are detected`() {
         val shieldedRecipient =
-            RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)
+            RecipientAddress(
+                "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
+                ParserContext.TESTNET,
+            )
 
-        val duplicateParams: List<IndexedParameter> = listOf(
-            IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
-            IndexedParameter(index = 0u, param = Param.Label("payment")),
-            IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount("1"))),
-            IndexedParameter(index = 0u, param = Param.Message("Thanks")),
-            IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is dystopian")),
-            IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
-            IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is awesome"))
-        )
+        val duplicateParams: List<IndexedParameter> =
+            listOf(
+                IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
+                IndexedParameter(index = 0u, param = Param.Label("payment")),
+                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount("1"))),
+                IndexedParameter(index = 0u, param = Param.Message("Thanks")),
+                IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is dystopian")),
+                IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
+                IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is awesome")),
+            )
 
-        val error = assertFailsWith<ZIP321.Errors> {
-            Parser(ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateParams)
-        }
+        val error =
+            assertFailsWith<ZIP321.Errors> {
+                Parser(ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateParams)
+            }
         assertEquals(ZIP321.Errors.DuplicateParameter("future", null), error)
     }
 }

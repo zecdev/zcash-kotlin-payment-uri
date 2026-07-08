@@ -85,53 +85,59 @@ private data class ObservedPayment(
     val memoBase64: String?,
     val label: String?,
     val message: String?,
-    val other: List<Pair<String, String?>>
+    val other: List<Pair<String, String?>>,
 )
 
-private fun Payment.toObserved(): ObservedPayment = ObservedPayment(
-    address = recipientAddress.value,
-    // NonNegativeAmount stores Long zatoshis internally and toString() renders them.
-    amountZat = nonNegativeAmount?.toString()?.toLong(),
-    memoBase64 = memo?.toBase64URL(),
-    label = label,
-    message = message,
-    other = otherParams.orEmpty().map { it.key.value to it.value }
-)
-
-private fun parseVectorUri(uri: String, network: String): ZIP321.ParserResult =
-    ZIP321.request(uri, networkToParserContext(network), validatingRecipients = null)
-
-private fun ZIP321.ParserResult.toObservedPayments(): List<ObservedPayment> = when (this) {
-    is ZIP321.ParserResult.SingleAddress -> listOf(
-        ObservedPayment(
-            address = singleRecipient.value,
-            amountZat = null,
-            memoBase64 = null,
-            label = null,
-            message = null,
-            other = emptyList()
-        )
+private fun Payment.toObserved(): ObservedPayment =
+    ObservedPayment(
+        address = recipientAddress.value,
+        // NonNegativeAmount stores Long zatoshis internally and toString() renders them.
+        amountZat = nonNegativeAmount?.toString()?.toLong(),
+        memoBase64 = memo?.toBase64URL(),
+        label = label,
+        message = message,
+        other = otherParams.orEmpty().map { it.key.value to it.value },
     )
-    is ZIP321.ParserResult.Request -> paymentRequest.payments.map { it.toObserved() }
-}
+
+private fun parseVectorUri(
+    uri: String,
+    network: String,
+): ZIP321.ParserResult = ZIP321.request(uri, networkToParserContext(network), validatingRecipients = null)
+
+private fun ZIP321.ParserResult.toObservedPayments(): List<ObservedPayment> =
+    when (this) {
+        is ZIP321.ParserResult.SingleAddress ->
+            listOf(
+                ObservedPayment(
+                    address = singleRecipient.value,
+                    amountZat = null,
+                    memoBase64 = null,
+                    label = null,
+                    message = null,
+                    other = emptyList(),
+                ),
+            )
+        is ZIP321.ParserResult.Request -> paymentRequest.payments.map { it.toObserved() }
+    }
 
 private fun checkValidVector(vector: ValidVector) {
-    val result = try {
-        parseVectorUri(vector.uri, vector.network)
-    } catch (t: Throwable) {
-        // NOTE: common code has no AssertionError(message, cause) constructor;
-        // the rejection is described in the message instead.
-        throw AssertionError(
-            "vector '${vector.name}' must parse but was rejected with " +
-                "${t::class.simpleName}: ${t.message} (${vector.description})"
-        )
-    }
+    val result =
+        try {
+            parseVectorUri(vector.uri, vector.network)
+        } catch (t: Throwable) {
+            // NOTE: common code has no AssertionError(message, cause) constructor;
+            // the rejection is described in the message instead.
+            throw AssertionError(
+                "vector '${vector.name}' must parse but was rejected with " +
+                    "${t::class.simpleName}: ${t.message} (${vector.description})",
+            )
+        }
 
     val observed = result.toObservedPayments()
     assertEquals(
         vector.payments.size,
         observed.size,
-        "payment count for '${vector.name}' (${vector.description})"
+        "payment count for '${vector.name}' (${vector.description})",
     )
     vector.payments.zip(observed).forEach { (expected, actual) ->
         assertEquals(
@@ -141,50 +147,54 @@ private fun checkValidVector(vector: ValidVector) {
                 memoBase64 = expected.memoBase64,
                 label = expected.label,
                 message = expected.message,
-                other = expected.other
+                other = expected.other,
             ),
             actual,
-            "payment at paramindex ${expected.index} of '${vector.name}'"
+            "payment at paramindex ${expected.index} of '${vector.name}'",
         )
     }
 }
 
 private fun checkRenderRoundTrip(vector: ValidVector) {
     val canonical = checkNotNull(vector.canonicalUri)
-    val rendered = when (val result = parseVectorUri(vector.uri, vector.network)) {
-        is ZIP321.ParserResult.SingleAddress ->
-            // Reference renders an address-only request as `zcash:<address>`.
-            ZIP321.request(result.singleRecipient)
-        is ZIP321.ParserResult.Request -> ZIP321.uriString(
-            from = result.paymentRequest,
-            // Mirror librustzcash to_uri(): the first payment uses the empty
-            // paramindex (address in the hier-part when it is the only one),
-            // subsequent payments are enumerated from `.1`.
-            formattingOptions = ZIP321.FormattingOptions.UseEmptyParamIndex(
-                omitAddressLabel = result.paymentRequest.payments.size == 1
-            )
-        )
-    }
+    val rendered =
+        when (val result = parseVectorUri(vector.uri, vector.network)) {
+            is ZIP321.ParserResult.SingleAddress ->
+                // Reference renders an address-only request as `zcash:<address>`.
+                ZIP321.request(result.singleRecipient)
+            is ZIP321.ParserResult.Request ->
+                ZIP321.uriString(
+                    from = result.paymentRequest,
+                    // Mirror librustzcash to_uri(): the first payment uses the empty
+                    // paramindex (address in the hier-part when it is the only one),
+                    // subsequent payments are enumerated from `.1`.
+                    formattingOptions =
+                        ZIP321.FormattingOptions.UseEmptyParamIndex(
+                            omitAddressLabel = result.paymentRequest.payments.size == 1,
+                        ),
+                )
+        }
     assertEquals(
         canonical,
         rendered,
-        "re-rendered URI for '${vector.name}' vs reference canonical form"
+        "re-rendered URI for '${vector.name}' vs reference canonical form",
     )
 }
 
 private fun checkInvalidVector(vector: InvalidVector) {
-    val result = try {
-        parseVectorUri(vector.uri, vector.network)
-    } catch (expected: ZIP321.Errors) {
-        return // correctly rejected; v1 error *types* are deliberately not asserted
-    } catch (t: Throwable) {
-        throw AssertionError(
-            "vector '${vector.name}' (reference error: ${vector.error}) was rejected, " +
-                "but with ${t::class.qualifiedName} instead of a ZIP321.Errors: ${t.message}"
-        )
-    }
+    val result =
+        try {
+            parseVectorUri(vector.uri, vector.network)
+        } catch (expected: ZIP321.Errors) {
+            return // correctly rejected; v1 error *types* are deliberately not asserted
+        } catch (t: Throwable) {
+            throw AssertionError(
+                "vector '${vector.name}' (reference error: ${vector.error}) was rejected, " +
+                    "but with ${t::class.qualifiedName} instead of a ZIP321.Errors: ${t.message}",
+            )
+        }
     throw AssertionError(
         "vector '${vector.name}' (reference error: ${vector.error}) must be rejected " +
-            "but parsed successfully as: $result (${vector.description})"
+            "but parsed successfully as: $result (${vector.description})",
     )
 }
