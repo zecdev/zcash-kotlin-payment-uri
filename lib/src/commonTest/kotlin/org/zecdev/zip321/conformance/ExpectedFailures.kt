@@ -27,11 +27,6 @@ object ExpectedFailures {
             "v1 throws Errors.InvalidParamName(\"paramName cannot be empty\") for 'zcash:?'; " +
             "the reference parses it as an empty (zero-payment) transaction request " +
             "(the '?' leads Param.from to see an empty paramname instead of zero params).",
-        "structure_empty_memo_on_sapling" to
-            "v1 rejects 'memo=' (empty value) with Errors.MemoBytesError(MemoEmpty) because " +
-            "MemoBytes requires non-empty data; the reference accepts a 0-byte memo " +
-            "(MemoBytes::from_bytes accepts an empty slice).",
-
         // --- invalid vectors v1 accepts -------------------------------------
         "invalid_address_sapling_bad_checksum" to
             "v1 heuristic address validation (prefix + length + charset only, no bech32 " +

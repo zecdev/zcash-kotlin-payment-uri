@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Fixed (v2/K4)
+- **Zero-length memos are now valid** (conformance fix): `MemoBytes` accepts
+  0 to 512 bytes, matching the reference implementation (consensus zero-pads
+  memos to 512 bytes, so an empty memo is well-defined). A URI containing
+  `memo=` now parses to a payment with an empty (not absent) memo instead of
+  being rejected, and the conformance vector `structure_empty_memo_on_sapling`
+  now passes — its entry has been removed from the expected-failure map
+  (now 12 entries). The `MemoBytes.MemoError.MemoEmpty` case has been removed
+  accordingly.
+- **`MemoBytes(String)` now bounds the UTF-8 byte count, not the char count**:
+  the v1 check `string.length <= 512` could accept multi-byte strings whose
+  UTF-8 encoding exceeds 512 bytes (an invalid memo). The constructor now
+  encodes first and checks the byte length, matching the Swift implementation
+  and the ZIP-302 limit.
+
 ### Added (v2/K3)
 - **Internal strict unpadded base64url codec (RFC 4648 §5)**
   (`lib/src/commonMain/kotlin/org/zecdev/zip321/parser/Base64URL.kt`):

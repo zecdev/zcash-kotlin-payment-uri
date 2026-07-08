@@ -78,9 +78,7 @@
         <error line="192" column="28" source="standard:multiline-expression-wrapping" />
     </file>
     <file name="src/commonMain/kotlin/org/zecdev/zip321/model/MemoBytes.kt">
-        <error line="7" column="19" source="standard:property-naming" />
-        <error line="8" column="9" source="standard:blank-line-before-declaration" />
-        <error line="14" column="5" source="standard:blank-line-before-declaration" />
+        <error line="16" column="19" source="standard:property-naming" />
     </file>
     <file name="src/commonMain/kotlin/org/zecdev/zip321/model/Payment.kt">
         <error line="16" column="39" source="standard:trailing-comma-on-declaration-site" />
