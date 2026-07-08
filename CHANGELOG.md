@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Changed — test suite on all targets (v2/K1)
+- The test suite moved from jvm-only **kotest** to **`kotlin.test`** in
+  `commonTest`, so the same tests now compile and run on every KMP target
+  (`jvmTest`, `iosSimulatorArm64Test`; `iosArm64` links). Every case and
+  expected outcome was preserved 1:1. Exceptions: `AmountTests` stays in
+  `jvmTest` because it exercises the `java.math.BigDecimal` interop that only
+  exists in `jvmMain`, and the Jazzer fuzz harnesses (`ZIP321FuzzTest`,
+  `ZIP321Fuzzer`) remain JVM-only.
+- The shared conformance corpus is now **embedded into `commonTest` sources at
+  build time**: the `generateConformanceVectors` Gradle task reads
+  `test-vectors/vectors/**/*.json` and generates `GeneratedVectors.kt` (raw
+  JSON as string constants) plus `GeneratedZip321ConformanceTest.kt` (one
+  `kotlin.test` function per vector), regenerating whenever the submodule
+  updates. This removes all classloader/filesystem resource loading from the
+  tests; the 13-entry expected-failure registry (`ExpectedFailures.kt`) is
+  unchanged.
+- `kotlinx-serialization-json` (test-only, multiplatform) moved from `jvmTest`
+  to `commonTest`.
+- iOS test link/run tasks are enabled again. Building them locally requires a
+  full Xcode install (`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`
+  when `xcode-select` points at the CommandLineTools).
+
+### Removed (v2/K1)
+- All **kotest** dependencies (`kotest-runner-junit5`, `kotest-property`,
+  `kotest-assertions-core-jvm`, `kotest-framework-engine-jvm`). Nothing uses
+  kotest after the migration. NOTE: `kotest-property` comes back together with
+  the property-based tests in a later v2 PR.
+
 ### Changed (BREAKING — Kotlin Multiplatform conversion, v2/K0)
 - The library is now **Kotlin Multiplatform** (`kotlin("multiplatform")`,
   Kotlin 2.0.20) instead of a JVM-only `java-library`. Targets: `jvm()`,

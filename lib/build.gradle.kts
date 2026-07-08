@@ -1,5 +1,5 @@
-import org.jreleaser.model.Active
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jreleaser.model.Active
 
 /*
  * ZIP-321 Kotlin Multiplatform library.
@@ -63,37 +63,39 @@ val generateConformanceVectors by tasks.registering {
     outputs.dir(outputDir)
 
     doLast {
-        fun escapeForKotlin(text: String): String = buildString(text.length + 64) {
-            for (ch in text) {
-                when (ch) {
-                    '\\' -> append("\\\\")
-                    '"' -> append("\\\"")
-                    '$' -> append("\\$")
-                    '\n' -> append("\\n")
-                    '\r' -> append("\\r")
-                    '\t' -> append("\\t")
-                    else ->
-                        if (ch.code < 0x20) {
-                            append("\\u").append(ch.code.toString(16).padStart(4, '0'))
-                        } else {
-                            append(ch)
-                        }
+        fun escapeForKotlin(text: String): String =
+            buildString(text.length + 64) {
+                for (ch in text) {
+                    when (ch) {
+                        '\\' -> append("\\\\")
+                        '"' -> append("\\\"")
+                        '$' -> append("\\$")
+                        '\n' -> append("\\n")
+                        '\r' -> append("\\r")
+                        '\t' -> append("\\t")
+                        else ->
+                            if (ch.code < 0x20) {
+                                append("\\u").append(ch.code.toString(16).padStart(4, '0'))
+                            } else {
+                                append(ch)
+                            }
+                    }
                 }
             }
-        }
 
         val packageDir = outputDir.get().asFile.resolve("org/zecdev/zip321/conformance")
         packageDir.mkdirs()
 
         // Corpus JSON files, keyed by "<valid|invalid>/<file name>", in
         // deterministic name order.
-        val jsonFiles = listOf("valid", "invalid").flatMap { dir ->
-            conformanceVectorsDir.resolve(dir)
-                .listFiles { file -> file.name.endsWith(".json") }
-                .orEmpty()
-                .sortedBy { it.name }
-                .map { "$dir/${it.name}" to it }
-        }
+        val jsonFiles =
+            listOf("valid", "invalid").flatMap { dir ->
+                conformanceVectorsDir.resolve(dir)
+                    .listFiles { file -> file.name.endsWith(".json") }
+                    .orEmpty()
+                    .sortedBy { it.name }
+                    .map { "$dir/${it.name}" to it }
+            }
         check(jsonFiles.isNotEmpty()) {
             "No corpus JSON found under $conformanceVectorsDir. " +
                 "Did you run `git submodule update --init`?"
@@ -113,19 +115,21 @@ val generateConformanceVectors by tasks.registering {
                 }
                 appendLine("    )")
                 appendLine("}")
-            }
+            },
         )
 
         // One kotlin.test function per vector, mirroring the three phases of
         // the pre-K1 kotest runner. Render tests are only generated for
         // vectors that carry a canonical URI (currently all of them).
         val slurper = groovy.json.JsonSlurper()
-        fun vectorsIn(dir: String): List<Map<*, *>> = jsonFiles
-            .filter { (key, _) -> key.startsWith("$dir/") }
-            .flatMap { (_, file) ->
-                @Suppress("UNCHECKED_CAST")
-                (slurper.parse(file) as List<Map<*, *>>)
-            }
+
+        fun vectorsIn(dir: String): List<Map<*, *>> =
+            jsonFiles
+                .filter { (key, _) -> key.startsWith("$dir/") }
+                .flatMap { (_, file) ->
+                    @Suppress("UNCHECKED_CAST")
+                    (slurper.parse(file) as List<Map<*, *>>)
+                }
         val validVectors = vectorsIn("valid")
         val invalidVectors = vectorsIn("invalid")
 
@@ -162,7 +166,7 @@ val generateConformanceVectors by tasks.registering {
                     appendLine("    }")
                 }
                 appendLine("}")
-            }
+            },
         )
     }
 }
@@ -204,12 +208,9 @@ kotlin {
 
         val jvmTest by getting {
             dependencies {
-                // kotest: still used by the not-yet-migrated jvm specs; removed
-                // in the K1 dependency-cleanup commit once the migration lands.
-                implementation("io.kotest:kotest-runner-junit5:5.9.0")
-                implementation("io.kotest:kotest-property:5.9.0")
-                implementation("io.kotest:kotest-assertions-core-jvm:5.9.0")
-                implementation("io.kotest:kotest-framework-engine-jvm:5.9.0")
+                // kotest was fully removed in K1 (nothing uses it anymore).
+                // kotest-property returns with the property-based tests in a
+                // later PR (see CHANGELOG).
 
                 // Fuzzing (Jazzer + JUnit5 platform) stays JVM-only.
                 implementation(platform("org.junit:junit-bom:5.11.4"))
@@ -241,7 +242,7 @@ detekt {
     source.setFrom(
         "src/commonMain/kotlin",
         "src/jvmMain/kotlin",
-        "src/iosMain/kotlin"
+        "src/iosMain/kotlin",
     )
 }
 
@@ -268,13 +269,6 @@ tasks.withType<Test>().configureEach {
 // targets). Building/linking the iOS test binaries requires a full Xcode
 // install; on machines where `xcode-select` points at the CommandLineTools,
 // run Gradle with DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer.
-
-// The generated conformance sources are build outputs; keep ktlint off them.
-ktlint {
-    filter {
-        exclude { element -> element.file.path.contains("generated") }
-    }
-}
 
 // ---------------------------------------------------------------------------
 // Publication
