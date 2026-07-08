@@ -53,16 +53,6 @@ kotlin {
             // ZERO runtime dependencies. No kudzu, no guava, no commons-math3.
         }
 
-        val jvmMain by getting {
-            dependencies {
-                // TEMPORARY (removed in the parser-rewrite commit): the legacy
-                // kudzu parser combinators still back Parser.kt until it is
-                // replaced with hand-rolled parsing in commonMain. guava and
-                // commons-math3 were verified unused and dropped outright.
-                implementation("io.github.copper-leaf:kudzu-core:5.1.0")
-            }
-        }
-
         val jvmTest by getting {
             dependencies {
                 // kotest (JVM only for now; moving to commonTest is a later PR).

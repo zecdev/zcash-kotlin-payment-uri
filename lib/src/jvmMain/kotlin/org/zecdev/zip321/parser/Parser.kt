@@ -1,20 +1,5 @@
-
 package org.zecdev.zip321.parser
 
-import com.copperleaf.kudzu.node.mapped.ValueNode
-import com.copperleaf.kudzu.parser.ParserContext
-import com.copperleaf.kudzu.parser.ParserException
-import com.copperleaf.kudzu.parser.chars.AnyCharParser
-import com.copperleaf.kudzu.parser.chars.CharInParser
-import com.copperleaf.kudzu.parser.chars.DigitParser
-import com.copperleaf.kudzu.parser.choice.PredictiveChoiceParser
-import com.copperleaf.kudzu.parser.many.ManyParser
-import com.copperleaf.kudzu.parser.many.SeparatedByParser
-import com.copperleaf.kudzu.parser.many.UntilParser
-import com.copperleaf.kudzu.parser.mapped.MappedParser
-import com.copperleaf.kudzu.parser.maybe.MaybeParser
-import com.copperleaf.kudzu.parser.sequence.SequenceParser
-import com.copperleaf.kudzu.parser.text.LiteralTokenParser
 import org.zecdev.zip321.ZIP321
 import org.zecdev.zip321.ZIP321.ParserResult
 import org.zecdev.zip321.model.MemoBytes
@@ -25,127 +10,170 @@ import org.zecdev.zip321.model.PaymentRequest
 import org.zecdev.zip321.model.RecipientAddress
 import org.zecdev.zip321.parser.CharsetValidations.Companion.QcharCharacterSet
 
+private const val ZCASH_SCHEME = "zcash:"
+
+// A ZIP-321 paramindex is `nonzerodigit *3digit`, i.e. 1..4 decimal digits with
+// no leading zero.
+private const val MAX_INDEX_DIGITS = 4
+
+/**
+ * Hand-rolled ZIP-321 URI parser. This replaces the previous kudzu
+ * parser-combinator implementation with a dependency-free, pure-Kotlin state
+ * machine that preserves v1 accept/reject behavior and error types EXACTLY
+ * (verified against the shared conformance corpus and the existing test suite).
+ *
+ * The grammar mirrors the old combinators:
+ *   uri        = "zcash:" [ address ] [ "?" params ]
+ *   params     = keyval *( "&" keyval )          (SeparatedBy; trailing text
+ *                                                 after the last keyval that is
+ *                                                 not "&" is ignored, matching
+ *                                                 kudzu's SeparatedByParser)
+ *   keyval     = paramname [ "." paramindex ] [ "=" *qchar ]
+ *   paramname  = *( any char up to "&" / "." / "=" )   then validated
+ */
 class Parser(
-    private val context: org.zecdev.zip321.parser.ParserContext,
+    private val context: ParserContext,
     addressValidation: ((String) -> Boolean)?
 ) {
 
-    val defaultValidation = addressValidation?.let { customValidation ->
-        {
-                address: String ->
+    val defaultValidation: (String) -> Boolean = addressValidation?.let { customValidation ->
+        { address: String ->
             context.isValid(address) && customValidation(address)
         }
+    } ?: { address: String ->
+        context.isValid(address)
     }
-        ?: { address: String ->
-            context.isValid(address)
-        }
 
-    val maybeLeadingAddressParse = MappedParser(
-        SequenceParser(
-            LiteralTokenParser("zcash:"),
-            MaybeParser(
-                AddressTextParser(context)
-            )
-        )
-    ) {
-        val addressValue: IndexedParameter? = it.node2.node?.let { textNode ->
+    // -- leading address -----------------------------------------------------
 
-            IndexedParameter(
+    /**
+     * Parses the `zcash:` scheme and an optional leading (empty-paramindex)
+     * address. Returns the leading address (or null) and the remaining,
+     * still-unparsed text.
+     *
+     * Mirrors kudzu's `maybeLeadingAddressParse`: the address is the maximal
+     * run of ASCII letters/digits, accepted only when [ParserContext.isValid]
+     * holds. When it does not, nothing is consumed.
+     */
+    fun parseLeadingAddress(input: String): Pair<IndexedParameter?, String> {
+        require(input.startsWith(ZCASH_SCHEME)) { "expected `zcash:` scheme" }
+        val rest = input.substring(ZCASH_SCHEME.length)
+        var end = 0
+        while (end < rest.length && rest[end].isAsciiLetterOrDigit()) end++
+        val run = rest.substring(0, end)
+        if (run.isNotEmpty() && context.isValid(run)) {
+            val addr = IndexedParameter(
                 index = 0u,
                 param = Param.Address(
-                    RecipientAddress(
-                        textNode.text,
-                        context,
-                        validating = defaultValidation
-                    )
+                    RecipientAddress(run, context, validating = defaultValidation)
                 )
             )
+            return Pair(addr, rest.substring(end))
         }
-        addressValue
+        return Pair(null, rest)
     }
 
-    val parameterIndexParser = MappedParser(
-        SequenceParser(
-            CharInParser(CharRange('1', '9')),
-            MaybeParser(
-                ManyParser(
-                    DigitParser()
-                )
-            )
-        )
-    ) {
-        val firstDigit = it.node1.text
+    // -- paramindex ----------------------------------------------------------
 
-        (
-            firstDigit + it.node2.let { node ->
-                if (node.text.length > 3) {
-                    throw ZIP321.Errors.InvalidParamIndex(firstDigit + node.text)
-                } else {
-                    node.text
-                }
-            }
-            ).toUInt()
+    /**
+     * Parses a bare paramindex token: `nonzerodigit *3digit`.
+     *
+     * A leading zero (or non-digit) fails with [IllegalArgumentException]
+     * (surfaced as [ZIP321.Errors.ParseError] end-to-end); more than four
+     * digits fails with [ZIP321.Errors.InvalidParamIndex]. This split matches
+     * the kudzu behavior exactly.
+     */
+    @Throws(ZIP321.Errors::class)
+    fun parseParameterIndex(digits: String): UInt = validateIndexDigits(digits)
+
+    private fun validateIndexDigits(digits: String): UInt {
+        require(digits.isNotEmpty() && digits[0] in '1'..'9') { "invalid paramindex `$digits`" }
+        require(digits.all { it in '0'..'9' }) { "invalid paramindex `$digits`" }
+        if (digits.length > MAX_INDEX_DIGITS) {
+            throw ZIP321.Errors.InvalidParamIndex(digits)
+        }
+        return digits.toUInt()
     }
 
-    val optionallyIndexedParamName = MappedParser(
-        SequenceParser(
-            UntilParser(
-                AnyCharParser(),
-                PredictiveChoiceParser(
-                    LiteralTokenParser("&"),
-                    LiteralTokenParser("."),
-                    LiteralTokenParser("=")
-                )
-            ),
-            MaybeParser(
-                SequenceParser(
-                    LiteralTokenParser("."),
-                    parameterIndexParser
-                )
-            )
-        )
-    ) {
-        val paramName = it.node1.text
+    // -- optionally-indexed paramname ---------------------------------------
 
+    /** Parses a whole `paramname[.index]` token (no `=value`). */
+    fun parseOptionallyIndexedParamName(input: String): Pair<String, UInt?> =
+        parseOptionallyIndexedParamNameAt(input, 0).first
+
+    private fun parseOptionallyIndexedParamNameAt(
+        input: String,
+        pos: Int
+    ): Pair<Pair<String, UInt?>, Int> {
+        // paramname: any char up to the first of '&', '.', '=' (or end).
+        var p = pos
+        while (p < input.length && input[p] != '&' && input[p] != '.' && input[p] != '=') {
+            p++
+        }
+        val paramName = input.substring(pos, p)
         if (!paramName.all { c -> CharsetValidations.isValidParamNameChar(c) }) {
             throw ZIP321.Errors.ParseError("Invalid paramname $paramName")
-        } else {
-            Pair(
-                it.node1.text,
-                it.node2.node?.node2?.value
-            )
         }
+
+        if (p < input.length && input[p] == '.') {
+            // '.' is consumed; a valid paramindex MUST follow (kudzu does not
+            // backtrack the consumed '.').
+            var d = p + 1
+            require(d < input.length && input[d] in '1'..'9') { "invalid paramindex after `.`" }
+            val start = d
+            while (d < input.length && input[d] in '0'..'9') {
+                d++
+            }
+            val index = validateIndexDigits(input.substring(start, d))
+            return Pair(Pair(paramName, index), d)
+        }
+
+        return Pair(Pair(paramName, null), p)
     }
 
-    val queryKeyAndValueParser = MappedParser(
-        SequenceParser(
-            optionallyIndexedParamName,
-            MaybeParser(
-                SequenceParser(
-                    LiteralTokenParser("="),
-                    ManyParser(
-                        CharInParser(QcharCharacterSet.characters.toList())
-                    )
-                )
-            )
-        )
-    ) {
-        Pair(it.node1.value, it.node2.node?.node2?.text)
+    // -- key/value -----------------------------------------------------------
+
+    /** Parses a whole `paramname[.index][=value]` token. */
+    fun parseQueryKeyAndValue(input: String): Pair<Pair<String, UInt?>, String?> =
+        parseQueryKeyAndValueAt(input, 0).first
+
+    private fun parseQueryKeyAndValueAt(
+        input: String,
+        pos: Int
+    ): Pair<Pair<Pair<String, UInt?>, String?>, Int> {
+        val (nameIndex, afterName) = parseOptionallyIndexedParamNameAt(input, pos)
+        if (afterName < input.length && input[afterName] == '=') {
+            // value: maximal run of qchars (may be empty); '=' is always
+            // consumed once present.
+            var v = afterName + 1
+            val start = v
+            while (v < input.length && input[v] in QcharCharacterSet.characters) {
+                v++
+            }
+            return Pair(Pair(nameIndex, input.substring(start, v)), v)
+        }
+        return Pair(Pair(nameIndex, null), afterName)
     }
 
     /**
-     * parses a sequence of query parameters lead by query separator char (?)
+     * Parses a `?`-led sequence of `&`-separated query parameters. Text after
+     * the final parameter that does not continue with `&` is ignored, matching
+     * kudzu's `SeparatedByParser` semantics.
      */
-    private val queryParamsParser = MappedParser(
-        SequenceParser(
-            LiteralTokenParser("?"),
-            SeparatedByParser(
-                queryKeyAndValueParser,
-                LiteralTokenParser("&")
-            )
-        )
-    ) {
-        it.node2.nodeList.map { node -> node.value }
+    private fun parseQueryParams(input: String): List<Pair<Pair<String, UInt?>, String?>> {
+        require(input.startsWith("?")) { "expected `?` query marker" }
+        val result = ArrayList<Pair<Pair<String, UInt?>, String?>>()
+        var pos = 1
+        while (true) {
+            val (keyValue, next) = parseQueryKeyAndValueAt(input, pos)
+            result.add(keyValue)
+            if (next < input.length && input[next] == '&') {
+                pos = next + 1
+            } else {
+                break
+            }
+        }
+        return result
     }
 
     /**
@@ -184,17 +212,15 @@ class Parser(
      * if validation is provided
      */
     fun parseParameters(
-        remainingString: ParserContext,
-        leadingAddress: IndexedParameter?,
+        remainingString: String,
+        leadingAddress: IndexedParameter?
     ): List<IndexedParameter> {
         val list = ArrayList<IndexedParameter>()
 
         leadingAddress?.let { list.add(it) }
 
         list.addAll(
-            queryParamsParser.parse(remainingString)
-                .first
-                .value
+            parseQueryParams(remainingString)
                 .map { zcashParameter(it, defaultValidation) }
         )
 
@@ -240,45 +266,31 @@ class Parser(
 
     @Throws(ZIP321.Errors::class)
     fun parse(uriString: String): ParserResult {
-        if (uriString.isEmpty() || !uriString.startsWith("zcash:")) {
+        if (uriString.isEmpty() || !uriString.startsWith(ZCASH_SCHEME)) {
             throw ZIP321.Errors.InvalidURI
         }
 
         try {
-            val maybeNode: ValueNode<IndexedParameter?>?
-            val maybeRemainingText: ParserContext?
-            try {
-                val (node, remainingText) = maybeLeadingAddressParse.parse(
-                    ParserContext.fromString(uriString)
-                )
-                maybeNode = node
-                maybeRemainingText = remainingText
-            } catch (e: ParserException) {
-                throw ZIP321.Errors.InvalidAddress(null)
-            }
-
-            val leadingAddress = maybeNode.value
+            val (leadingAddress, remainingText) = parseLeadingAddress(uriString)
 
             // no remaining text to parse and no address found. Not a valid URI
-            if (maybeRemainingText.isEmpty() && leadingAddress == null) {
+            if (remainingText.isEmpty() && leadingAddress == null) {
                 throw ZIP321.Errors.InvalidURI
             }
 
-            if (maybeRemainingText.isEmpty() && leadingAddress != null) {
-                leadingAddress.let {
-                    when (val param = it.param) {
-                        is Param.Address -> return ParserResult.SingleAddress(param.recipientAddress)
-                        else ->
-                            throw ZIP321.Errors.ParseError(
-                                "leading parameter after `zcash:` that is not an address"
-                            )
-                    }
+            if (remainingText.isEmpty() && leadingAddress != null) {
+                when (val param = leadingAddress.param) {
+                    is Param.Address -> return ParserResult.SingleAddress(param.recipientAddress)
+                    else ->
+                        throw ZIP321.Errors.ParseError(
+                            "leading parameter after `zcash:` that is not an address"
+                        )
                 }
             }
 
             // remaining text is not empty there's still work to do
             val payments = mapToPayments(
-                parseParameters(maybeRemainingText, maybeNode.value)
+                parseParameters(remainingText, leadingAddress)
             )
 
             val totalPayments = payments.size.toUInt()
@@ -297,10 +309,8 @@ class Parser(
                 )
             }
         } catch (e: IllegalArgumentException) {
-            val message = e.message ?: """parser failed with unknown error"""
+            val message = e.message ?: "parser failed with unknown error"
             throw ZIP321.Errors.ParseError(message)
-        } catch (e: com.copperleaf.kudzu.parser.ParserException) {
-            throw ZIP321.Errors.ParseError(e.message)
         }
     }
 }

@@ -3,7 +3,6 @@
  */
 package org.zecdev.zip321
 
-import com.copperleaf.kudzu.parser.ParserException
 import org.zecdev.zip321.model.Payment
 import org.zecdev.zip321.model.PaymentRequest
 import org.zecdev.zip321.model.RecipientAddress
@@ -184,9 +183,6 @@ object ZIP321 {
                 )
             }
         } catch (e: IllegalArgumentException) {
-            val message = e.message ?: "parser failed with unknown error"
-            throw Errors.ParseError(message)
-        } catch (e: com.copperleaf.kudzu.parser.ParserException) {
             val message = e.message ?: "parser failed with unknown error"
             throw Errors.ParseError(message)
         }

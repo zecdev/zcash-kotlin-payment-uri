@@ -1,6 +1,5 @@
 package org.zecdev.zip321
 
-import com.copperleaf.kudzu.parser.ParserException
 import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FreeSpec

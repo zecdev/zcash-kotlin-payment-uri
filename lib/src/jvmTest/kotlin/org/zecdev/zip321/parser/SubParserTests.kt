@@ -1,5 +1,4 @@
 package org.zecdev.zip321.parser
-import com.copperleaf.kudzu.parser.ParserContext
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.throwables.shouldThrowAny
 import io.kotest.core.spec.style.FreeSpec
@@ -14,104 +13,87 @@ import org.zecdev.zip321.model.Payment
 import org.zecdev.zip321.model.RecipientAddress
 import java.math.BigDecimal
 
+// NOTE (K0/v2): these were white-box tests of the kudzu parser-combinator
+// objects. They now exercise the equivalent hand-rolled parser helpers, with
+// every input and expected accept/reject/value preserved unchanged.
 class SubParserTests : FreeSpec({
     "paramindex subparser" - {
         "parses non-zero single digit" {
-            Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).parameterIndexParser
-                .parse(ParserContext.fromString("1")).first.value shouldBe 1u
+            Parser(ParserContext.TESTNET, addressValidation = null)
+                .parseParameterIndex("1") shouldBe 1u
 
-            Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).parameterIndexParser
-                .parse(ParserContext.fromString("9")).first.value shouldBe 9u
+            Parser(ParserContext.TESTNET, addressValidation = null)
+                .parseParameterIndex("9") shouldBe 9u
         }
 
         "fails on zero single digit" {
             shouldThrowAny {
-                Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).parameterIndexParser
-                    .parse(ParserContext.fromString("0"))
+                Parser(ParserContext.TESTNET, addressValidation = null)
+                    .parseParameterIndex("0")
             }
         }
 
         "parses many digits" {
-            Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).parameterIndexParser
-                .parse(ParserContext.fromString("12")).first.value shouldBe 12u
-            Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).parameterIndexParser
-                .parse(ParserContext.fromString("123")).first.value shouldBe 123u
+            Parser(ParserContext.TESTNET, addressValidation = null)
+                .parseParameterIndex("12") shouldBe 12u
+            Parser(ParserContext.TESTNET, addressValidation = null)
+                .parseParameterIndex("123") shouldBe 123u
         }
 
         "fails on leading zero many digits" - {
             shouldThrowAny {
-                Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).parameterIndexParser
-                    .parse(ParserContext.fromString("090"))
+                Parser(ParserContext.TESTNET, addressValidation = null)
+                    .parseParameterIndex("090")
             }
         }
 
         "fails on too many digits" - {
             shouldThrowAny {
-                Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).parameterIndexParser
-                    .parse(ParserContext.fromString("19999"))
+                Parser(ParserContext.TESTNET, addressValidation = null)
+                    .parseParameterIndex("19999")
             }
         }
     }
     "Optionally IndexedParameter Name parsing" - {
         "parses a non-indexed parameter" {
-            Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).optionallyIndexedParamName
-                .parse(
-                    ParserContext.fromString("address")
-                )
-                .first
-                .value shouldBe Pair<String, UInt?>("address", null)
+            Parser(ParserContext.TESTNET, addressValidation = null)
+                .parseOptionallyIndexedParamName("address") shouldBe Pair<String, UInt?>("address", null)
         }
         "parses a indexed parameter" {
-            Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).optionallyIndexedParamName
-                .parse(
-                    ParserContext.fromString("address.123")
-                )
-                .first
-                .value shouldBe Pair<String, UInt?>("address", 123u)
+            Parser(ParserContext.TESTNET, addressValidation = null)
+                .parseOptionallyIndexedParamName("address.123") shouldBe Pair<String, UInt?>("address", 123u)
         }
         "fails to parse a zero-index parameter" {
             shouldThrowAny {
-                Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).optionallyIndexedParamName
-                    .parse(
-                        ParserContext.fromString("address.0")
-                    )
+                Parser(ParserContext.TESTNET, addressValidation = null)
+                    .parseOptionallyIndexedParamName("address.0")
             }
         }
         "fails to parse leading zero parameter" {
             shouldThrowAny {
-                Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).optionallyIndexedParamName
-                    .parse(
-                        ParserContext.fromString("address.023")
-                    )
+                Parser(ParserContext.TESTNET, addressValidation = null)
+                    .parseOptionallyIndexedParamName("address.023")
             }
         }
 
         "fails to parse a parameter with an index greater than 9999" {
             shouldThrowAny {
-                Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).optionallyIndexedParamName
-                    .parse(
-                        ParserContext.fromString("address.19999")
-                    )
+                Parser(ParserContext.TESTNET, addressValidation = null)
+                    .parseOptionallyIndexedParamName("address.19999")
             }
         }
 
         "fails to parse a paramname with invalid characters" {
             shouldThrowAny {
-                Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).optionallyIndexedParamName
-                    .parse(
-                        ParserContext.fromString("add[ress[1].1")
-                    )
+                Parser(ParserContext.TESTNET, addressValidation = null)
+                    .parseOptionallyIndexedParamName("add[ress[1].1")
             }
         }
     }
     "Query and Key parser" - {
         "parses a query key with no index" {
-            val parsedQueryParam = Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).queryKeyAndValueParser
-                .parse(
-                    ParserContext.fromString(
-                        "address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
-                    )
-                ).first.value
+            val parsedQueryParam = Parser(ParserContext.TESTNET, addressValidation = null)
+                .parseQueryKeyAndValue("address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU")
 
             parsedQueryParam.first.first shouldBe "address"
             parsedQueryParam.first.second shouldBe null
@@ -119,12 +101,8 @@ class SubParserTests : FreeSpec({
         }
 
         "parses a query key with a valid index" {
-            val parsedQueryParam = Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).queryKeyAndValueParser
-                .parse(
-                    ParserContext.fromString(
-                        "address.123=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
-                    )
-                ).first.value
+            val parsedQueryParam = Parser(ParserContext.TESTNET, addressValidation = null)
+                .parseQueryKeyAndValue("address.123=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU")
 
             parsedQueryParam.first.first shouldBe "address"
             parsedQueryParam.first.second shouldBe 123u
@@ -133,24 +111,17 @@ class SubParserTests : FreeSpec({
 
         "fails to parse a query key with invalid index" {
             shouldThrowAny {
-                Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).queryKeyAndValueParser
-                    .parse(
-                        ParserContext.fromString(
-                            "address.00123=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
-                        )
-                    )
+                Parser(ParserContext.TESTNET, addressValidation = null)
+                    .parseQueryKeyAndValue("address.00123=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU")
             }
         }
     }
 
     "query key parsing tests" - {
         "parser catches query qcharencoded values" {
-            Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).queryKeyAndValueParser
-                .parse(
-                    ParserContext.fromString("message.1=Thank%20You%20For%20Your%20Purchase")
-                )
-                .first
-                .value shouldBe Pair(Pair("message", 1u), "Thank%20You%20For%20Your%20Purchase")
+            Parser(ParserContext.TESTNET, addressValidation = null)
+                .parseQueryKeyAndValue("message.1=Thank%20You%20For%20Your%20Purchase") shouldBe
+                Pair(Pair("message", 1u), "Thank%20You%20For%20Your%20Purchase")
         }
 
         "Zcash parameter creates valid amount" {
@@ -158,7 +129,7 @@ class SubParserTests : FreeSpec({
             val value = "1.00020112"
             val index = 1u
             val input = Pair<Pair<String, UInt?>, String>(Pair(query, index), value)
-            Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).zcashParameter(input) shouldBe
+            Parser(ParserContext.TESTNET, addressValidation = null).zcashParameter(input) shouldBe
                 IndexedParameter(1u, Param.Amount(amount = NonNegativeAmount(value)))
         }
 
@@ -170,7 +141,7 @@ class SubParserTests : FreeSpec({
             val qcharDecodedValue = value.qcharDecode()
             qcharDecodedValue shouldNotBe ""
 
-            Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).zcashParameter(input) shouldBe
+            Parser(ParserContext.TESTNET, addressValidation = null).zcashParameter(input) shouldBe
                 IndexedParameter(1u, Param.Message(qcharDecodedValue))
         }
 
@@ -182,7 +153,7 @@ class SubParserTests : FreeSpec({
             val qcharDecodedValue = value.qcharDecode()
             qcharDecodedValue shouldNotBe ""
 
-            Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).zcashParameter(input) shouldBe
+            Parser(ParserContext.TESTNET, addressValidation = null).zcashParameter(input) shouldBe
                 IndexedParameter(1u, Param.Label(qcharDecodedValue))
         }
 
@@ -192,7 +163,7 @@ class SubParserTests : FreeSpec({
             val value = "VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"
             val input = Pair<Pair<String, UInt?>, String>(Pair(query, index), value)
             val memo = MemoBytes.fromBase64URL(value)
-            Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).zcashParameter(input) shouldBe
+            Parser(ParserContext.TESTNET, addressValidation = null).zcashParameter(input) shouldBe
                 IndexedParameter(99u, Param.Memo(memo))
         }
 
@@ -201,16 +172,17 @@ class SubParserTests : FreeSpec({
             val index = 99u
             val value = "VGhpcyBpcyBhIHVuaWNvZGUgbWVtbyDinKjwn6aE8J-PhvCfjok"
             val input = Pair<Pair<String, UInt?>, String>(Pair(query, index), value)
-            Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).queryKeyAndValueParser.parse(
-                ParserContext.fromString("memo.99=VGhpcyBpcyBhIHVuaWNvZGUgbWVtbyDinKjwn6aE8J-PhvCfjok")
-            ).first.value shouldBe input
+            Parser(ParserContext.TESTNET, addressValidation = null)
+                .parseQueryKeyAndValue(
+                    "memo.99=VGhpcyBpcyBhIHVuaWNvZGUgbWVtbyDinKjwn6aE8J-PhvCfjok"
+                ) shouldBe input
         }
 
         "Zcash parameter creates safely ignored other parameter" {
             val query = "future-binary-format"
             val value = "VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"
             val input = Pair<Pair<String, UInt?>, String>(Pair(query, null), value)
-            Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).zcashParameter(input) shouldBe
+            Parser(ParserContext.TESTNET, addressValidation = null).zcashParameter(input) shouldBe
                 IndexedParameter(0u, Param.Other(ParamNameString(query), value))
         }
     }
@@ -220,7 +192,7 @@ class SubParserTests : FreeSpec({
             val remainingString = "?address=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount=1&memo=VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg&message=Thank%20you%20for%20your%20purchase"
 
             val recipient =
-                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET)
+                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)
 
             val expected = listOf(
                 IndexedParameter(0u, Param.Address(recipient)),
@@ -229,7 +201,7 @@ class SubParserTests : FreeSpec({
                 IndexedParameter(0u, Param.Message("Thank you for your purchase"))
             )
 
-            Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).parseParameters(ParserContext.fromString(remainingString), null) shouldBe expected
+            Parser(ParserContext.TESTNET, addressValidation = null).parseParameters(remainingString, null) shouldBe expected
         }
     }
 
@@ -237,7 +209,7 @@ class SubParserTests : FreeSpec({
         val remainingString = "?amount=1&memo=VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg&message=Thank%20you%20for%20your%20purchase"
 
         val recipient =
-            RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET)
+            RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)
 
         val expected = listOf(
             IndexedParameter(0u, Param.Address(recipient)),
@@ -248,13 +220,13 @@ class SubParserTests : FreeSpec({
 
         val leadingAddress = IndexedParameter(0u, Param.Address(recipient))
 
-        Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).parseParameters(ParserContext.fromString(remainingString), leadingAddress) shouldBe expected
+        Parser(ParserContext.TESTNET, addressValidation = null).parseParameters(remainingString, leadingAddress) shouldBe expected
     }
 
     "Duplicate Params are caught" - {
         "Duplicate other params are detected" {
             val params = listOf(
-                Param.Address(RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET)),
+                Param.Address(RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)),
                 Param.Amount(NonNegativeAmount("1")),
                 Param.Message("Thanks"),
                 Param.Label("payment"),
@@ -266,20 +238,20 @@ class SubParserTests : FreeSpec({
 
         "Duplicate address params are detected" {
             val params = listOf(
-                Param.Address(RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET)),
+                Param.Address(RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)),
                 Param.Amount(NonNegativeAmount("1")),
                 Param.Message("Thanks"),
                 Param.Label("payment"),
                 Param.Other(ParamNameString("future"), "is awesome")
             )
 
-            params.hasDuplicateParam(Param.Address(RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET))) shouldBe true
+            params.hasDuplicateParam(Param.Address(RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET))) shouldBe true
         }
     }
 
     "Payment can be created from uniquely indexed Params" - {
         "Payment is created from indexed parameters" {
-            val recipient = RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET)
+            val recipient = RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)
 
             val params = listOf(
                 Param.Address(recipient),
@@ -303,7 +275,7 @@ class SubParserTests : FreeSpec({
 
         "duplicate addresses are detected" {
             val shieldedRecipient =
-                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET)
+                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)
 
             val duplicateAddressParams: List<IndexedParameter> = listOf(
                 IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
@@ -318,13 +290,13 @@ class SubParserTests : FreeSpec({
             )
 
             shouldThrow<ZIP321.Errors> {
-                Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateAddressParams)
+                Parser(ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateAddressParams)
             } shouldBe ZIP321.Errors.DuplicateParameter("address", null)
         }
 
         "duplicate amounts are detected" {
             val shieldedRecipient =
-                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET)
+                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)
 
             val duplicateAmountParams: List<IndexedParameter> = listOf(
                 IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
@@ -341,13 +313,13 @@ class SubParserTests : FreeSpec({
             )
 
             shouldThrow<ZIP321.Errors> {
-                Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateAmountParams)
+                Parser(ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateAmountParams)
             } shouldBe ZIP321.Errors.DuplicateParameter("amount", null)
         }
 
         "duplicate message are detected" {
             val shieldedRecipient =
-                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET)
+                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)
 
             val duplicateParams: List<IndexedParameter> = listOf(
                 IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
@@ -365,13 +337,13 @@ class SubParserTests : FreeSpec({
             )
 
             shouldThrow<ZIP321.Errors> {
-                Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateParams)
+                Parser(ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateParams)
             } shouldBe ZIP321.Errors.DuplicateParameter("message", null)
         }
 
         "duplicate memos are detected" {
             val shieldedRecipient =
-                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET)
+                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)
 
             val duplicateParams: List<IndexedParameter> = listOf(
                 IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
@@ -386,13 +358,13 @@ class SubParserTests : FreeSpec({
             )
 
             shouldThrow<ZIP321.Errors> {
-                Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateParams)
+                Parser(ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateParams)
             } shouldBe ZIP321.Errors.DuplicateParameter("memo", null)
         }
 
         "duplicate other params are detected" {
             val shieldedRecipient =
-                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", org.zecdev.zip321.parser.ParserContext.TESTNET)
+                RecipientAddress("ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez", ParserContext.TESTNET)
 
             val duplicateParams: List<IndexedParameter> = listOf(
                 IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
@@ -407,7 +379,7 @@ class SubParserTests : FreeSpec({
             )
 
             shouldThrow<ZIP321.Errors> {
-                Parser(org.zecdev.zip321.parser.ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateParams)
+                Parser(ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateParams)
             } shouldBe ZIP321.Errors.DuplicateParameter("future", null)
         }
     }
