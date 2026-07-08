@@ -1,11 +1,8 @@
 package org.zecdev.zip321.conformance
 
-import io.kotest.assertions.withClue
-import io.kotest.core.spec.style.FreeSpec
-import io.kotest.matchers.collections.shouldContainAll
-import io.kotest.matchers.shouldBe
 import org.zecdev.zip321.ZIP321
 import org.zecdev.zip321.model.Payment
+import kotlin.test.assertEquals
 
 /**
  * Conformance runner for the shared ZIP-321 vector corpus in the
@@ -18,69 +15,64 @@ import org.zecdev.zip321.model.Payment
  * currently fail, so this suite is green as committed and flags stale
  * entries (XPASS) once the library is fixed.
  *
- * Deterministic: no network, no clocks; the corpus is read from the test
- * classpath.
+ * K1: the kotest `FreeSpec` that previously hosted these checks is replaced
+ * by `GeneratedZip321ConformanceTest` (one `kotlin.test` function per corpus
+ * vector, generated at build time alongside the embedded vectors), which
+ * dispatches into [ConformanceRunner] by vector name. Assertions and the
+ * expected-failure semantics are unchanged.
+ *
+ * Deterministic: no network, no clocks; the corpus is embedded into the test
+ * sources at build time.
  */
-class Zip321ConformanceSpec : FreeSpec({
+internal object ConformanceRunner {
+    val validVectors: List<ValidVector> by lazy { CorpusLoader.loadValid() }
+    val invalidVectors: List<InvalidVector> by lazy { CorpusLoader.loadInvalid() }
 
-    val validVectors = CorpusLoader.loadValid()
-    val invalidVectors = CorpusLoader.loadInvalid()
-    val allNames = (validVectors.map { it.name } + invalidVectors.map { it.name })
-
-    "corpus wiring sanity" - {
-        "corpus contains the expected number of uniquely-named vectors" {
-            withClue("valid vector count") { validVectors.size shouldBe 22 }
-            withClue("invalid vector count") { invalidVectors.size shouldBe 28 }
-            withClue("vector names must be unique corpus-wide") {
-                allNames.toSet().size shouldBe allNames.size
-            }
+    private fun validVector(name: String): ValidVector =
+        checkNotNull(validVectors.find { it.name == name }) {
+            "generated test references unknown valid vector '$name'; re-run the " +
+                "generateConformanceVectors task after updating the submodule"
         }
 
-        "expected-failure maps only reference vectors that exist in the corpus" {
-            withClue("stale names in ExpectedFailures.conformance") {
-                allNames shouldContainAll ExpectedFailures.conformance.keys
-            }
-            withClue("stale names in ExpectedFailures.renderMismatch") {
-                validVectors.map { it.name } shouldContainAll ExpectedFailures.renderMismatch.keys
-            }
+    private fun invalidVector(name: String): InvalidVector =
+        checkNotNull(invalidVectors.find { it.name == name }) {
+            "generated test references unknown invalid vector '$name'; re-run the " +
+                "generateConformanceVectors task after updating the submodule"
         }
-    }
 
-    "valid vectors parse to the reference payments" - {
-        validVectors.forEach { vector ->
-            vector.name {
-                expectDocumentedOutcome(vector.name, ExpectedFailures.conformance) {
-                    checkValidVector(vector)
-                }
-            }
+    /** Valid vector must parse to the reference payments (or be an xfail). */
+    fun checkValid(name: String) {
+        val vector = validVector(name)
+        expectDocumentedOutcome(vector.name, ExpectedFailures.conformance) {
+            checkValidVector(vector)
         }
     }
 
-    "valid vectors re-render to the reference canonical URI" - {
-        // Vectors that already fail to parse (documented in
-        // ExpectedFailures.conformance) cannot be re-rendered; they are
-        // excluded here instead of being double-counted as render gaps.
-        validVectors
-            .filter { it.name !in ExpectedFailures.conformance && it.canonicalUri != null }
-            .forEach { vector ->
-                vector.name {
-                    expectDocumentedOutcome(vector.name, ExpectedFailures.renderMismatch) {
-                        checkRenderRoundTrip(vector)
-                    }
-                }
-            }
-    }
-
-    "invalid vectors are rejected with a ZIP321.Errors" - {
-        invalidVectors.forEach { vector ->
-            vector.name {
-                expectDocumentedOutcome(vector.name, ExpectedFailures.conformance) {
-                    checkInvalidVector(vector)
-                }
-            }
+    /**
+     * Valid vector must re-render to the reference canonical URI (or be an
+     * xfail). Vectors that already fail to parse (documented in
+     * [ExpectedFailures.conformance]) cannot be re-rendered; as in the
+     * pre-K1 kotest runner they are excluded from the render check instead
+     * of being double-counted as render gaps.
+     */
+    fun checkRender(name: String) {
+        val vector = validVector(name)
+        if (vector.name in ExpectedFailures.conformance) {
+            return
+        }
+        expectDocumentedOutcome(vector.name, ExpectedFailures.renderMismatch) {
+            checkRenderRoundTrip(vector)
         }
     }
-})
+
+    /** Invalid vector must be rejected with a [ZIP321.Errors] (or be an xfail). */
+    fun checkInvalid(name: String) {
+        val vector = invalidVector(name)
+        expectDocumentedOutcome(vector.name, ExpectedFailures.conformance) {
+            checkInvalidVector(vector)
+        }
+    }
+}
 
 /**
  * A parsed payment as observed from the v1 API, normalized for comparison
@@ -127,28 +119,33 @@ private fun checkValidVector(vector: ValidVector) {
     val result = try {
         parseVectorUri(vector.uri, vector.network)
     } catch (t: Throwable) {
+        // NOTE: common code has no AssertionError(message, cause) constructor;
+        // the rejection is described in the message instead.
         throw AssertionError(
             "vector '${vector.name}' must parse but was rejected with " +
-                "${t::class.simpleName}: ${t.message} (${vector.description})",
-            t
+                "${t::class.simpleName}: ${t.message} (${vector.description})"
         )
     }
 
     val observed = result.toObservedPayments()
-    withClue("payment count for '${vector.name}' (${vector.description})") {
-        observed.size shouldBe vector.payments.size
-    }
+    assertEquals(
+        vector.payments.size,
+        observed.size,
+        "payment count for '${vector.name}' (${vector.description})"
+    )
     vector.payments.zip(observed).forEach { (expected, actual) ->
-        withClue("payment at paramindex ${expected.index} of '${vector.name}'") {
-            actual shouldBe ObservedPayment(
+        assertEquals(
+            ObservedPayment(
                 address = expected.address,
                 amountZat = expected.amountZat,
                 memoBase64 = expected.memoBase64,
                 label = expected.label,
                 message = expected.message,
                 other = expected.other
-            )
-        }
+            ),
+            actual,
+            "payment at paramindex ${expected.index} of '${vector.name}'"
+        )
     }
 }
 
@@ -168,9 +165,11 @@ private fun checkRenderRoundTrip(vector: ValidVector) {
             )
         )
     }
-    withClue("re-rendered URI for '${vector.name}' vs reference canonical form") {
-        rendered shouldBe canonical
-    }
+    assertEquals(
+        canonical,
+        rendered,
+        "re-rendered URI for '${vector.name}' vs reference canonical form"
+    )
 }
 
 private fun checkInvalidVector(vector: InvalidVector) {
@@ -181,8 +180,7 @@ private fun checkInvalidVector(vector: InvalidVector) {
     } catch (t: Throwable) {
         throw AssertionError(
             "vector '${vector.name}' (reference error: ${vector.error}) was rejected, " +
-                "but with ${t::class.qualifiedName} instead of a ZIP321.Errors: ${t.message}",
-            t
+                "but with ${t::class.qualifiedName} instead of a ZIP321.Errors: ${t.message}"
         )
     }
     throw AssertionError(

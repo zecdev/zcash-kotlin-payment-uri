@@ -9,18 +9,19 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
 import org.zecdev.zip321.parser.ParserContext
-import java.io.File
 
 /**
  * Model and loader for the shared ZIP-321 conformance vector corpus that
  * lives in the `test-vectors` git submodule (repository:
- * zcash-zip321-test-vectors). The corpus directories `vectors/valid` and
- * `vectors/invalid` are wired onto the test classpath as resource roots
- * `valid/` and `invalid/` by `lib/build.gradle.kts`.
+ * zcash-zip321-test-vectors). The corpus JSON under `vectors/valid` and
+ * `vectors/invalid` is embedded into [GeneratedVectors] at build time by the
+ * `generateConformanceVectors` task in `lib/build.gradle.kts`, so loading
+ * is identical on every KMP target (no classloader/filesystem access).
  *
  * Parsing uses only the kotlinx-serialization-json *tree* API
- * (`Json.parseToJsonElement`), so no `@Serializable` classes and no
- * serialization compiler plugin are needed; the dependency is test-only.
+ * (`Json.parseToJsonElement`), which is multiplatform; no `@Serializable`
+ * classes and no serialization compiler plugin are needed; the dependency is
+ * test-only.
  */
 data class VectorPayment(
     /** The ZIP-321 paramindex (0 denotes the empty paramindex). */
@@ -115,25 +116,23 @@ object CorpusLoader {
         if (this is JsonNull) null else jsonPrimitive.content
 
     /**
-     * Lists the `.json` files under [directory] on the test classpath and
-     * parses each one as a JSON array of vector objects, visiting files in
-     * name order for determinism.
+     * Selects the embedded `.json` corpus files under [directory] (either
+     * `"valid"` or `"invalid"`) and parses each one as a JSON array of vector
+     * objects, visiting files in name order for determinism.
      */
     private fun jsonObjectsIn(directory: String): List<JsonObject> {
-        val url = checkNotNull(CorpusLoader::class.java.classLoader.getResource(directory)) {
-            "Conformance corpus directory '$directory' not found on the test classpath. " +
+        val files = GeneratedVectors.files
+            .filterKeys { it.startsWith("$directory/") }
+            .toList()
+            .sortedBy { (name, _) -> name }
+        check(files.isNotEmpty()) {
+            "Conformance corpus directory '$directory' is empty in GeneratedVectors. " +
                 "Did you run `git submodule update --init`? The `test-vectors` submodule " +
-                "provides the vectors, and lib/build.gradle.kts registers " +
-                "`test-vectors/vectors` as a test resources root."
+                "provides the vectors, and the `generateConformanceVectors` task in " +
+                "lib/build.gradle.kts embeds them into commonTest sources."
         }
-        val dir = File(url.toURI())
-        check(dir.isDirectory) { "Corpus resource '$directory' is not a directory: $dir" }
-        val files = dir.listFiles { file -> file.name.endsWith(".json") }
-            .orEmpty()
-            .sortedBy(File::getName)
-        check(files.isNotEmpty()) { "No vector files found under $dir" }
-        return files.flatMap { file ->
-            Json.parseToJsonElement(file.readText()).jsonArray.map { it.jsonObject }
+        return files.flatMap { (_, text) ->
+            Json.parseToJsonElement(text).jsonArray.map { it.jsonObject }
         }
     }
 }
