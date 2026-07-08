@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added (v2/K3)
+- **Internal strict unpadded base64url codec (RFC 4648 §5)**
+  (`lib/src/commonMain/kotlin/org/zecdev/zip321/parser/Base64URL.kt`):
+  `encode(ByteArray): String` and `decode(String): ByteArray?`, pure Kotlin
+  common code. Encoding uses the RFC 4648 §5 url-safe alphabet with NO
+  padding, exactly like the reference implementation's
+  `BASE64_URL_SAFE_NO_PAD`. Decoding strictly rejects: `+`, `/`, `=`
+  (padding included), whitespace, any character outside the base64url
+  alphabet (including non-ASCII), impossible lengths (`length % 4 == 1`),
+  and non-canonical encodings whose trailing bits are nonzero (e.g. `"QR"`).
+  The empty string round-trips to zero bytes.
+
+### Changed (v2/K3)
+- **`MemoBytes` now encodes/decodes through the strict `Base64URL` codec**,
+  replacing the K0 hand-rolled translate-and-pad decoder (which mapped
+  `-`/`_` to `+`/`/`, right-padded with `=`, then decoded classic base64).
+  Decoding is stricter than before: classic-alphabet `+`/`/`, `=` padding,
+  and non-canonical encodings with nonzero trailing bits are now rejected
+  (the old path silently accepted them). No conformance vector and no unit
+  test exercised the lenient forms — the expected-failure map is unchanged.
+  The lenient `String.decodeBase64URL()` public extension is removed along
+  with the old implementation.
+
 ### Added (v2/K2)
 - **New public `NonNegativeAmount` value type**
   (`lib/src/commonMain/kotlin/org/zecdev/zip321/model/NonNegativeAmount.kt`):
