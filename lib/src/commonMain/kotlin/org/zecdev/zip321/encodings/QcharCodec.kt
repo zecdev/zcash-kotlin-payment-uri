@@ -1,6 +1,6 @@
 package org.zecdev.zip321.encodings
-import java.nio.charset.Charset
-import java.nio.charset.StandardCharsets
+
+private const val HEX_DIGITS = "0123456789ABCDEF"
 
 object QCharCodec {
     // RFC 3986 valid qchar characters:
@@ -9,17 +9,18 @@ object QCharCodec {
     private val qcharCharacters = alphaNumeric + allowDelims
     private val qcharComplement = " \"#%&/<=>?[\\]^`{|}".toSet()
     private val allowed = qcharCharacters - qcharComplement
-    private val charset = StandardCharsets.UTF_8
     fun encode(input: String): String {
         val result = StringBuilder()
         for (ch in input) {
             if (allowed.contains(ch)) {
                 result.append(ch)
             } else {
-                val bytes = ch.toString().toByteArray(charset)
+                val bytes = ch.toString().encodeToByteArray()
                 for (b in bytes) {
+                    val v = b.toInt() and 0xFF
                     result.append('%')
-                    result.append(String.format("%02X", b))
+                    result.append(HEX_DIGITS[v ushr 4])
+                    result.append(HEX_DIGITS[v and 0x0F])
                 }
             }
         }
@@ -89,7 +90,7 @@ object QCharCodec {
                             throw IllegalArgumentException("URLDecoder: Incomplete trailing escape (%) pattern")
                         }
 
-                        sb.append(String(bytes, 0, pos, charset))
+                        sb.append(bytes.decodeToString(0, pos))
                         needToChange = true
                     } catch (e: NumberFormatException) {
                         throw IllegalArgumentException(
