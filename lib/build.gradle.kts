@@ -53,6 +53,23 @@ dependencies {
     testImplementation("com.code-intelligence:jazzer-junit:0.24.0") // JUnit glue
     testImplementation("com.code-intelligence:jazzer-api:0.24.0")   // <-- supplies FuzzedDataProvider
     testRuntimeOnly("com.code-intelligence:jazzer:0.24.0")          // native Jazzer engine
+
+    // ZIP-321 conformance corpus (TEST-ONLY): JSON tree parsing of the shared
+    // vectors in the `test-vectors` git submodule. Only the JsonElement tree
+    // API is used (no @Serializable classes), so the kotlinx-serialization
+    // compiler plugin is intentionally NOT applied and production code gains
+    // no new dependency.
+    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+}
+
+// Expose the shared ZIP-321 conformance corpus (git submodule at the repo root)
+// to the test runtime as classpath resources: valid/*.json and invalid/*.json.
+sourceSets {
+    test {
+        resources {
+            srcDir(rootProject.projectDir.resolve("test-vectors/vectors"))
+        }
+    }
 }
 
 detekt {
