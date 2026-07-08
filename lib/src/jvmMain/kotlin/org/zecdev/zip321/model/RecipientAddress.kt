@@ -32,7 +32,6 @@ class RecipientAddress private constructor(
                 } else {
                     throw RecipientAddressError.InvalidRecipient
                 }
-
             }
             false -> {
                 throw RecipientAddressError.InvalidRecipient

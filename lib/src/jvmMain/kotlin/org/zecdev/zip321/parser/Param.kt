@@ -191,7 +191,8 @@ class ParamNameString(val value: String) {
         // String can't start with a digit, "+" or "-"
         require(value.first().isAsciiLetter())
         // The whole String conforms to the character set defined in ZIP-321
-        require(value.map {
+        require(
+            value.map {
                 CharsetValidations.Companion.ParamNameCharacterSet.characters.contains(it)
             }.reduce { acc, b -> acc && b }
         ) {
@@ -216,7 +217,6 @@ class ParamNameString(val value: String) {
         return value.hashCode()
     }
 }
-
 
 class QcharString private constructor(private val encoded: String) {
     companion object {

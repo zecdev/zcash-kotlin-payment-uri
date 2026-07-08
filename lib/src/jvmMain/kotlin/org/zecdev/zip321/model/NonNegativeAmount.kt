@@ -1,10 +1,8 @@
 package org.zecdev.zip321.model
 
-
 import java.math.BigDecimal
 import java.math.MathContext
 import java.math.RoundingMode
-
 
 private const val maxFractionalDecimalDigits: Int = 8
 
@@ -25,8 +23,8 @@ class NonNegativeAmount {
      */
     @Throws(AmountError::class)
     constructor(value: Long) {
-        require(value >= 0) { throw  AmountError.NegativeAmount }
-        require(value <= maxZatoshiSupply) { throw  AmountError.GreaterThanSupply}
+        require(value >= 0) { throw AmountError.NegativeAmount }
+        require(value <= maxZatoshiSupply) { throw AmountError.GreaterThanSupply }
         this.value = value
     }
 
@@ -43,8 +41,6 @@ class NonNegativeAmount {
         validateDecimal(value)
         this.value = zecToZatoshi(value)
     }
-
-
 
     @Throws(AmountError::class)
     constructor(decimalString: String) {
@@ -77,6 +73,7 @@ class NonNegativeAmount {
         private val zatoshiPerZec: Long = 100_000_000
         private val maxZatoshiSupply: Long = 21000000 * zatoshiPerZec
         private val mathContext = MathContext(maxFractionalDecimalDigits, RoundingMode.HALF_EVEN)
+
         /**
          * Convert a decimal amount of ZEC into Zatoshis.
          *
@@ -89,7 +86,7 @@ class NonNegativeAmount {
             validateDecimal(coins)
             try {
                 return coins.movePointRight(maxFractionalDecimalDigits).longValueExact()
-            } catch(e: ArithmeticException){
+            } catch (e: ArithmeticException) {
                 throw AmountError.GreaterThanSupply
             }
         }
@@ -111,6 +108,7 @@ class NonNegativeAmount {
                 throw AmountError.GreaterThanSupply
             }
         }
+
         @Throws(AmountError::class)
         private fun validateDecimal(value: BigDecimal) {
             require(value >= BigDecimal.ZERO) { throw AmountError.NegativeAmount }
@@ -126,7 +124,7 @@ class NonNegativeAmount {
     }
 
     @Throws(AmountError::class)
-    fun toZecValueString():String {
+    fun toZecValueString(): String {
         return zatoshiToZEC(value)
             .setScale(maxFractionalDecimalDigits, RoundingMode.HALF_EVEN)
             .stripTrailingZeros()
@@ -141,7 +139,6 @@ class NonNegativeAmount {
     override fun toString(): String {
         return value.toString()
     }
-
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -162,5 +159,3 @@ class NonNegativeAmount {
 fun BigDecimal.roundZec(): BigDecimal {
     return this.setScale(maxFractionalDecimalDigits, RoundingMode.HALF_EVEN)
 }
-
-

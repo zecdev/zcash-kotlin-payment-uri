@@ -1,6 +1,5 @@
 package org.zecdev.zip321.model
 
-import java.nio.charset.Charset
 import java.util.Base64
 
 class MemoBytes {

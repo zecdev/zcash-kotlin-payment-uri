@@ -75,8 +75,6 @@ object Render {
         ) ?: ""
     }
 
-
-
     fun payment(payment: Payment, index: UInt?, omittingAddressLabel: Boolean = false): String {
         var result = ""
 

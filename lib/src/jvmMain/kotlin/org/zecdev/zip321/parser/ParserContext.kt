@@ -76,36 +76,38 @@ enum class ParserContext {
         if (!address.isAsciiAlphanumeric()) return false
 
         return address.length >= texAddressLength &&
-                address.startsWith(texPrefix)
+            address.startsWith(texPrefix)
     }
     fun isTransparent(address: String): Boolean {
         if (!address.isAsciiAlphanumeric()) return false
         return address.length >= transparentAddressMinimumLength &&
-                (address.startsWith(p2pkhPrefix) ||
-                address.startsWith(p2shPrefix) ||
-                address.startsWith(texPrefix))
+            (
+                address.startsWith(p2pkhPrefix) ||
+                    address.startsWith(p2shPrefix) ||
+                    address.startsWith(texPrefix)
+                )
     }
 
     fun isSprout(address: String): Boolean {
         return address.startsWith(sproutPrefix) &&
-                !address.startsWith("ztestsapling")
+            !address.startsWith("ztestsapling")
     }
 
     fun isSapling(address: String): Boolean {
         if (!address.isAsciiAlphanumeric()) return false
         return address.length >= saplingAddressMinimumLength &&
-                address.startsWith(saplingPrefix)
+            address.startsWith(saplingPrefix)
     }
 
     fun isUnified(address: String): Boolean {
         if (!address.isAsciiAlphanumeric()) return false
         return address.length >= unifiedAddressMinimumLength &&
-                address.startsWith(unifiedPrefix)
+            address.startsWith(unifiedPrefix)
     }
 
     fun isShielded(address: String): Boolean {
         return isSapling(address) ||
-                isUnified(address)
+            isUnified(address)
     }
 }
 

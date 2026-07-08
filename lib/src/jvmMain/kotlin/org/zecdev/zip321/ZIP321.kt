@@ -169,7 +169,6 @@ object ZIP321 {
     ): String {
         try {
             return when (formattingOptions) {
-
                 is FormattingOptions.UseEmptyParamIndex -> {
                     val scheme = if (formattingOptions.omitAddressLabel) "zcash:" else "zcash:?"
                     scheme.plus(
@@ -219,7 +218,8 @@ object ZIP321 {
     fun request(
         uriString: String,
         context: ParserContext,
-        validatingRecipients: ((String) -> Boolean)?): ParserResult {
+        validatingRecipients: ((String) -> Boolean)?
+    ): ParserResult {
         return Parser(context, validatingRecipients).parse(uriString)
     }
 }

@@ -6,7 +6,6 @@ import com.copperleaf.kudzu.parser.ParserContext
 import com.copperleaf.kudzu.parser.ParserException
 import com.copperleaf.kudzu.parser.chars.AnyCharParser
 import com.copperleaf.kudzu.parser.chars.CharInParser
-import com.copperleaf.kudzu.parser.chars.CharNotInParser
 import com.copperleaf.kudzu.parser.chars.DigitParser
 import com.copperleaf.kudzu.parser.choice.PredictiveChoiceParser
 import com.copperleaf.kudzu.parser.many.ManyParser
@@ -32,11 +31,12 @@ class Parser(
 ) {
 
     val defaultValidation = addressValidation?.let { customValidation ->
-        { address: String ->
+        {
+                address: String ->
             context.isValid(address) && customValidation(address)
         }
-    }?:
-        { address: String ->
+    }
+        ?: { address: String ->
             context.isValid(address)
         }
 
@@ -257,7 +257,6 @@ class Parser(
                 throw ZIP321.Errors.InvalidAddress(null)
             }
 
-
             val leadingAddress = maybeNode.value
 
             // no remaining text to parse and no address found. Not a valid URI
@@ -284,7 +283,7 @@ class Parser(
 
             val totalPayments = payments.size.toUInt()
 
-            if  (totalPayments > ZIP321.maxPaymentsAllowed) {
+            if (totalPayments > ZIP321.maxPaymentsAllowed) {
                 throw ZIP321.Errors.TooManyPayments(totalPayments)
             }
 
