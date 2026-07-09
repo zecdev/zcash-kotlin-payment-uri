@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added — deterministic property-style round-trip tests (v2/K16)
+
+- `lib/src/commonTest/kotlin/org/zecdev/zip321/PropertyGenerators.kt`: a tiny inline `SplitMix64`
+  seeded PRNG plus generator functions mirroring the reference librustzcash `zip321::testing`
+  proptest strategies (and the Swift library's S16 port) — arbitrary valid memo bytes (0..512),
+  arbitrary `NonNegativeAmount` (biased to also hit `0`/`1`/`MAX_MONEY` boundaries), arbitrary unicode
+  label/message/otherParam-value strings (including emoji and characters that require
+  percent-encoding), arbitrary non-reserved `otherParam` names, arbitrary payments drawn from a
+  fixed pool of known-checksum-valid addresses per network/kind (transparent P2PKH/P2SH, Sapling,
+  Unified, TEX — reusing the literals in `ParserContextValidationTests.validMatrix`), and arbitrary
+  indexed payment requests (0..20 payments at sparse `paramindex` values 0..9999).
+- `lib/src/commonTest/kotlin/org/zecdev/zip321/PropertyTests.kt`: five deterministic laws, each run
+  over a fixed range of seeds (1,400 total cases, full-suite addition runtime well under a second):
+  (1) full round trip `parse(uriString(from = r)) == success(Request(r))` (300 cases); (2)
+  `NonNegativeAmount.zec(z.decimalString()) == z` (300 cases); (3)
+  `MemoBytes.fromBase64URL(m.toBase64URL()) == m` (300 cases); (4)
+  `QCharCodec.decode(QCharCodec.encode(s)) == s` (300 cases); (5) paramindex preservation — a
+  request with sparse indices round-trips preserving `indexedPayments` exactly (200 cases). All
+  seeds are fixed integers; no wall-clock/system-random seeding. `kotlin.test` has no
+  `@Test(arguments:)`-style parameterization, so each law loops over its seed range inside a single
+  `@Test` function, with the seed embedded in every failure message.
+- **`kotest-property` will NOT return.** The v2/K1 migration note said it would come back
+  "together with the property-based tests in a later v2 PR" — this entry IS that PR, and it uses a
+  from-scratch deterministic PRNG in `commonTest` (`kotlin.test`) instead, so the property suite
+  runs on every KMP target (jvm + iOS), not just the JVM. This supersedes the v2/K1 note.
+
 ### Added — fluent builders and DSL (v2/K14)
 
 - **`Payment.Builder`** (`Builder(recipient)` + chainable `amount(NonNegativeAmount)`, `amount(zec: String)`,
