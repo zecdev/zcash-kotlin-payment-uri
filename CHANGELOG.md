@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Added
+- `test-vectors` git submodule pointing at the shared ZIP-321 conformance
+  vector corpus (`zcash-zip321-test-vectors`): 22 valid and 28 invalid
+  vectors verified against the librustzcash `zip321` reference oracle.
+- Conformance runner (`org.zecdev.zip321.conformance.Zip321ConformanceSpec`,
+  test-only) that exercises every corpus vector against the v1 parser and
+  renderer. Known divergences from the reference semantics are documented as
+  expected failures in `ExpectedFailures.kt` (13 entries: 3 valid vectors v1
+  rejects, 7 invalid vectors v1 accepts, 3 canonical-URI render mismatches
+  including an amount-corrupting rounding bug in
+  `NonNegativeAmount.zatoshiToZEC`); fixed vectors fail loudly as XPASS until
+  their entry is removed. Adds `kotlinx-serialization-json` 1.7.3 as a
+  test-only dependency and registers `test-vectors/vectors` as a test
+  resources root.
+
 ## 1.0.1
 This version fixes issues with Orchard-only UAs and Sapling addresses URIs
 
