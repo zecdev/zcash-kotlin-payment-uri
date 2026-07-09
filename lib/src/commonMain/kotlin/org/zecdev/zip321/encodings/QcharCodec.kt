@@ -31,8 +31,10 @@ object QCharCodec {
      */
     @Suppress("MagicNumber")
     fun isQcharByte(byte: Int): Boolean {
-        val b = byte and 0xFF
-        return when (b) {
+        // Callers pass a byte value (0..255) or, from the char-based scanner, a code point; any
+        // value outside the explicit ASCII ranges below (including every non-ASCII code point) is
+        // not a qchar. No `and 0xFF` masking: masking would misclassify e.g. code point 0x141.
+        return when (byte) {
             // ALPHA
             in 0x41..0x5A, in 0x61..0x7A -> true
             // DIGIT
@@ -55,7 +57,7 @@ object QCharCodec {
     @Suppress("MagicNumber")
     fun isValueByte(byte: Int): Boolean {
         // 0x25 == "%": permitted raw so the tokenizer can bound a pct-encoded value.
-        return (byte and 0xFF) == 0x25 || isQcharByte(byte)
+        return byte == 0x25 || isQcharByte(byte)
     }
 
     /** Percent-encodes [input] per the ZIP-321 `qchar` grammar. Always succeeds. */

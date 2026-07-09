@@ -55,17 +55,9 @@ sealed class Param {
                         throw ZIP321.Errors.InvalidParamValue(queryKey, index)
                     }
 
-                    try {
-                        Amount(LegacyAmount(decimalString = value))
-                    } catch (error: LegacyAmount.AmountError.NegativeAmount) {
-                        throw ZIP321.Errors.AmountTooSmall(index)
-                    } catch (error: LegacyAmount.AmountError.GreaterThanSupply) {
-                        throw ZIP321.Errors.AmountExceededSupply(index)
-                    } catch (error: LegacyAmount.AmountError.InvalidTextInput) {
-                        throw ZIP321.Errors.ParseError("Invalid text input $value")
-                    } catch (error: LegacyAmount.AmountError.TooManyFractionalDigits) {
-                        throw ZIP321.Errors.AmountTooSmall(index)
-                    }
+                    // Strict ZIP-321 `amountparam` grammar via `NonNegativeAmount`, bridged to
+                    // the still-`LegacyAmount`-typed `Payment.nonNegativeAmount`.
+                    Amount(LegacyAmount.fromNonNegativeAmount(AmountParser.parse(value, index)))
                 }
                 ParamName.LABEL.value -> {
                     // LABEL param can't have no value

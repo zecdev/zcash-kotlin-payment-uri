@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added (v2/K10)
+- **Internal single-pass `Scanner`** (`parser/Scanner.kt`): a forward-only cursor over a
+  `CharSequence` (`peek`/`advance`/`expect`/`takeWhile`/`matchLiteral`/`isAtEnd`/`currentOffset`)
+  with single-character lookahead and no backtracking, mirroring the streaming style of the
+  reference `nom` grammar. It is the substrate for the K11 URI grammar rewrite. Every ZIP-321
+  terminal is ASCII, so a `Char` cursor is sufficient.
+- **Internal strict `AmountParser`** (`parser/AmountParser.kt`): parses an `amount` value through
+  the strict ZIP-321 `amountparam` grammar (via `NonNegativeAmount.zec`) and maps
+  `NonNegativeAmount.AmountException` onto the closest v1 `ZIP321.Errors` case (`ExceededSupply`,
+  including `ULong`-overflowing strings, -> `AmountExceededSupply`; `InvalidDecimalString` ->
+  `InvalidParamValue("amount", …)`; `TooManyFractionalDigits`/`NegativeAmount` -> `AmountTooSmall`).
+
+### Changed (v2/K10)
+- **The parser now enforces the strict `amountparam` grammar.** `amount` values are parsed through
+  the new `AmountParser`/`NonNegativeAmount.zec` path instead of the lenient
+  `LegacyAmount(decimalString)`, so a leading or trailing decimal point (`amount=.5`,
+  `amount=123.`), a sign, whitespace, scientific notation, or a percent-escape are rejected.
+  `Payment.nonNegativeAmount` remains `LegacyAmount`-typed (bridged from the unsigned
+  `NonNegativeAmount` via a new internal `LegacyAmount.fromNonNegativeAmount(...)` factory — a
+  factory rather than a constructor because `NonNegativeAmount` is a `value class` erasing to
+  `long`, which would clash with `constructor(value: Long)`).
+  Conformance vectors `invalid_amount_trailing_decimal_point` and `invalid_amount_leading_decimal_point`
+  now pass and were removed from the expected-failure map.
+
 ### Added (v2/K9)
 - **Reference-exact ZIP-321 `qchar` codec** (`encodings/QcharCodec.kt`): the `QCharCodec`
   `encode`/`decode` pair is rewritten to mirror the librustzcash `zip321` reference. `encode`

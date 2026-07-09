@@ -55,10 +55,11 @@
         <error line="83" column="28" source="standard:property-naming" />
         <error line="84" column="28" source="standard:property-naming" />
         <error line="85" column="28" source="standard:property-naming" />
-        <error line="159" column="38" source="standard:function-signature" />
-        <error line="159" column="57" source="standard:function-signature" />
-        <error line="159" column="73" source="standard:function-signature" />
-        <error line="192" column="28" source="standard:multiline-expression-wrapping" />
+        <error line="96" column="86" source="standard:function-signature" />
+        <error line="171" column="38" source="standard:function-signature" />
+        <error line="171" column="57" source="standard:function-signature" />
+        <error line="171" column="73" source="standard:function-signature" />
+        <error line="204" column="28" source="standard:multiline-expression-wrapping" />
     </file>
     <file name="src/commonMain/kotlin/org/zecdev/zip321/model/MemoBytes.kt">
         <error line="16" column="19" source="standard:property-naming" />

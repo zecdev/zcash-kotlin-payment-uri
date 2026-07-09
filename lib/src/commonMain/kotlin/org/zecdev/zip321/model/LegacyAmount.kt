@@ -85,6 +85,18 @@ class LegacyAmount {
         internal const val maxFractionalDecimalDigits: Int = MAX_FRACTIONAL_DECIMAL_DIGITS
 
         /**
+         * Bridges a strict [NonNegativeAmount] into this v1 representation. A
+         * [NonNegativeAmount] is an unsigned zatoshi count always in `0..MAX_MONEY`, which is
+         * far below `Long.MAX_VALUE`, so widening it to the checked `Long` stored here is exact
+         * and never throws. Used by the parser while `Payment` remains `LegacyAmount`-typed (the
+         * public switch to [NonNegativeAmount] is a later step in the v2 rewrite). Implemented as
+         * a factory rather than a constructor because [NonNegativeAmount] is a `value class`
+         * erasing to `long`, which would clash with `constructor(value: Long)`.
+         */
+        internal fun fromNonNegativeAmount(amount: NonNegativeAmount): LegacyAmount =
+            LegacyAmount(amount.value.toLong())
+
+        /**
          * Parses a decimal ZEC string into a checked number of zatoshis,
          * preserving the exact accept/reject semantics of the previous
          * `zecToZatoshi(BigDecimal(decimalString))` implementation.

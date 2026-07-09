@@ -28,12 +28,6 @@ object ExpectedFailures {
             "the reference parses it as an empty (zero-payment) transaction request " +
             "(the '?' leads Param.from to see an empty paramname instead of zero params).",
         // --- invalid vectors v1 accepts -------------------------------------
-        "invalid_amount_trailing_decimal_point" to
-            "v1 accepts amount '123.' (parsed via BigDecimal, which allows a bare trailing " +
-            "decimal point); the ZIP-321 grammar requires at least one digit after '.'.",
-        "invalid_amount_leading_decimal_point" to
-            "v1 accepts amount '.5' (parsed via BigDecimal, which allows a missing integer " +
-            "part); the ZIP-321 grammar requires the integer part.",
         "spec_invalid_zero_valued_transparent_output" to
             "v1 has no zero-valued-transparent-output consensus check: 'amount=0' to a " +
             "transparent recipient parses successfully (LegacyAmount permits 0)."
