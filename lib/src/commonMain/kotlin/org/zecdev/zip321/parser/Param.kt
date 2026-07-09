@@ -10,6 +10,7 @@ import org.zecdev.zip321.Network
 import org.zecdev.zip321.ParamName
 import org.zecdev.zip321.ZIP321
 import org.zecdev.zip321.ZIP321.Errors.TooManyPayments
+import org.zecdev.zip321.encodings.QCharCodec
 import org.zecdev.zip321.extensions.qcharDecode
 import org.zecdev.zip321.extensions.qcharEncoded
 import org.zecdev.zip321.model.LegacyAmount
@@ -238,26 +239,25 @@ class ParamNameString(val value: String) {
 class QcharString private constructor(private val encoded: String) {
     companion object {
         /**
-         * Initializes a [QcharString] from a non-empty, non-qchar-encoded input string.
+         * Initializes a [QcharString] from a non-qchar-encoded input string.
          *
          * This constructor checks whether decoding the input string would change it,
          * in order to avoid nested or duplicate encodings.
          *
-         * @param value The raw string to be qchar-encoded.
+         * @param value The raw string to be qchar-encoded. The empty string is a valid
+         *              (zero-length) `*qchar` value and is accepted.
          * @param strict If `true`, the initializer will fail if decoding the input string
          *                   yields a different result — which suggests the input is already qchar-encoded.
          *
-         * @return A [QcharString] instance, or `null` if encoding fails or strict mode detects an issue.
+         * @return A [QcharString] instance, or `null` if strict mode detects an issue.
          */
         fun from(
             value: String,
             strict: Boolean = false,
         ): QcharString? {
-            // String can't be empty
-            require(value.isNotEmpty()) { return null }
             // check whether value is already qchar-encoded or partially
             if (strict) {
-                val qcharDecode = value.qcharDecode()
+                val qcharDecode = QCharCodec.decode(value) ?: return null
 
                 if (qcharDecode != value) return null
             }

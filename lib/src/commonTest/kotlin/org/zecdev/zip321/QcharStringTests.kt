@@ -24,9 +24,13 @@ class QcharStringTests {
     }
 
     @Test
-    fun `QcharString fails to initialize from empty string`() {
+    fun `QcharString initializes from empty string`() {
+        // The empty string is a valid zero-length `*qchar` value (ZIP-321 allows an empty
+        // `message=`/`label=`). It round-trips through both the encoded and decoded views.
         val result = QcharString.from("")
-        assertNull(result)
+        assertNotNull(result)
+        assertEquals("", result.stringValue())
+        assertEquals("", result.qcharValue())
     }
 
     @Test

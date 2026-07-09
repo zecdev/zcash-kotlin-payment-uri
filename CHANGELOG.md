@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added (v2/K9)
+- **Reference-exact ZIP-321 `qchar` codec** (`encodings/QcharCodec.kt`): the `QCharCodec`
+  `encode`/`decode` pair is rewritten to mirror the librustzcash `zip321` reference. `encode`
+  percent-encodes exactly the *complement* of the raw `qchar` set (space, `"`, `#`, `%`, `&`,
+  `/`, `<`, `=`, `>`, `?`, `[`, `\`, `]`, `^`, `` ` ``, `{`, `|`, `}`, the C0 controls, DEL, and
+  every non-ASCII byte as uppercase `%XX`). `decode` is now **strict** and returns `null` on
+  failure: each `%XX` must be two hex digits (either case), each raw byte must be a `qchar`
+  byte, and the decoded bytes must be valid UTF-8 (overlong sequences, lone continuation bytes,
+  unpaired surrogates and truncated sequences are rejected — the previous `URLDecoder`-derived
+  decoder produced U+FFFD replacements instead). New `isQcharByte`/`isValueByte` predicates are
+  exposed for the K10/K11 scanner. The `String.qcharDecode()` extension delegates to the codec
+  and throws `IllegalArgumentException` on a strict-decode failure (call `QCharCodec.decode`
+  for a nullable result).
+
+### Fixed (v2/K9)
+- **Empty `qchar` values are valid**: `QcharString.from("")` now succeeds (a zero-length
+  `*qchar` value round-trips through both the encoded and decoded views), matching the
+  reference which accepts an empty `message=`/`label=`. (Kotlin's parse path already decoded
+  empty values via `qcharDecode`, so no conformance vector changed class.)
+
 ### Changed (v2/K8) — BREAKING: address validation is fully delegated
 - **The library no longer validates Zcash addresses.** It implements the
   [ZIP-321](https://zips.z.cash/zip-0321) URI **grammar** and nothing else.
