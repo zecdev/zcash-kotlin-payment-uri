@@ -17,21 +17,7 @@ object ExpectedFailures {
      * Valid vectors that v1 cannot parse to the reference payments, and
      * invalid vectors that v1 fails to reject with a [org.zecdev.zip321.ZIP321.Errors].
      */
-    val conformance: Map<String, String> = mapOf(
-        // --- valid vectors v1 rejects ---------------------------------------
-        "structure_empty_request" to
-            "v1 throws Errors.InvalidURI for 'zcash:'; the reference parses it as an " +
-            "empty (zero-payment) transaction request (Parser.parse rejects when there " +
-            "is no leading address and no remaining text).",
-        "structure_empty_request_query_marker" to
-            "v1 throws Errors.ParseError for 'zcash:?'; the reference parses it as an empty " +
-            "(zero-payment) transaction request (the Scanner grammar splits the empty query into " +
-            "one empty segment whose paramname scan fails).",
-        // --- invalid vectors v1 accepts -------------------------------------
-        "spec_invalid_zero_valued_transparent_output" to
-            "v1 has no zero-valued-transparent-output consensus check: 'amount=0' to a " +
-            "transparent recipient parses successfully (LegacyAmount permits 0)."
-    )
+    val conformance: Map<String, String> = emptyMap()
 
     /**
      * Valid vectors whose re-rendered URI (via `ZIP321.uriString`) differs
@@ -40,18 +26,11 @@ object ExpectedFailures {
      * may legitimately differ from the Rust canonical form.
      */
     val renderMismatch: Map<String, String> = mapOf(
-        "amount_just_below_max_money" to
-            "v1 re-renders amount 20999999.99999999 ZEC as 21000000: " +
-            "LegacyAmount.zatoshiToZEC builds BigDecimal(zatoshis, MathContext(8, " +
-            "HALF_EVEN)), rounding to 8 SIGNIFICANT DIGITS and silently inflating the " +
-            "amount to max supply. Amount-corrupting round-trip bug, not just formatting.",
-        "amount_parse_simple_large_decimal" to
-            "v1 re-renders amount 3768769.02796286 ZEC as 3768769 (fractional part lost): " +
-            "same 8-significant-digit MathContext rounding bug in zatoshiToZEC.",
         "structure_index_gap_only_address_5" to
-            "v1's Payment model discards the original paramindex, so a request parsed from " +
+            "the renderer still enumerates payments positionally from the empty/`.1` paramindex " +
+            "rather than preserving the parsed paramindex, so a request parsed from " +
             "'address.5='/'amount.5=' re-renders as 'zcash:<addr>?amount=1' instead of " +
-            "preserving/enumerating indices like the reference canonical form."
+            "preserving/enumerating indices like the reference canonical form (renderer rewrite, K13)."
     )
 }
 

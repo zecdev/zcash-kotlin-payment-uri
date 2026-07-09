@@ -9,7 +9,7 @@ import org.zecdev.zip321.model.RecipientAddress
 import org.zecdev.zip321.parser.Parser
 
 /**
- * ZIP-321 object for handling formatting options.
+ * ZIP-321 object for parsing and formatting Zcash payment request URIs.
  */
 object ZIP321 {
     /**
@@ -17,7 +17,18 @@ object ZIP321 {
      */
     val maxPaymentsAllowed = 2109u
 
-    sealed class Errors : Exception() {
+    /**
+     * The default maximum accepted input size for [parse].
+     */
+    const val DEFAULT_MAX_INPUT_BYTES: Int = 8 * 1024
+
+    /**
+     * The internal v1 error taxonomy raised by the throwing parse pipeline.
+     *
+     * This is an **internal** type in v2. The public error surface is the sealed [ZIP321Error]
+     * taxonomy returned by [parse]; every case below is translated by [ZIP321Error.Companion.from].
+     */
+    internal sealed class Errors : Exception() {
         /**
          * There's a payment exceeding the max supply as [ZIP-321](https://zips.z.cash/zip-0321) forbids.
          */
@@ -98,11 +109,7 @@ object ZIP321 {
 
         /**
          * The parser found a required parameter it does not recognize.
-         * Associated string contains the unrecognized input.
          * See [Forward compatibilty](https://zips.z.cash/zip-0321#forward-compatibility)
-         * Variables which are prefixed with a req- are considered required. If a parser does not recognize any
-         * variables which are prefixed with req-, it MUST consider the entire URI invalid. Any other variables that
-         * are not recognized, but that are not prefixed with a req-, SHOULD be ignored.)
          */
         data class UnknownRequiredParameter(val value: String) : Errors()
 
@@ -110,12 +117,6 @@ object ZIP321 {
          * the parser found a `paramname` with the wrong encoding
          */
         data class InvalidParamName(val paramName: String) : Errors()
-    }
-
-    sealed class ParserResult {
-        data class SingleAddress(val singleRecipient: RecipientAddress) : ParserResult()
-
-        data class Request(val paymentRequest: PaymentRequest) : ParserResult()
     }
 
     /**
@@ -136,7 +137,6 @@ object ZIP321 {
      * @param formattingOptions The formatting options.
      * @return The ZIP-321 payment request [String].
      */
-    @Throws(Errors::class)
     fun uriString(
         from: PaymentRequest,
         formattingOptions: FormattingOptions = FormattingOptions.EnumerateAllPayments,
@@ -159,7 +159,6 @@ object ZIP321 {
      * @param formattingOptions The formatting options.
      * @return The ZIP-321 payment URI [String].
      */
-    @Throws(Errors::class, Errors.ParseError::class)
     fun request(
         recipient: RecipientAddress,
         formattingOptions: FormattingOptions =
@@ -167,26 +166,21 @@ object ZIP321 {
                 omitAddressLabel = true,
             ),
     ): String {
-        try {
-            return when (formattingOptions) {
-                is FormattingOptions.UseEmptyParamIndex -> {
-                    val scheme = if (formattingOptions.omitAddressLabel) "zcash:" else "zcash:?"
-                    scheme.plus(
-                        Render.parameter(
-                            recipient,
-                            index = null,
-                            omittingAddressLabel = formattingOptions.omitAddressLabel,
-                        ),
-                    )
-                }
-                else ->
-                    "zcash:?".plus(
-                        Render.parameter(recipient, index = 1u, omittingAddressLabel = false),
-                    )
+        return when (formattingOptions) {
+            is FormattingOptions.UseEmptyParamIndex -> {
+                val scheme = if (formattingOptions.omitAddressLabel) "zcash:" else "zcash:?"
+                scheme.plus(
+                    Render.parameter(
+                        recipient,
+                        index = null,
+                        omittingAddressLabel = formattingOptions.omitAddressLabel,
+                    ),
+                )
             }
-        } catch (e: IllegalArgumentException) {
-            val message = e.message ?: "parser failed with unknown error"
-            throw Errors.ParseError(message)
+            else ->
+                "zcash:?".plus(
+                    Render.parameter(recipient, index = 1u, omittingAddressLabel = false),
+                )
         }
     }
 
@@ -197,7 +191,6 @@ object ZIP321 {
      * @param formattingOptions The formatting options.
      * @return The ZIP-321 payment request [String].
      */
-    @Throws(Errors::class)
     fun request(
         payment: Payment,
         formattingOptions: FormattingOptions = FormattingOptions.EnumerateAllPayments,
@@ -206,29 +199,69 @@ object ZIP321 {
     }
 
     /**
-     * Parses a ZIP-321 payment request from [String].
+     * Parses a [ZIP-321](https://zips.z.cash/zip-0321) payment request from a URI [String].
      *
-     * Recipient-address validation is fully DELEGATED. This library implements
-     * the ZIP-321 URI grammar and nothing else: an address is valid exactly
-     * when [validator] says so, and the [AddressDescriptor] it returns is what
-     * drives the ZIP-321 payment rules (memo support, zero-valued transparent
-     * outputs). There is no built-in structural check to fall back on, and
-     * [validator] is REQUIRED for precisely that reason.
+     * This is a **total** function: every input maps to a [Result], never a thrown error. Result
+     * failures are ALWAYS [ZIP321Error].
      *
-     * @param uriString The payment request String.
-     * @param expecting the consensus network this request is expected to be
-     * for. Every recipient the [validator] accepts must report this network in
-     * its [AddressDescriptor].
-     * @param validator the caller-supplied authority on recipient addresses;
-     * returning `null` from [AddressValidator.validate] rejects the address.
-     * @return The ZIP-321 payment request result [ParserResult].
+     * Input guards run FIRST, before any grammar work: input larger than [maxInputBytes] fails with
+     * [ZIP321Error.InvalidURI]/[ZIP321Error.StaticReason.INPUT_TOO_LARGE]; the empty string fails
+     * with [ZIP321Error.ParseError]/[ZIP321Error.StaticReason.EMPTY_INPUT]; a non-`zcash:` scheme
+     * fails with [ZIP321Error.InvalidURI]/[ZIP321Error.StaticReason.NOT_ZCASH_SCHEME]; a `//`
+     * authority component fails with [ZIP321Error.InvalidURI]/[ZIP321Error.StaticReason.INVALID_AUTHORITY].
+     *
+     * Both spellings of a single recipient — the leading-address form
+     * `zcash:<addr>` and the labeled form `zcash:?address=<addr>` — parse to the SAME
+     * [PaymentRequest]. Which of the two the URI used is a syntax choice and is not encoded in the
+     * parsed model, matching the reference implementation.
+     *
+     * Recipient-address validation is fully DELEGATED: the library performs NO address validation
+     * of its own, so an address is valid exactly when [validator] says so, and the
+     * [AddressDescriptor] it returns is what drives the ZIP-321 payment rules (memo support,
+     * zero-valued transparent outputs).
+     *
+     * @param uri the `zcash:` URI to parse.
+     * @param expecting the consensus network this request is expected to be for. Every recipient
+     * the [validator] accepts must report this network in its [AddressDescriptor], or the request
+     * is rejected with [ZIP321Error.InvalidAddress].
+     * @param validator the caller-supplied authority on recipient addresses. This is REQUIRED.
+     * @param maxInputBytes the maximum accepted UTF-8 byte length of [uri].
+     * @return [Result.success] with the parsed [PaymentRequest] or [Result.failure] with a
+     * [ZIP321Error].
      */
-    @Throws(Errors::class)
-    fun request(
-        uriString: String,
+    @Suppress("ReturnCount", "SwallowedException")
+    fun parse(
+        uri: String,
         expecting: Network,
         validator: AddressValidator,
-    ): ParserResult {
-        return Parser(expecting, validator).parse(uriString)
+        maxInputBytes: Int = DEFAULT_MAX_INPUT_BYTES,
+    ): Result<PaymentRequest> {
+        // Input guards run FIRST, before any grammar work.
+        if (uri.encodeToByteArray().size > maxInputBytes) {
+            return Result.failure(ZIP321Error.InvalidURI(ZIP321Error.StaticReason.INPUT_TOO_LARGE))
+        }
+        if (uri.isEmpty()) {
+            // The corpus classifies the empty string (no `zcash:` prefix to even begin parsing) as
+            // parseError.
+            return Result.failure(ZIP321Error.ParseError(ZIP321Error.StaticReason.EMPTY_INPUT))
+        }
+        if (!uri.startsWith("zcash:")) {
+            return Result.failure(ZIP321Error.InvalidURI(ZIP321Error.StaticReason.NOT_ZCASH_SCHEME))
+        }
+        // A `//` authority component is forbidden by ZIP-321's top-level grammar.
+        if (uri.substring("zcash:".length).startsWith("//")) {
+            return Result.failure(ZIP321Error.InvalidURI(ZIP321Error.StaticReason.INVALID_AUTHORITY))
+        }
+
+        return try {
+            Result.success(Parser(expecting, validator).parse(uri))
+        } catch (error: ZIP321Error) {
+            // Raised directly by `Payment`/`PaymentRequest` construction.
+            Result.failure(error)
+        } catch (error: Errors) {
+            Result.failure(ZIP321Error.from(error))
+        } catch (error: IllegalArgumentException) {
+            Result.failure(ZIP321Error.ParseError(ZIP321Error.StaticReason.MALFORMED_URI))
+        }
     }
 }

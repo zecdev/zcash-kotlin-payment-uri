@@ -16,7 +16,8 @@ import kotlin.jvm.JvmInline
  * the `UInt64`-backed `NonNegativeAmount` of `zcash-swift-payment-uri`. A negative amount is
  * therefore not merely rejected, it is unrepresentable.
  *
- * ZEC decimal strings are parsed with the **strict** ZIP-321 `amountparam` grammar:
+ * `NonNegativeAmount` parses ZEC decimal strings using the **strict** ZIP-321 `amountparam`
+ * grammar:
  * ```
  * amountparam = 1*DIGIT [ "." 1*8DIGIT ]
  * ```
@@ -24,9 +25,6 @@ import kotlin.jvm.JvmInline
  * `"050"` is `50`), and if a decimal point is present it must be followed by 1 to 8 digits
  * (trailing zeros are permitted, e.g. `"00.500"` is `0.5`, but a bare trailing/leading point
  * such as `"123."` or `".5"` is rejected).
- *
- * Note: this type supersedes the v1 [LegacyAmount] (which carried the `NonNegativeAmount` name
- * before v2), whose parsing was lenient and whose rendering rounded to 8 significant digits.
  *
  * Java interop: because the backing type is `ULong`, the `value` accessor and the factories
  * carry Kotlin's unsigned-type name mangling on the JVM and are not intended to be called from

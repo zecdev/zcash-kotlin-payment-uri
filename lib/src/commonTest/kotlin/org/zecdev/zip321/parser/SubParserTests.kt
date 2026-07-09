@@ -1,15 +1,10 @@
-// `LegacyAmount` (the v1 amount type; it carried the `NonNegativeAmount` name before v2) is
-// deprecated in favor of the v2 `NonNegativeAmount` but remains in use until the parser adopts
-// it (v2 parser rewrite); keep this file warning-free meanwhile.
-@file:Suppress("DEPRECATION")
-
 package org.zecdev.zip321.parser
 
 import org.zecdev.zip321.Network
 import org.zecdev.zip321.ZIP321
 import org.zecdev.zip321.extensions.qcharDecode
-import org.zecdev.zip321.model.LegacyAmount
 import org.zecdev.zip321.model.MemoBytes
+import org.zecdev.zip321.model.NonNegativeAmount
 import org.zecdev.zip321.model.OtherParam
 import org.zecdev.zip321.model.Payment
 import org.zecdev.zip321.support.ReferenceAddressValidator
@@ -183,7 +178,7 @@ class SubParserTests {
     @Test
     fun `Zcash parameter creates valid amount`() {
         assertEquals(
-            IndexedParameter(1u, Param.Amount(amount = LegacyAmount("1.00020112"))),
+            IndexedParameter(1u, Param.Amount(amount = NonNegativeAmount.zec("1.00020112").getOrThrow())),
             parser().zcashParameter("amount", 1u, "1.00020112"),
         )
     }
@@ -234,7 +229,7 @@ class SubParserTests {
     fun `Zcash parameter creates safely ignored other parameter`() {
         val value = "VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"
         assertEquals(
-            IndexedParameter(0u, Param.Other(ParamNameString("future-binary-format"), value)),
+            IndexedParameter(0u, Param.Other("future-binary-format", value)),
             parser().zcashParameter("future-binary-format", null, value),
         )
     }
@@ -261,7 +256,7 @@ class SubParserTests {
         val expected =
             listOf(
                 IndexedParameter(0u, Param.Address(recipient)),
-                IndexedParameter(0u, Param.Amount(LegacyAmount("1"))),
+                IndexedParameter(0u, Param.Amount(NonNegativeAmount.zec("1").getOrThrow())),
                 IndexedParameter(0u, Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
                 IndexedParameter(0u, Param.Message("Thank you for your purchase")),
             )
@@ -281,7 +276,7 @@ class SubParserTests {
         val expected =
             listOf(
                 IndexedParameter(0u, Param.Address(recipient)),
-                IndexedParameter(0u, Param.Amount(LegacyAmount("1"))),
+                IndexedParameter(0u, Param.Amount(NonNegativeAmount.zec("1").getOrThrow())),
                 IndexedParameter(0u, Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
                 IndexedParameter(0u, Param.Message("Thank you for your purchase")),
             )
@@ -302,13 +297,13 @@ class SubParserTests {
                         "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
                     ),
                 ),
-                Param.Amount(LegacyAmount("1")),
+                Param.Amount(NonNegativeAmount.zec("1").getOrThrow()),
                 Param.Message("Thanks"),
                 Param.Label("payment"),
-                Param.Other(ParamNameString("future"), "is awesome"),
+                Param.Other("future", "is awesome"),
             )
 
-        assertTrue(params.hasDuplicateParam(Param.Other(ParamNameString("future"), "is dystopic")))
+        assertTrue(params.hasDuplicateParam(Param.Other("future", "is dystopic")))
     }
 
     @Test
@@ -320,10 +315,10 @@ class SubParserTests {
                         "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
                     ),
                 ),
-                Param.Amount(LegacyAmount("1")),
+                Param.Amount(NonNegativeAmount.zec("1").getOrThrow()),
                 Param.Message("Thanks"),
                 Param.Label("payment"),
-                Param.Other(ParamNameString("future"), "is awesome"),
+                Param.Other("future", "is awesome"),
             )
 
         assertTrue(
@@ -349,10 +344,10 @@ class SubParserTests {
         val params =
             listOf(
                 Param.Address(recipient),
-                Param.Amount(LegacyAmount("1")),
+                Param.Amount(NonNegativeAmount.zec("1").getOrThrow()),
                 Param.Message("Thanks"),
                 Param.Label("payment"),
-                Param.Other(ParamNameString("future"), "is awesome"),
+                Param.Other("future", "is awesome"),
             )
 
         val payment = Payment.fromUniqueIndexedParameters(index = 1u, parameters = params)
@@ -360,11 +355,11 @@ class SubParserTests {
         assertEquals(
             Payment(
                 recipientAddress = recipient,
-                nonNegativeAmount = LegacyAmount("1"),
+                amount = NonNegativeAmount.zec("1").getOrThrow(),
                 memo = null,
                 label = "payment",
                 message = "Thanks",
-                otherParams = listOf(OtherParam(ParamNameString("future"), "is awesome")),
+                otherParams = listOf(OtherParam("future", "is awesome")),
             ),
             payment,
         )
@@ -380,12 +375,12 @@ class SubParserTests {
         val duplicateAddressParams: List<IndexedParameter> =
             listOf(
                 IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
-                IndexedParameter(index = 0u, param = Param.Amount(LegacyAmount("1"))),
+                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount.zec("1").getOrThrow())),
                 IndexedParameter(index = 0u, param = Param.Message("Thanks")),
                 IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
                 IndexedParameter(index = 0u, param = Param.Label("payment")),
                 IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
-                IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is awesome")),
+                IndexedParameter(index = 0u, param = Param.Other("future", "is awesome")),
             )
 
         val error =
@@ -405,12 +400,12 @@ class SubParserTests {
         val duplicateAmountParams: List<IndexedParameter> =
             listOf(
                 IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
-                IndexedParameter(index = 0u, param = Param.Amount(LegacyAmount("1"))),
+                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount.zec("1").getOrThrow())),
                 IndexedParameter(index = 0u, param = Param.Message("Thanks")),
                 IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
                 IndexedParameter(index = 0u, param = Param.Label("payment")),
-                IndexedParameter(index = 0u, param = Param.Amount(LegacyAmount("2"))),
-                IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is awesome")),
+                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount.zec("2").getOrThrow())),
+                IndexedParameter(index = 0u, param = Param.Other("future", "is awesome")),
             )
 
         val error =
@@ -430,13 +425,13 @@ class SubParserTests {
         val duplicateParams: List<IndexedParameter> =
             listOf(
                 IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
-                IndexedParameter(index = 0u, param = Param.Amount(LegacyAmount("1"))),
+                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount.zec("1").getOrThrow())),
                 IndexedParameter(index = 0u, param = Param.Message("Thanks")),
                 IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
                 IndexedParameter(index = 0u, param = Param.Message("Thanks")),
                 IndexedParameter(index = 0u, param = Param.Label("payment")),
-                IndexedParameter(index = 0u, param = Param.Amount(LegacyAmount("2"))),
-                IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is awesome")),
+                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount.zec("2").getOrThrow())),
+                IndexedParameter(index = 0u, param = Param.Other("future", "is awesome")),
             )
 
         val error =
@@ -457,11 +452,11 @@ class SubParserTests {
             listOf(
                 IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
                 IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
-                IndexedParameter(index = 0u, param = Param.Amount(LegacyAmount("1"))),
+                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount.zec("1").getOrThrow())),
                 IndexedParameter(index = 0u, param = Param.Message("Thanks")),
                 IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
                 IndexedParameter(index = 0u, param = Param.Label("payment")),
-                IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is awesome")),
+                IndexedParameter(index = 0u, param = Param.Other("future", "is awesome")),
             )
 
         val error =
@@ -482,11 +477,11 @@ class SubParserTests {
             listOf(
                 IndexedParameter(index = 0u, param = Param.Address(shieldedRecipient)),
                 IndexedParameter(index = 0u, param = Param.Label("payment")),
-                IndexedParameter(index = 0u, param = Param.Amount(LegacyAmount("1"))),
+                IndexedParameter(index = 0u, param = Param.Amount(NonNegativeAmount.zec("1").getOrThrow())),
                 IndexedParameter(index = 0u, param = Param.Message("Thanks")),
-                IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is dystopian")),
+                IndexedParameter(index = 0u, param = Param.Other("future", "is dystopian")),
                 IndexedParameter(index = 0u, param = Param.Memo(MemoBytes.fromBase64URL("VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg"))),
-                IndexedParameter(index = 0u, param = Param.Other(ParamNameString("future"), "is awesome")),
+                IndexedParameter(index = 0u, param = Param.Other("future", "is awesome")),
             )
 
         val error =
