@@ -30,6 +30,7 @@ class Payment internal constructor(
     val message: String?,
     val otherParams: List<OtherParam>,
 ) {
+    /** Namespace for validated [Payment] construction ([create]) and the deprecated throwing shim. */
     companion object {
         /**
          * Creates a validated [Payment], enforcing the ZIP-321 structural rules that apply to an
@@ -42,8 +43,9 @@ class Payment internal constructor(
          * - `otherparam` names must be unique within a payment — a repeated name fails with
          *   [ZIP321Error.DuplicateParameter].
          *
-         * Both capability questions are answered by the recipient's [AddressDescriptor], i.e. by
-         * the validator that accepted the address, never by re-inspecting the address string.
+         * Both capability questions are answered by the recipient's
+         * [org.zecdev.zip321.AddressDescriptor], i.e. by the validator that accepted the address,
+         * never by re-inspecting the address string.
          *
          * Errors are produced index-agnostically (`index = null`); the parser tags them with the
          * concrete payment index via [ZIP321Error.withIndex].
@@ -245,6 +247,7 @@ class Payment internal constructor(
             }
     }
 
+    /** Two [Payment]s are equal when every property compares equal. */
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is Payment) return false
@@ -259,6 +262,7 @@ class Payment internal constructor(
         return true
     }
 
+    /** Consistent with [equals]: combines every property's hash code. */
     override fun hashCode(): Int {
         var result = recipientAddress.hashCode()
         result = 31 * result + (amount?.hashCode() ?: 0)
@@ -269,6 +273,7 @@ class Payment internal constructor(
         return result
     }
 
+    /** A debug string listing every property. */
     override fun toString(): String =
         "Payment(recipientAddress=$recipientAddress, amount=$amount, memo=$memo, " +
             "label=$label, message=$message, otherParams=$otherParams)"
@@ -285,9 +290,13 @@ class Payment internal constructor(
  * Construct instances via [create], which validates [name] against the ZIP-321 grammar and the
  * reserved-name rules; the bare constructor is internal (the parse path constructs instances from
  * already-validated grammar tokens).
+ *
+ * @param name the plain `paramname`.
+ * @param value the plain, percent-decoded value, or `null` when the parameter had no `= value`.
  */
 @ConsistentCopyVisibility
 data class OtherParam internal constructor(val name: String, val value: String?) {
+    /** Namespace for validated [OtherParam] construction. */
     companion object {
         /**
          * Creates a validated [OtherParam] from a plain (decoded) name and optional (decoded)

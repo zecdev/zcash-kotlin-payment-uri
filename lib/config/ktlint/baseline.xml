@@ -62,7 +62,7 @@
         <error line="204" column="28" source="standard:multiline-expression-wrapping" />
     </file>
     <file name="src/commonMain/kotlin/org/zecdev/zip321/model/MemoBytes.kt">
-        <error line="16" column="19" source="standard:property-naming" />
+        <error line="18" column="19" source="standard:property-naming" />
     </file>
     <file name="src/commonMain/kotlin/org/zecdev/zip321/model/Payment.kt">
         <error line="16" column="39" source="standard:trailing-comma-on-declaration-site" />

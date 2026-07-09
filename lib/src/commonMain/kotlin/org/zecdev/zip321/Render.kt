@@ -10,6 +10,8 @@ import org.zecdev.zip321.model.RecipientAddress
 
 /**
  * The reserved ZIP-321 query-parameter names.
+ *
+ * @param value the literal query-parameter name, e.g. `"address"`.
  */
 enum class ParamName(val value: String) {
     ADDRESS("address"),

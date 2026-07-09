@@ -4,6 +4,9 @@ import org.zecdev.zip321.ZIP321Error
 
 /**
  * A payment paired with its ZIP-321 `paramindex` (index `0` denotes the empty paramindex).
+ *
+ * @param index the `paramindex` (`0` denotes the empty paramindex).
+ * @param payment the payment stored at [index].
  */
 data class IndexedPayment(val index: UInt, val payment: Payment)
 
@@ -29,6 +32,7 @@ class PaymentRequest internal constructor(
     val indexedPayments: List<IndexedPayment>
         get() = paymentsByIndex.keys.sorted().map { IndexedPayment(it, paymentsByIndex.getValue(it)) }
 
+    /** Namespace for validated [PaymentRequest] construction and the [MAX_PAYMENT_COUNT] bound. */
     companion object {
         /**
          * The maximum number of payments a single request may contain; ZIP-321 `paramindex` values
@@ -135,13 +139,16 @@ class PaymentRequest internal constructor(
         fun build(): Result<PaymentRequest> = runCatching { fromIndexedPayments(indexed) }
     }
 
+    /** Two [PaymentRequest]s are equal when they hold the same payments at the same indices. */
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is PaymentRequest) return false
         return paymentsByIndex == other.paymentsByIndex
     }
 
+    /** Consistent with [equals]: derived from the index-to-payment mapping. */
     override fun hashCode(): Int = paymentsByIndex.hashCode()
 
+    /** A debug string listing [indexedPayments]. */
     override fun toString(): String = "PaymentRequest(indexedPayments=$indexedPayments)"
 }

@@ -15,6 +15,7 @@ package org.zecdev.zip321.parser
  * `ParamNameCharacterSet.characters` was read.
  */
 object ParamNameCharacterSet {
+    /** Every character a ZIP-321 `paramname` may contain: `ALPHA / DIGIT / "+" / "-"`. */
     val characters: Set<Char> =
         setOf(
             '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
@@ -27,6 +28,7 @@ object ParamNameCharacterSet {
         )
 }
 
+/** Whether this character is an ASCII (`< 128`) letter. */
 @Suppress("MagicNumber")
 fun Char.isAsciiLetter(): Boolean {
     return isLetter() && this.code < 128

@@ -32,6 +32,14 @@ plugins {
     // docs), which conveniently matches this gate's scope: 100% line+branch
     // coverage of commonMain/jvmMain production code as measured by jvmTest.
     id("org.jetbrains.kotlinx.kover") version "0.9.8"
+    // K17: API documentation. 2.2.0 is the latest stable Dokka Gradle Plugin
+    // v2 (the "v2" plugin — a from-scratch rewrite based on Dokkatoo — has
+    // been the default since Dokka 2.1.0; v1's `dokkaHtml` task and the old
+    // `tasks.dokkaHtml { }` DSL are deprecated). It replaces the task name
+    // `dokkaHtml` with the unified `dokkaGenerate` (`dokkaGeneratePublicationHtml`
+    // for HTML-only output) and moves configuration into a top-level `dokka { }`
+    // extension instead of per-task `tasks.withType<DokkaTask>`.
+    id("org.jetbrains.dokka") version "2.2.0"
 
     `maven-publish`
     id("org.jreleaser") version "1.22.0"
@@ -369,6 +377,38 @@ kover {
                     minBound(98, coverageUnits = CoverageUnit.BRANCH)
                 }
             }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// API documentation (K17)
+//
+// Dokka Gradle Plugin v2's unified entry point is `./gradlew :lib:dokkaGenerate`
+// (HTML-only: `dokkaGeneratePublicationHtml`); output lands in
+// `lib/build/dokka/html`. `reportUndocumented` surfaces every undocumented
+// PUBLIC declaration as a warning, and `failOnWarning` turns those (and any
+// unresolved `[Foo]`-style doc link) into a build failure — this is this
+// project's "documented public API" gate, run in CI by the `dokka` job.
+// `Module.md` is the module-level overview page; it LINKS to (rather than
+// duplicates) the four canonical usage scenarios already written as KDoc on
+// the [org.zecdev.zip321.paymentRequest] DSL entry point, keeping a single
+// source of truth.
+// ---------------------------------------------------------------------------
+dokka {
+    moduleName.set("zip321")
+
+    dokkaPublications.configureEach {
+        failOnWarning.set(true)
+    }
+
+    dokkaSourceSets.configureEach {
+        includes.from(rootProject.projectDir.resolve("lib/Module.md"))
+        reportUndocumented.set(true)
+        sourceLink {
+            localDirectory.set(rootProject.projectDir)
+            remoteUrl("https://github.com/zecdev/zcash-kotlin-payment-uri/blob/main")
+            remoteLineSuffix.set("#L")
         }
     }
 }

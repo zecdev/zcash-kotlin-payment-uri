@@ -12,7 +12,9 @@ import org.zecdev.zip321.parser.Base64URL
  * *omitted* memo (`Payment.memo == null`) and an *empty* memo (`memo=` in a URI, 0 bytes).
  */
 class MemoBytes {
+    /** Namespace for [MemoBytes] construction from an encoded string and the memo size bound. */
     companion object {
+        /** The maximum number of bytes a memo may contain (the ZIP-302 consensus zero-padded size). */
         const val maxLength: Int = 512
 
         /**
@@ -30,13 +32,17 @@ class MemoBytes {
         }
     }
 
+    /** The raw memo bytes (0 to [maxLength] bytes). */
     val data: ByteArray
 
+    /** The errors [MemoBytes] construction can raise. */
     sealed class MemoError(message: String) : RuntimeException(message) {
+        /** The provided content exceeds [maxLength] bytes. */
         object MemoTooLong : MemoError("MemoBytes exceeds max length of 512 bytes") {
             private fun readResolve(): Any = MemoTooLong
         }
 
+        /** The string passed to [fromBase64URL] was not a canonical unpadded base64url encoding. */
         object InvalidBase64URL : MemoError("MemoBytes can't be initialized with invalid Base64URL") {
             private fun readResolve(): Any = InvalidBase64URL
         }
@@ -73,6 +79,7 @@ class MemoBytes {
         return Base64URL.encode(data)
     }
 
+    /** Two [MemoBytes] are equal when their raw byte content is identical. */
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || this::class != other::class) return false
@@ -84,6 +91,7 @@ class MemoBytes {
         return true
     }
 
+    /** Consistent with [equals]: derived from [data]'s content. */
     override fun hashCode(): Int {
         return 31 * data.contentHashCode()
     }

@@ -4,6 +4,7 @@ import org.zecdev.zip321.AddressDescriptor
 import org.zecdev.zip321.AddressValidator
 import org.zecdev.zip321.Network
 
+/** A raw `(name, value)` query-parameter pair, as it appears in a ZIP-321 URI's query string. */
 typealias RequestParams = Pair<String, String>
 
 /**

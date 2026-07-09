@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added — API documentation via Dokka (v2/K17)
+
+- Applied the **Dokka Gradle Plugin v2, 2.2.0** (latest stable; v2 has been the default since Dokka
+  2.1.0, superseding the deprecated v1 `dokkaHtml` task/DSL) to `lib/build.gradle.kts`. The unified
+  entry point is `./gradlew :lib:dokkaGenerate` (HTML-only: `dokkaGeneratePublicationHtml`); output
+  lands in `lib/build/dokka/html`.
+- `reportUndocumented` + `failOnWarning` are wired project-wide in the new `dokka { }` block: any
+  undocumented **public** declaration, or any unresolved `[Foo]`-style doc link, fails the build —
+  not just a CI report. Running this surfaced 61 real gaps, all now fixed with real (not
+  boilerplate) KDoc: every `ZIP321Error` case's constructor parameter (`index`/`name`/`count`/
+  `raw`/`reason`), `ParsedRequest`/`ZIP321.ParserResult`'s nested data classes and their properties,
+  `Payment`/`PaymentRequest`/`MemoBytes`/`RecipientAddress`/`NonNegativeAmount`'s `equals`/`hashCode`/
+  `toString`/`compareTo` overrides and `Companion` objects, `OtherParam`'s fields, `MemoBytes.MemoError`
+  and its cases, `RecipientAddress` (the class itself) and its `RecipientAddressError`, `ParserContext`
+  (the class itself, previously entirely undocumented despite its members being documented),
+  `AddressValidator.isValid`, `ParamNameCharacterSet.characters`/`isAsciiLetter`/`isAsciiAlphanumeric`,
+  `qcharEncoded()`, and `ParamName.value`.
+- Added `lib/Module.md`, the module-level Dokka overview page: a "Getting started" section that
+  **links to** (rather than duplicates) the four canonical usage scenarios already written as a
+  KDoc sample on the `paymentRequest` DSL entry point (single source of truth — Dokka has no
+  file-include directive, only symbol links, so the module page references
+  `[org.zecdev.zip321.paymentRequest]` instead of copying its sample text), plus a security section
+  covering AND-composed address validation, the no-data-leakage `ZIP321Error` policy, and the
+  bounded `maxInputBytes` input cap.
+- `dokka.dokkaSourceSets.configureEach { sourceLink { ... } }` points generated symbol pages at
+  `https://github.com/zecdev/zcash-kotlin-payment-uri/blob/main`.
+
 ### Added — CI workflows (v2/K17)
 
 - Replaced the stale `.github/workflows/basic-test.yml` (a single `ubuntu-latest` job running
