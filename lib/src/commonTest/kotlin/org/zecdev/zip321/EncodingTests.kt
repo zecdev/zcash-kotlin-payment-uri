@@ -1,19 +1,20 @@
 package org.zecdev.zip321
 
-import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.should
-import io.kotest.matchers.shouldBe
 import org.zecdev.zip321.extensions.qcharDecode
 import org.zecdev.zip321.extensions.qcharEncoded
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
-class EncodingTests : FunSpec({
-
-    test("qcharEncoded string contains allowed characters only") {
+class EncodingTests {
+    @Test
+    fun `qcharEncoded string contains allowed characters only`() {
         val message = "sk8:forever@!"
-        message.qcharEncoded() shouldBe message
+        assertEquals(message, message.qcharEncoded())
     }
 
-    test("qcharEncoded string has percent-encoded disallowed characters") {
+    @Test
+    fun `qcharEncoded string has percent-encoded disallowed characters`() {
         mapOf(
             "Thank you for your purchase" to "Thank%20you%20for%20your%20purchase",
             "Use Coupon [ZEC4LIFE] to get a 20% discount on your next purchase!!" to
@@ -39,33 +40,32 @@ class EncodingTests : FunSpec({
             "`" to "%60",
             "{" to "%7B",
             "|" to "%7C",
-            "}" to "%7D"
+            "}" to "%7D",
         ).forEach { (input, expected) ->
-            input.qcharEncoded() shouldBe expected
+            assertEquals(expected, input.qcharEncoded())
         }
     }
 
-    test("unallowed characters are escaped") {
-        val unallowedCharacters = listOf(
-            " ", "\"", "#", "%", "&", "/", "<", "=", ">", "?", "[", "\\", "]", "^", "`", "{", "|", "}"
-        )
+    @Test
+    fun `unallowed characters are escaped`() {
+        val unallowedCharacters =
+            listOf(
+                " ", "\"", "#", "%", "&", "/", "<", "=", ">", "?", "[", "\\", "]", "^", "`", "{", "|", "}",
+            )
 
         unallowedCharacters.forEach { unallowed ->
             val qcharEncoded = unallowed.qcharEncoded()
-            qcharEncoded should {
-                it.contains("%")
-            }
+            assertTrue(qcharEncoded.contains("%"))
         }
 
         (0x00..0x1F).map { it.toChar().toString() }.forEach { controlChar ->
             val qcharEncoded = controlChar.qcharEncoded()
-            qcharEncoded should {
-               it.contains("%")
-            }
+            assertTrue(qcharEncoded.contains("%"))
         }
     }
 
-    test("qcharEncodedText decodes properly") {
+    @Test
+    fun `qcharEncodedText decodes properly`() {
         mapOf(
             "Thank%20you%20for%20your%20purchase" to "Thank you for your purchase",
             "Use%20Coupon%20%5BZEC4LIFE%5D%20to%20get%20a%2020%25%20discount%20on%20your%20next%20purchase!!" to
@@ -91,9 +91,9 @@ class EncodingTests : FunSpec({
             "%60" to "`",
             "%7B" to "{",
             "%7C" to "|",
-            "%7D" to "}"
+            "%7D" to "}",
         ).forEach { (input, expected) ->
-            input.qcharDecode() shouldBe expected
+            assertEquals(expected, input.qcharDecode())
         }
     }
-})
+}
