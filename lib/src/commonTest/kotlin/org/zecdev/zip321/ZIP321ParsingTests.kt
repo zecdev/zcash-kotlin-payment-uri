@@ -463,4 +463,31 @@ class ZIP321ParsingTests {
             ReferenceAddressValidator.MAINNET,
         ).getOrThrow()
     }
+
+    // NOTE (K13): regression test for the removed v1 `maxPaymentsAllowed = 2109` remnant, which
+    // wrongly rejected any paramindex in [2108, 9999]. The only bounds are the `paramindex`
+    // grammar (`NONZERO 0*3DIGIT`, i.e. <= 9999) and `PaymentRequest.MAX_PAYMENT_COUNT`.
+    @Test
+    fun `parse accepts a paramindex anywhere in the 4-digit grammar range`() {
+        val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
+        val url = "zcash:?address.2500=$address&amount.2500=1"
+
+        val parsed = ZIP321.parse(url, Network.TESTNET, ReferenceAddressValidator.TESTNET).getOrThrow()
+
+        val indexed = parsed.indexedPayments
+        assertEquals(1, indexed.size)
+        assertEquals(2500u, indexed[0].index)
+        assertEquals(address, indexed[0].payment.recipientAddress.value)
+
+        // The upper grammar bound still applies.
+        assertEquals(
+            9999u,
+            ZIP321.parse("zcash:?address.9999=$address", Network.TESTNET, ReferenceAddressValidator.TESTNET)
+                .getOrThrow().indexedPayments[0].index,
+        )
+        assertTrue(
+            ZIP321.parse("zcash:?address.10000=$address", Network.TESTNET, ReferenceAddressValidator.TESTNET)
+                .exceptionOrNull() is ZIP321Error.InvalidParamIndex,
+        )
+    }
 }

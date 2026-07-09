@@ -4,7 +4,6 @@ import org.zecdev.zip321.AddressValidator
 import org.zecdev.zip321.Network
 import org.zecdev.zip321.ParamName
 import org.zecdev.zip321.ZIP321
-import org.zecdev.zip321.ZIP321.Errors.TooManyPayments
 import org.zecdev.zip321.encodings.QCharCodec
 import org.zecdev.zip321.extensions.qcharDecode
 import org.zecdev.zip321.extensions.qcharEncoded
@@ -27,9 +26,11 @@ internal sealed class Param {
                 throw ZIP321.Errors.InvalidParamName("paramName cannot be empty")
             }
 
-            if ((index + 1u) >= ZIP321.maxPaymentsAllowed) {
-                throw TooManyPayments(index + 1u)
-            }
+            // NOTE: no payment-count/index cap is enforced here. The `paramindex` grammar
+            // (`NONZERO 0*3DIGIT`, at most 4 digits) already bounds every index to 9999, and
+            // `PaymentRequest`'s MAX_PAYMENT_COUNT cap covers programmatic construction. The v1
+            // `maxPaymentsAllowed = 2109` remnant that rejected indices in [2108, 9999] was
+            // removed (K13).
             return when (queryKey) {
                 ParamName.ADDRESS.value -> {
                     // ADDRESS param can't have no value

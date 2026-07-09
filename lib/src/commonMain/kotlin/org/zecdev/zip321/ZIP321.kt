@@ -13,11 +13,6 @@ import org.zecdev.zip321.parser.Parser
  */
 object ZIP321 {
     /**
-     * ZIP-321 allows a maximum of 2109 payments in a single URI string
-     */
-    val maxPaymentsAllowed = 2109u
-
-    /**
      * The default maximum accepted input size for [parse].
      */
     const val DEFAULT_MAX_INPUT_BYTES: Int = 8 * 1024
@@ -120,36 +115,47 @@ object ZIP321 {
     }
 
     /**
-     * Enumerates formatting options for URI strings.
+     * Selects the rendered form of a [PaymentRequest], reconciled with v2's paramindex
+     * preservation.
+     *
+     * - [UseEmptyParamIndex] renders each payment at its ACTUAL stored `paramindex` (the empty
+     *   paramindex — stored index `0` — renders with no `.n` suffix; index `5` renders
+     *   `address.5=…`). When `omitAddressLabel` is `true` and the request holds exactly one
+     *   payment at index `0`, the canonical single-payment leading-address form is emitted
+     *   (`zcash:<addr>?amount=…`); otherwise the general `zcash:?address[.n]=…&…` form is used.
+     *   This is the canonical reference form and the default for [uriString].
+     * - [EnumerateAllPayments] is a NORMALIZATION mode: it discards the stored paramindices and
+     *   re-numbers payments SEQUENTIALLY from `1` (`address.1=…&address.2=…`), always with
+     *   explicit address labels under `zcash:?`. Use it to canonicalize a request onto a
+     *   contiguous `1…n` index space.
+     *
+     * The empty request renders as the bare `zcash:` scheme in either mode.
      */
     sealed class FormattingOptions {
-        /** Enumerates all payments. */
+        /** Normalization mode: re-numbers all payments sequentially from `1`. */
         object EnumerateAllPayments : FormattingOptions()
 
-        /** Uses an empty parameter index. */
+        /** Canonical mode: preserves each payment's stored `paramindex` (index `0` is empty). */
         data class UseEmptyParamIndex(val omitAddressLabel: Boolean) : FormattingOptions()
     }
 
     /**
      * Transforms a [PaymentRequest] into a ZIP-321 payment request [String].
      *
+     * The default [formattingOptions] is the canonical reference form
+     * ([FormattingOptions.UseEmptyParamIndex] with `omitAddressLabel = true`): a single payment at
+     * the empty paramindex renders as `zcash:<addr>?amount=…`, and the round-trip law
+     * `parse(uriString(from = r)) == success(r)` holds for every request `r`.
+     *
      * @param from The payment request.
-     * @param formattingOptions The formatting options.
+     * @param formattingOptions the rendered form; defaults to the canonical reference form.
      * @return The ZIP-321 payment request [String].
      */
     fun uriString(
         from: PaymentRequest,
-        formattingOptions: FormattingOptions = FormattingOptions.EnumerateAllPayments,
+        formattingOptions: FormattingOptions = FormattingOptions.UseEmptyParamIndex(omitAddressLabel = true),
     ): String {
-        return when (formattingOptions) {
-            is FormattingOptions.EnumerateAllPayments -> Render.request(from, 1u, false)
-            is FormattingOptions.UseEmptyParamIndex ->
-                Render.request(
-                    from,
-                    startIndex = null,
-                    omittingFirstAddressLabel = formattingOptions.omitAddressLabel,
-                )
-        }
+        return Render.request(from, formattingOptions)
     }
 
     /**
@@ -157,7 +163,10 @@ object ZIP321 {
      *
      * @param recipient A recipient address.
      * @param formattingOptions The formatting options.
-     * @return The ZIP-321 payment URI [String].
+     * @return a URI of the form `zcash:<recipient>` under the default (label-omitting) options,
+     * `zcash:?address=<recipient>` under [FormattingOptions.UseEmptyParamIndex] without label
+     * omission, or `zcash:?address.1=<recipient>` under
+     * [FormattingOptions.EnumerateAllPayments].
      */
     fun request(
         recipient: RecipientAddress,
@@ -185,15 +194,16 @@ object ZIP321 {
     }
 
     /**
-     * Generates a ZIP-321 payment request [String] from a [Payment].
+     * Renders a single-payment ZIP-321 request to a URI [String]. Defaults to the canonical
+     * leading-address form (`zcash:<addr>?amount=…`).
      *
      * @param payment The payment.
-     * @param formattingOptions The formatting options.
+     * @param formattingOptions the rendered form; defaults to the canonical reference form.
      * @return The ZIP-321 payment request [String].
      */
     fun request(
         payment: Payment,
-        formattingOptions: FormattingOptions = FormattingOptions.EnumerateAllPayments,
+        formattingOptions: FormattingOptions = FormattingOptions.UseEmptyParamIndex(omitAddressLabel = true),
     ): String {
         return uriString(PaymentRequest(payments = listOf(payment)), formattingOptions = formattingOptions)
     }
