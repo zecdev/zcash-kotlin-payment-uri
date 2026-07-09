@@ -6,6 +6,52 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Changed (BREAKING — Kotlin Multiplatform conversion, v2/K0)
+- The library is now **Kotlin Multiplatform** (`kotlin("multiplatform")`,
+  Kotlin 2.0.20) instead of a JVM-only `java-library`. Targets: `jvm()`,
+  `iosArm64()`, `iosSimulatorArm64()`. No `androidTarget()` yet — Android
+  consumers use the JVM variant (`org.zecdev:zip321-jvm`) meanwhile; a dedicated
+  Android target is a follow-up.
+- **Publication / artifact layout changed (breaking for build files).** The KMP
+  plugin publishes a root Gradle-module publication plus one per target instead
+  of a single JVM jar. Coordinates:
+  - `org.zecdev:zip321` — root module (Gradle-metadata aware consumers)
+  - `org.zecdev:zip321-jvm` — JVM artifact (what plain-Maven / Android consumers
+    should depend on)
+  - `org.zecdev:zip321-iosarm64`, `org.zecdev:zip321-iossimulatorarm64`
+  Gradle consumers that depend on `org.zecdev:zip321` keep working; consumers
+  that resolved the raw JVM jar must switch to `org.zecdev:zip321-jvm`.
+- Production sources moved to `commonMain` and now compile for all targets with
+  **zero runtime dependencies**.
+
+### Removed
+- `io.github.copper-leaf:kudzu-core` (parser combinators) — the ZIP-321 parser
+  is now a hand-rolled, dependency-free state machine in `commonMain` that
+  preserves v1 accept/reject behavior and error types exactly (verified against
+  the conformance corpus and the full test suite).
+- `com.google.guava:guava` and `org.apache.commons:commons-math3` — both were
+  verified unused in production and tests and dropped. NOTE: `commons-math3` was
+  previously exported via `api(...)`, so this removes it from consumers'
+  compile classpath (breaking only for consumers that were relying on the
+  transitive export, which the library itself never used).
+
+### Changed — `NonNegativeAmount`
+- Internally reimplemented as checked `Long` zatoshi fixed-point (no
+  `java.math.BigDecimal` in the shared code). The `Long` and `String`
+  constructors and the public API are unchanged and behavior is preserved,
+  including v1 leniency (`"123."` and `".5"` still accepted) and the known
+  8-significant-digit rounding bug in the render path (large amounts such as
+  `20999999.99999999` still render as `21000000`; fixed in a later PR).
+- The `BigDecimal` constructor and the `zecToZatoshi` / `zatoshiToZEC` /
+  `BigDecimal.roundZec` helpers remain available to **JVM** consumers as
+  `jvmMain` extensions (source-compatible: `NonNegativeAmount(BigDecimal(...))`
+  still compiles on the JVM), but are not available on iOS/common.
+- Minor: the `commonMain` decimal-string parser accepts only plain decimal
+  notation. Scientific/exponent amount strings (e.g. `"1e2"`), which the old
+  `BigDecimal(String)` path would have accepted but which are unreachable from
+  the ZIP-321 amount grammar and untested, now throw. `BigDecimal`-typed inputs
+  on the JVM (including exponents) are unaffected.
+
 ### Added
 - `test-vectors` git submodule pointing at the shared ZIP-321 conformance
   vector corpus (`zcash-zip321-test-vectors`): 22 valid and 28 invalid

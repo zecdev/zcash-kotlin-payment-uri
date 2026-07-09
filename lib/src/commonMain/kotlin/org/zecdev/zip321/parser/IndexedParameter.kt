@@ -1,0 +1,24 @@
+package org.zecdev.zip321.parser
+
+data class IndexedParameter(
+    val index: UInt,
+    val param: Param
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as IndexedParameter
+
+        if (index != other.index) return false
+        if (param != other.param) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = index.hashCode()
+        result = 31 * result + param.hashCode()
+        return result
+    }
+}

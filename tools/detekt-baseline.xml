@@ -1,0 +1,89 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:Parser.kt$Parser$p &lt; input.length &amp;&amp; input[p] != '&amp;' &amp;&amp; input[p] != '.' &amp;&amp; input[p] != '='</ID>
+    <ID>CyclomaticComplexMethod:MemoBytes.kt$fun String.decodeBase64URL(): ByteArray?</ID>
+    <ID>CyclomaticComplexMethod:Param.kt$Param.Companion$@Throws(ZIP321.Errors::class) fun from( queryKey: String, value: String?, index: UInt, context: ParserContext, validatingAddress: ((String) -> Boolean)? = null ): Param</ID>
+    <ID>Filename:QcharCodec.kt$org.zecdev.zip321.encodings.QcharCodec.kt</ID>
+    <ID>ForbiddenComment:ParserContext.kt$ParserContext$// TODO: verify actual prefixes</ID>
+    <ID>ForbiddenComment:ParserContext.kt$ParserContext$// TODO: verify actual regtest prefix</ID>
+    <ID>ForbiddenComment:ParserContext.kt$ParserContext$// TODO: verify actual testnet prefix</ID>
+    <ID>Indentation:Parser.kt$Parser$ </ID>
+    <ID>LongMethod:Param.kt$Param.Companion$@Throws(ZIP321.Errors::class) fun from( queryKey: String, value: String?, index: UInt, context: ParserContext, validatingAddress: ((String) -> Boolean)? = null ): Param</ID>
+    <ID>MagicNumber:CharsetValidations.kt$128</ID>
+    <ID>MagicNumber:MemoBytes.kt$0x3F</ID>
+    <ID>MagicNumber:MemoBytes.kt$0xFF</ID>
+    <ID>MagicNumber:MemoBytes.kt$10</ID>
+    <ID>MagicNumber:MemoBytes.kt$12</ID>
+    <ID>MagicNumber:MemoBytes.kt$16</ID>
+    <ID>MagicNumber:MemoBytes.kt$18</ID>
+    <ID>MagicNumber:MemoBytes.kt$26</ID>
+    <ID>MagicNumber:MemoBytes.kt$3</ID>
+    <ID>MagicNumber:MemoBytes.kt$4</ID>
+    <ID>MagicNumber:MemoBytes.kt$52</ID>
+    <ID>MagicNumber:MemoBytes.kt$6</ID>
+    <ID>MagicNumber:MemoBytes.kt$62</ID>
+    <ID>MagicNumber:MemoBytes.kt$63</ID>
+    <ID>MagicNumber:MemoBytes.kt$8</ID>
+    <ID>MagicNumber:NonNegativeAmount.kt$NonNegativeAmount.Companion$10</ID>
+    <ID>MagicNumber:ParserContext.kt$127</ID>
+    <ID>MagicNumber:ParserContext.kt$ParserContext$106</ID>
+    <ID>MagicNumber:ParserContext.kt$ParserContext$154</ID>
+    <ID>MagicNumber:ParserContext.kt$ParserContext$35</ID>
+    <ID>MagicNumber:ParserContext.kt$ParserContext$42</ID>
+    <ID>MagicNumber:ParserContext.kt$ParserContext$46</ID>
+    <ID>MagicNumber:ParserContext.kt$ParserContext$49</ID>
+    <ID>MagicNumber:ParserContext.kt$ParserContext$78</ID>
+    <ID>MagicNumber:ParserContext.kt$ParserContext$88</ID>
+    <ID>MagicNumber:ParserContext.kt$ParserContext$91</ID>
+    <ID>MagicNumber:QcharCodec.kt$QCharCodec$0xFF</ID>
+    <ID>MagicNumber:QcharCodec.kt$QCharCodec$16</ID>
+    <ID>MagicNumber:QcharCodec.kt$QCharCodec$3</ID>
+    <ID>MagicNumber:QcharCodec.kt$QCharCodec$4</ID>
+    <ID>MagicNumber:QcharCodec.kt$QCharCodec$500</ID>
+    <ID>MaxLineLength:QcharCodec.kt$QCharCodec$ states that</ID>
+    <ID>MaxLineLength:ZIP321.kt$ZIP321.Errors.DuplicateParameter$* Parsing encountered a duplicate [ZIP-321](https://zips.z.cash/zip-0321) URI parameter for the returned payment index.</ID>
+    <ID>MaxLineLength:ZIP321.kt$ZIP321.Errors.InvalidParamIndex$* The payment request includes a `paramIndex` that is invalid according to [ZIP-321](https://zips.z.cash/zip-0321) specs</ID>
+    <ID>MaxLineLength:ZIP321.kt$ZIP321.Errors.TooManyPayments$*</ID>
+    <ID>MaxLineLength:ZIP321.kt$ZIP321.Errors.TransparentMemoNotAllowed$*</ID>
+    <ID>MayBeConst:ZIP321.kt$ZIP321$/** * ZIP-321 allows a maximum of 2109 payments in a single URI string */ val maxPaymentsAllowed = 2109u</ID>
+    <ID>NestedBlockDepth:MemoBytes.kt$fun String.decodeBase64URL(): ByteArray?</ID>
+    <ID>NestedBlockDepth:QcharCodec.kt$QCharCodec$private fun decodePercentEncoded(s: String): String</ID>
+    <ID>ReturnCount:MemoBytes.kt$fun String.decodeBase64URL(): ByteArray?</ID>
+    <ID>ReturnCount:NonNegativeAmount.kt$NonNegativeAmount.Companion$private fun exceedsMaxSupply(wholePart: String, fracPart: String): Boolean</ID>
+    <ID>ReturnCount:NonNegativeAmount.kt$NonNegativeAmount.Companion$private fun roundToSignificantDigits(v: Long): Long</ID>
+    <ID>ReturnCount:Param.kt$Param$fun partiallyEqual(other: Param): Boolean</ID>
+    <ID>ReturnCount:Param.kt$QcharString.Companion$fun from(value: String, strict: Boolean = false): QcharString?</ID>
+    <ID>ReturnCount:ParserContext.kt$ParserContext$fun isValid(address: String): Boolean</ID>
+    <ID>SwallowedException:NonNegativeAmountBigDecimal.kt$e: ArithmeticException</ID>
+    <ID>SwallowedException:Param.kt$Param.Companion$error: NonNegativeAmount.AmountError.GreaterThanSupply</ID>
+    <ID>SwallowedException:Param.kt$Param.Companion$error: NonNegativeAmount.AmountError.InvalidTextInput</ID>
+    <ID>SwallowedException:Param.kt$Param.Companion$error: NonNegativeAmount.AmountError.NegativeAmount</ID>
+    <ID>SwallowedException:Param.kt$Param.Companion$error: NonNegativeAmount.AmountError.TooManyFractionalDigits</ID>
+    <ID>SwallowedException:Param.kt$Param.Companion$error: RecipientAddress.RecipientAddressError.InvalidRecipient</ID>
+    <ID>ThrowsCount:NonNegativeAmount.kt$NonNegativeAmount.Companion$@Throws(AmountError::class) internal fun parseDecimalStringToZatoshi(decimalString: String): Long</ID>
+    <ID>ThrowsCount:NonNegativeAmount.kt$NonNegativeAmount.Companion$private fun lexDecimal(s: String): Triple&lt;Boolean, String, String></ID>
+    <ID>ThrowsCount:NonNegativeAmountBigDecimal.kt$@Throws(NonNegativeAmount.AmountError::class) private fun NonNegativeAmount.Companion.validateDecimal(value: BigDecimal)</ID>
+    <ID>ThrowsCount:Param.kt$Param.Companion$@Throws(ZIP321.Errors::class) fun from( queryKey: String, value: String?, index: UInt, context: ParserContext, validatingAddress: ((String) -> Boolean)? = null ): Param</ID>
+    <ID>ThrowsCount:Parser.kt$Parser$@Throws(ZIP321.Errors::class) fun parse(uriString: String): ParserResult</ID>
+    <ID>ThrowsCount:QcharCodec.kt$QCharCodec$private fun decodePercentEncoded(s: String): String</ID>
+    <ID>TooManyFunctions:Parser.kt$Parser</ID>
+    <ID>UnusedPrivateMember:MemoBytes.kt$MemoBytes.MemoError.InvalidBase64URL$private fun readResolve(): Any</ID>
+    <ID>UnusedPrivateMember:MemoBytes.kt$MemoBytes.MemoError.MemoEmpty$private fun readResolve(): Any</ID>
+    <ID>UnusedPrivateMember:MemoBytes.kt$MemoBytes.MemoError.MemoTooLong$private fun readResolve(): Any</ID>
+    <ID>UnusedPrivateMember:NonNegativeAmount.kt$NonNegativeAmount.AmountError.GreaterThanSupply$private fun readResolve(): Any</ID>
+    <ID>UnusedPrivateMember:NonNegativeAmount.kt$NonNegativeAmount.AmountError.InvalidTextInput$private fun readResolve(): Any</ID>
+    <ID>UnusedPrivateMember:NonNegativeAmount.kt$NonNegativeAmount.AmountError.NegativeAmount$private fun readResolve(): Any</ID>
+    <ID>UnusedPrivateMember:NonNegativeAmount.kt$NonNegativeAmount.AmountError.TooManyFractionalDigits$private fun readResolve(): Any</ID>
+    <ID>UnusedPrivateMember:RecipientAddress.kt$RecipientAddress.RecipientAddressError.InvalidRecipient$private fun readResolve(): Any</ID>
+    <ID>UnusedPrivateMember:ZIP321.kt$ZIP321.Errors.InvalidBase64$private fun readResolve(): Any</ID>
+    <ID>UnusedPrivateMember:ZIP321.kt$ZIP321.Errors.InvalidURI$private fun readResolve(): Any</ID>
+    <ID>UnusedPrivateProperty:NonNegativeAmountBigDecimal.kt$private const val ZATOSHI_PER_ZEC: Long = 100_000_000</ID>
+    <ID>UseRequire:QcharCodec.kt$QCharCodec$throw IllegalArgumentException( "URLDecoder: Illegal hex characters in escape (%) pattern - negative value" )</ID>
+    <ID>UseRequire:QcharCodec.kt$QCharCodec$throw IllegalArgumentException("URLDecoder: Incomplete trailing escape (%) pattern")</ID>
+    <ID>UtilityClassWithPublicConstructor:CharsetValidations.kt$CharsetValidations</ID>
+    <ID>Wrapping:Parser.kt$Parser$-></ID>
+    <ID>Wrapping:Parser.kt$Parser${ address: String -> context.isValid(address) &amp;&amp; customValidation(address) }</ID>
+  </CurrentIssues>
+</SmellBaseline>
