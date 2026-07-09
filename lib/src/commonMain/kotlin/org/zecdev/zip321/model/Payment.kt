@@ -1,6 +1,9 @@
 package org.zecdev.zip321.model
 
+import org.zecdev.zip321.ParamName
 import org.zecdev.zip321.ZIP321Error
+import org.zecdev.zip321.parser.CharsetValidations
+import org.zecdev.zip321.parser.isAsciiLetter
 
 /**
  * A single payment that will be requested.
@@ -118,6 +121,138 @@ class Payment internal constructor(
         ): Payment = create(recipientAddress, amount, memo, label, message, otherParams).getOrThrow()
     }
 
+    /**
+     * A fluent builder for a single [Payment].
+     *
+     * Mirrors the cross-language v2 construction contract shared with the Swift library
+     * (`Payment.Builder` there as well). The recipient is required up front; every other field is
+     * optional and chainable. Inputs that can fail to convert ([amount] from a ZEC string, [memo]
+     * from a UTF-8 string, [otherParam]) are validated LAZILY: the builder stores the conversion
+     * outcome and the first failure surfaces at [build]. When several fields are invalid, the
+     * first error wins in a FIXED field order (amount, then memo, then other params, then the
+     * [Payment.create] structural rules — e.g. a memo on a transparent recipient surfaces as
+     * [ZIP321Error.TransparentMemo]).
+     *
+     * ```kotlin
+     * // (b) an amount + memo payment
+     * val payment = Payment.Builder(recipient = sapling)
+     *     .amount(zec = "1.2345")
+     *     .memo(utf8 = "Thanks!")
+     *     .message("Invoice #42")
+     *     .build()
+     *     .getOrThrow()
+     * ```
+     *
+     * @param recipient the (already validated) recipient address of the payment being built.
+     */
+    class Builder(private val recipient: RecipientAddress) {
+        private var deferredAmount: Result<NonNegativeAmount?> = Result.success(null)
+        private var deferredMemo: Result<MemoBytes?> = Result.success(null)
+        private var storedLabel: String? = null
+        private var storedMessage: String? = null
+        private var deferredOtherParams: Result<List<OtherParam>> = Result.success(emptyList())
+
+        /** Sets the payment amount from a [NonNegativeAmount] count. */
+        fun amount(amount: NonNegativeAmount): Builder {
+            deferredAmount = Result.success(amount)
+            return this
+        }
+
+        /**
+         * Sets the payment amount from a decimal ZEC string (strict ZIP-321 `amountparam`
+         * grammar). Invalid strings surface at [build] as [ZIP321Error.AmountInvalid] (or
+         * [ZIP321Error.AmountExceededSupply] when the value is above `MAX_MONEY`).
+         */
+        fun amount(zec: String): Builder {
+            deferredAmount =
+                NonNegativeAmount.zec(zec).fold(
+                    onSuccess = { Result.success(it) },
+                    onFailure = { error ->
+                        Result.failure(
+                            when (error) {
+                                is NonNegativeAmount.AmountException.ExceededSupply ->
+                                    ZIP321Error.AmountExceededSupply(null)
+                                else -> ZIP321Error.AmountInvalid(null)
+                            },
+                        )
+                    },
+                )
+            return this
+        }
+
+        /** Attaches a [MemoBytes] memo. */
+        fun memo(memo: MemoBytes): Builder {
+            deferredMemo = Result.success(memo)
+            return this
+        }
+
+        /**
+         * Attaches a memo from a UTF-8 string. A string that encodes to more than 512 bytes
+         * surfaces at [build] as [ZIP321Error.MemoBytesError].
+         */
+        fun memo(utf8: String): Builder {
+            deferredMemo =
+                runCatching { MemoBytes(utf8) }.fold(
+                    onSuccess = { Result.success(it) },
+                    onFailure = { Result.failure(ZIP321Error.MemoBytesError(null)) },
+                )
+            return this
+        }
+
+        /** Sets the (plain, decoded) label. It is qchar-encoded at render time. */
+        fun label(label: String): Builder {
+            storedLabel = label
+            return this
+        }
+
+        /** Sets the (plain, decoded) message. It is qchar-encoded at render time. */
+        fun message(message: String): Builder {
+            storedMessage = message
+            return this
+        }
+
+        /**
+         * Appends an arbitrary (non-reserved) `otherparam` via [OtherParam.create]. An empty
+         * name, a reserved key (including any `req-`-prefixed name), or a name that is not a
+         * valid `paramname` surfaces at [build] as
+         * [ZIP321Error.ParseError] ([ZIP321Error.StaticReason.INVALID_PARAMETER]).
+         *
+         * @param name the (plain) parameter name.
+         * @param value the (plain, decoded) value, or `null` for a value-less parameter.
+         */
+        fun otherParam(
+            name: String,
+            value: String?,
+        ): Builder {
+            deferredOtherParams =
+                deferredOtherParams.mapCatching { existing ->
+                    existing + OtherParam.create(name, value).getOrThrow()
+                }
+            return this
+        }
+
+        /**
+         * Builds the [Payment], surfacing the first deferred conversion error (amount → memo →
+         * other params) and then the structural rules enforced by [Payment.create].
+         */
+        fun build(): Result<Payment> =
+            runCatching {
+                // Deferred errors surface here in FIXED field order.
+                val amount = deferredAmount.getOrThrow()
+                val memo = deferredMemo.getOrThrow()
+                val otherParams = deferredOtherParams.getOrThrow()
+
+                create(
+                    recipientAddress = recipient,
+                    amount = amount,
+                    memo = memo,
+                    label = storedLabel,
+                    message = storedMessage,
+                    otherParams = otherParams,
+                ).getOrThrow()
+            }
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is Payment) return false
@@ -154,5 +289,52 @@ class Payment internal constructor(
  * ```
  * Both fields carry plain, already-decoded values: [name] is the `paramname`, and [value] is the
  * percent-decoded `*qchar` value (or `null` when the parameter had no `= value`).
+ *
+ * Construct instances via [create], which validates [name] against the ZIP-321 grammar and the
+ * reserved-name rules; the bare constructor is internal (the parse path constructs instances from
+ * already-validated grammar tokens).
  */
-data class OtherParam(val name: String, val value: String?)
+@ConsistentCopyVisibility
+data class OtherParam internal constructor(val name: String, val value: String?) {
+    companion object {
+        /**
+         * Creates a validated [OtherParam] from a plain (decoded) name and optional (decoded)
+         * value.
+         *
+         * The name is rejected with [ZIP321Error.ParseError]
+         * ([ZIP321Error.StaticReason.INVALID_PARAMETER]) when it:
+         * - is empty;
+         * - collides with a reserved query key (`address`, `amount`, `label`, `memo`, `message`)
+         *   or carries the `req-` required-parameter prefix (a library cannot mint required
+         *   parameters it does not understand — see ZIP-321 "Forward compatibility");
+         * - is not a valid `paramname` (`ALPHA *( ALPHA / DIGIT / "+" / "-" )`).
+         *
+         * @param name the (plain) parameter name.
+         * @param value the (plain, decoded) value, or `null` for a value-less parameter.
+         * @return [Result.success] with the [OtherParam], or [Result.failure] with the
+         * [ZIP321Error].
+         */
+        fun create(
+            name: String,
+            value: String?,
+        ): Result<OtherParam> =
+            if (name.isEmpty() || isReservedName(name) || !isValidParamName(name)) {
+                Result.failure(ZIP321Error.ParseError(ZIP321Error.StaticReason.INVALID_PARAMETER))
+            } else {
+                Result.success(OtherParam(name, value))
+            }
+
+        /**
+         * Whether [name] is reserved: one of the five ZIP-321 parameter names, or any
+         * `req-`-prefixed name.
+         */
+        private fun isReservedName(name: String): Boolean {
+            return ParamName.entries.any { it.value == name } || name.startsWith("req-")
+        }
+
+        /** Whether [name] is a valid `paramname`: `ALPHA *( ALPHA / DIGIT / "+" / "-" )`. */
+        private fun isValidParamName(name: String): Boolean =
+            name.first().isAsciiLetter() &&
+                name.all { CharsetValidations.Companion.ParamNameCharacterSet.characters.contains(it) }
+    }
+}

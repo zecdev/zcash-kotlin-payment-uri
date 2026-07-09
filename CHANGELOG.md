@@ -6,6 +6,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added — fluent builders and DSL (v2/K14)
+
+- **`Payment.Builder`** (`Builder(recipient)` + chainable `amount(NonNegativeAmount)`, `amount(zec: String)`,
+  `memo(MemoBytes)`, `memo(utf8: String)`, `label(...)`, `message(...)`,
+  `otherParam(name, value)`, terminal `build(): Result<Payment>`). Fallible inputs are validated
+  LAZILY at `build()`: a bad `amount(zec = ...)` surfaces as `AmountInvalid` (or
+  `AmountExceededSupply`), an oversized `memo(utf8 = ...)` as `MemoBytesError`, an invalid
+  `otherParam` name as `ParseError(INVALID_PARAMETER)`; a memo to a transparent recipient surfaces
+  as `TransparentMemo` via `Payment.create`. When several fields are invalid, the first error wins
+  in FIXED field order (amount → memo → other params → structural rules), matching the Swift
+  library byte-for-byte.
+  `Payment.Builder` accumulates `otherParam(...)` calls into the payment's always-present
+  `otherParams` list; a repeated name surfaces at `build()` as `DuplicateParameter` through
+  `Payment.create`.
+- **`PaymentRequest.Builder`** (`add(payment)` auto-indexing sequentially from `0`,
+  `add(payment, at = n)` for an explicit paramindex, `Builder(payments)` seeding, terminal
+  `build(): Result<PaymentRequest>`). Deferred validation: a repeated index fails with
+  `DuplicateParameter("address", index)` and an index above `9999` fails with `TooManyPayments`.
+- **`paymentRequest { }` DSL** — the idiomatic Kotlin equivalent of the Swift library's
+  `@resultBuilder` entry point `PaymentRequest.build { }`:
+  `paymentRequest { payment(recipient) { amount(zec = "1.00"); memo(utf8 = "Thanks") } }` returns
+  `Result<PaymentRequest>`. `payment(prebuilt)` / `payments(list)` mirror the Swift
+  result-builder's `Payment` / `[Payment]` expression statements. The DSL is a thin layer over the
+  builders: its output is `assertEquals`-identical to the explicit `Builder` chains and it shares
+  their first-error-wins deferred-error semantics.
+
+### Breaking changes (v2/K14)
+
+- **`OtherParam`'s constructor is now internal; construct via
+  `OtherParam.create(name, value): Result<OtherParam>`**, which validates the name against the
+  ZIP-321 grammar and reserved-name rules: an empty name, a reserved query key (`address`,
+  `amount`, `label`, `memo`, `message`), any `req-`-prefixed name, or a name that is not a valid
+  `paramname` (`ALPHA *( ALPHA / DIGIT / "+" / "-" )`) fails with
+  `ParseError(INVALID_PARAMETER)`. The parse path constructs instances internally from
+  already-validated grammar tokens. (`copy()` follows the constructor's visibility via
+  `@ConsistentCopyVisibility`.)
+
 ### Breaking changes — v2.0.0 canonical renderer (v2/K13)
 
 - **The renderer now renders from `PaymentRequest.indexedPayments`, preserving each payment's

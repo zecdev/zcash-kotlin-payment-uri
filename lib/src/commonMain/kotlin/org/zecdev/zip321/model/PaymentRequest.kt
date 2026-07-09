@@ -82,6 +82,59 @@ class PaymentRequest internal constructor(
         }
     }
 
+    /**
+     * A fluent builder for a [PaymentRequest].
+     *
+     * Mirrors the cross-language v2 construction contract shared with the Swift library
+     * (`PaymentRequest.Builder` there as well). [add] assigns sequential paramindices `0, 1, 2,
+     * …` in call order; the `add(payment, at)` overload pins a payment to an explicit
+     * `paramindex`. Validation is deferred to [build]: a repeated index fails with
+     * [ZIP321Error.DuplicateParameter] and an index above [MAX_PAYMENT_COUNT] fails with
+     * [ZIP321Error.TooManyPayments].
+     *
+     * ```kotlin
+     * // (c) a multi-payment request
+     * val request = PaymentRequest.Builder()
+     *     .add(alicePayment)          // paramindex 0
+     *     .add(bobPayment)            // paramindex 1
+     *     .add(carolPayment, at = 7u) // paramindex 7
+     *     .build()
+     *     .getOrThrow()
+     * ```
+     */
+    class Builder() {
+        private val indexed = mutableListOf<IndexedPayment>()
+        private var autoIndex: UInt = 0u
+
+        /** Seeds the builder with [payments] auto-indexed sequentially from `0`. */
+        constructor(payments: List<Payment>) : this() {
+            payments.forEach { add(it) }
+        }
+
+        /** Adds a payment at the next sequential auto-assigned `paramindex`. */
+        fun add(payment: Payment): Builder {
+            indexed.add(IndexedPayment(autoIndex, payment))
+            autoIndex += 1u
+            return this
+        }
+
+        /** Adds a payment pinned to an explicit `paramindex` [at]. */
+        fun add(
+            payment: Payment,
+            at: UInt,
+        ): Builder {
+            indexed.add(IndexedPayment(at, payment))
+            return this
+        }
+
+        /**
+         * Builds the [PaymentRequest], validating index uniqueness
+         * ([ZIP321Error.DuplicateParameter]) and the [MAX_PAYMENT_COUNT] cap
+         * ([ZIP321Error.TooManyPayments]).
+         */
+        fun build(): Result<PaymentRequest> = runCatching { fromIndexedPayments(indexed) }
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is PaymentRequest) return false
