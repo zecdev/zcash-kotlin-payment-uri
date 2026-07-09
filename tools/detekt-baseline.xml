@@ -10,7 +10,6 @@
     <ID>ForbiddenComment:ParserContext.kt$ParserContext$// TODO: verify actual testnet prefix</ID>
     <ID>Indentation:Parser.kt$Parser$ </ID>
     <ID>LongMethod:Param.kt$Param.Companion$@Throws(ZIP321.Errors::class) fun from( queryKey: String, value: String?, index: UInt, network: Network, validator: AddressValidator, ): Param</ID>
-    <ID>MagicNumber:CharsetValidations.kt$128</ID>
     <ID>MagicNumber:LegacyAmount.kt$LegacyAmount.Companion$10</ID>
     <ID>MagicNumber:MemoBytes.kt$0x3F</ID>
     <ID>MagicNumber:MemoBytes.kt$0xFF</ID>

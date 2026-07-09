@@ -2,7 +2,7 @@ package org.zecdev.zip321.model
 
 import org.zecdev.zip321.ParamName
 import org.zecdev.zip321.ZIP321Error
-import org.zecdev.zip321.parser.CharsetValidations
+import org.zecdev.zip321.parser.ParamNameCharacterSet
 import org.zecdev.zip321.parser.isAsciiLetter
 
 /**
@@ -30,14 +30,6 @@ class Payment internal constructor(
     val message: String?,
     val otherParams: List<OtherParam>,
 ) {
-    fun isSingleAddress(): Boolean {
-        return amount == null &&
-            memo == null &&
-            label == null &&
-            message == null &&
-            otherParams.isEmpty()
-    }
-
     companion object {
         /**
          * Creates a validated [Payment], enforcing the ZIP-321 structural rules that apply to an
@@ -117,7 +109,7 @@ class Payment internal constructor(
             memo: MemoBytes?,
             label: String?,
             message: String?,
-            otherParams: List<OtherParam> = emptyList(),
+            otherParams: List<OtherParam>,
         ): Payment = create(recipientAddress, amount, memo, label, message, otherParams).getOrThrow()
     }
 
@@ -335,6 +327,6 @@ data class OtherParam internal constructor(val name: String, val value: String?)
         /** Whether [name] is a valid `paramname`: `ALPHA *( ALPHA / DIGIT / "+" / "-" )`. */
         private fun isValidParamName(name: String): Boolean =
             name.first().isAsciiLetter() &&
-                name.all { CharsetValidations.Companion.ParamNameCharacterSet.characters.contains(it) }
+                name.all { ParamNameCharacterSet.characters.contains(it) }
     }
 }

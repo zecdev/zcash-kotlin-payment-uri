@@ -7,8 +7,8 @@ import org.zecdev.zip321.model.OtherParam
 import org.zecdev.zip321.model.Payment
 import org.zecdev.zip321.model.PaymentRequest
 import org.zecdev.zip321.model.RecipientAddress
-import org.zecdev.zip321.parser.ParserContext
 import org.zecdev.zip321.parser.isAsciiLetter
+import org.zecdev.zip321.support.ReferenceAddressValidator
 
 // Deterministic generators for the property-style round-trip tests in `PropertyTests.kt`. Mirrors
 // (in spirit) the proptest strategies in librustzcash `components/zip321/src/lib.rs` `pub mod
@@ -57,7 +57,7 @@ class SplitMix64(seed: ULong) {
  * The fixed pool of KNOWN-VALID (checksum-verified) addresses per network, one of each recipient
  * kind ZIP-321 allows: transparent P2PKH, transparent P2SH, Sapling, Unified, TEX. Lifted verbatim
  * from the literals already exercised by
- * `lib/src/commonTest/kotlin/org/zecdev/zip321/parser/ParserContextValidationTests.kt`'s
+ * `lib/src/commonTest/kotlin/org/zecdev/zip321/parser/NetworkValidationTests.kt`'s
  * `validMatrix` (see that file's header for provenance of each address).
  */
 object AddressPool {
@@ -89,17 +89,17 @@ object AddressPool {
             "texregtest1s2rt77ggv6q989lr49rkgzmh5slsksa990zqpk",
         )
 
-    fun addresses(context: ParserContext): List<String> =
-        when (context) {
-            ParserContext.MAINNET -> mainnet
-            ParserContext.TESTNET -> testnet
-            ParserContext.REGTEST -> regtest
+    fun addresses(network: Network): List<String> =
+        when (network) {
+            Network.MAINNET -> mainnet
+            Network.TESTNET -> testnet
+            Network.REGTEST -> regtest
         }
 }
 
 object Gen {
-    val allNetworks: List<ParserContext> =
-        listOf(ParserContext.MAINNET, ParserContext.TESTNET, ParserContext.REGTEST)
+    val allNetworks: List<Network> =
+        listOf(Network.MAINNET, Network.TESTNET, Network.REGTEST)
 
     /**
      * Reserved ZIP-321 query keys that `otherParam` names must never collide with (matches
@@ -185,7 +185,7 @@ object Gen {
     }
 
     /**
-     * An arbitrary valid `Payment` to one of `AddressPool`'s known-valid recipients on [context].
+     * An arbitrary valid `Payment` to one of `AddressPool`'s known-valid recipients on [network].
      *
      * Note: an `amount` is ALWAYS attached (mirroring the reference `arb_zip321_payment`, which
      * sets `amount: Some(amount)` unconditionally): this sidesteps the single-payment/empty-query
@@ -194,27 +194,26 @@ object Gen {
      */
     fun payment(
         rng: SplitMix64,
-        context: ParserContext,
+        network: Network,
     ): Payment {
-        val addressString = rng.choice(AddressPool.addresses(context))
+        val addressString = rng.choice(AddressPool.addresses(network))
+        // The generator goes through the same delegation path production callers use: the
+        // test-only reference validator is the authority, and the descriptor it returns is what
+        // the payment rules below consult.
         val recipient =
-            try {
-                RecipientAddress(addressString, context)
-            } catch (error: RecipientAddress.RecipientAddressError) {
-                throw IllegalStateException(
-                    "AddressPool entry '$addressString' failed to validate on $context — pool is stale.",
-                    error,
+            RecipientAddress.create(addressString, ReferenceAddressValidator.of(network))
+                ?: throw IllegalStateException(
+                    "AddressPool entry '$addressString' failed to validate on $network — pool is stale.",
                 )
-            }
 
         var amount = zatoshi(rng)
-        if (recipient.isTransparent() && amount.value == 0uL) {
+        if (recipient.isTransparent && amount.value == 0uL) {
             // Zero-valued transparent outputs are disallowed by consensus.
             amount = NonNegativeAmount.zatoshi(1uL).getOrThrow()
         }
 
         val memo: MemoBytes? =
-            if (!recipient.isTransparent() && rng.nextBool(0.5)) memoBytes(rng) else null
+            if (recipient.canReceiveMemos && rng.nextBool(0.5)) memoBytes(rng) else null
 
         val label: String? = if (rng.nextBool(0.4)) unicodeString(rng) else null
         val message: String? = if (rng.nextBool(0.4)) unicodeString(rng) else null
@@ -239,7 +238,7 @@ object Gen {
             memo = memo,
             label = label,
             message = message,
-            otherParams = otherParams.ifEmpty { null },
+            otherParams = otherParams,
         ).getOrThrow()
     }
 
@@ -250,7 +249,7 @@ object Gen {
      */
     fun indexedPaymentRequest(
         rng: SplitMix64,
-        context: ParserContext,
+        network: Network,
     ): PaymentRequest {
         val count = rng.nextInt(0..20)
         val usedIndices = mutableSetOf<UInt>()
@@ -262,10 +261,56 @@ object Gen {
                 index = rng.nextInt(0..9999).toUInt()
             } while (usedIndices.contains(index))
             usedIndices.add(index)
-            indexed.add(IndexedPayment(index, payment(rng, context)))
+            indexed.add(IndexedPayment(index, payment(rng, network)))
         }
 
         // Never fails: indices are unique by construction and `<= 9999`.
         return PaymentRequest.fromIndexedPayments(indexed)
+    }
+
+    /**
+     * A DELIBERATELY INVALID other-param list: 1..4 distinct names with one of them repeated at an
+     * arbitrary later position (so the duplicate is not always adjacent or trailing). Constructing
+     * a [Payment] from this must fail.
+     */
+    fun duplicatedOtherParams(rng: SplitMix64): Pair<List<OtherParam>, String> {
+        val names = mutableListOf<String>()
+        val used = mutableSetOf<String>()
+        val count = rng.nextInt(1..4)
+
+        repeat(count) {
+            var name = paramName(rng)
+            while (used.contains(name)) {
+                name = paramName(rng)
+            }
+            used.add(name)
+            names.add(name)
+        }
+
+        val repeatedIndex = rng.nextInt(0..(names.size - 1))
+        val repeated = names[repeatedIndex]
+        names.add(rng.nextInt((repeatedIndex + 1)..names.size), repeated)
+
+        val params =
+            names.map { name ->
+                val value: String? = if (rng.nextBool(0.5)) unicodeString(rng) else null
+                // Never fails: `name` is always a valid, non-reserved paramname.
+                OtherParam.create(name, value).getOrThrow()
+            }
+
+        return Pair(params, repeated)
+    }
+
+    /**
+     * An arbitrary known-valid recipient on [network], resolved through the reference validator —
+     * the same delegation path a production caller uses.
+     */
+    fun recipient(
+        rng: SplitMix64,
+        network: Network,
+    ): RecipientAddress {
+        val addressString = rng.choice(AddressPool.addresses(network))
+        // Never fails: the pool holds only checksum-valid addresses.
+        return requireNotNull(RecipientAddress.create(addressString, ReferenceAddressValidator.of(network)))
     }
 }

@@ -281,9 +281,7 @@ class SubParserTests {
                 IndexedParameter(0u, Param.Message("Thank you for your purchase")),
             )
 
-        val leadingAddress = IndexedParameter(0u, Param.Address(recipient))
-
-        assertEquals(expected, parser().parseParameters(remainingString, leadingAddress))
+        assertEquals(expected, parser().parseParameters(remainingString, recipient))
     }
 
     // Duplicate params are caught

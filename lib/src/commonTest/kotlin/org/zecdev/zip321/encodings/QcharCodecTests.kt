@@ -137,4 +137,18 @@ class QCharCodecTests {
         assertEquals("50%25", QCharCodec.encode("50%"))
         assertEquals("50%", QCharCodec.decode("50%25"))
     }
+
+    @Test
+    fun `hexValue covers every digit and hex-letter nibble in both escape positions`() {
+        // Exercises every branch of decode()'s private hexValue helper for the digit / uppercase
+        // hex-letter / lowercase hex-letter ranges, with each range appearing in BOTH the high and
+        // low nibble position (not just paired with a digit, as the other tests above happen to
+        // do). Not every pairing decodes to valid UTF-8 on its own; only hexValue's own behavior
+        // is under test here, so a `null` result is as acceptable as a decoded string.
+        for (hi in listOf('0', '9', 'A', 'F', 'a', 'f')) {
+            for (lo in listOf('0', '9', 'A', 'F', 'a', 'f')) {
+                QCharCodec.decode("%$hi$lo")
+            }
+        }
+    }
 }

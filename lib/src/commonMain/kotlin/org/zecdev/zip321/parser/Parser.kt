@@ -5,6 +5,7 @@ import org.zecdev.zip321.Network
 import org.zecdev.zip321.ZIP321
 import org.zecdev.zip321.ZIP321Error
 import org.zecdev.zip321.encodings.QCharCodec
+import org.zecdev.zip321.internal.KoverExcludeWithRationale
 import org.zecdev.zip321.model.IndexedPayment
 import org.zecdev.zip321.model.MemoBytes
 import org.zecdev.zip321.model.NonNegativeAmount
@@ -82,14 +83,14 @@ internal class Parser(
      * lead address is allowed (the request's payments come entirely from query parameters, or the
      * request is a bare `zcash:`).
      *
-     * @return a pair of the rest of the input (the `?`-prefixed query part, or `null`) and an
-     * optional leading-address [IndexedParameter].
+     * @return a pair of the rest of the input (the `?`-prefixed query part, or `null`) and the
+     * optional leading [RecipientAddress].
      * @throws ZIP321.Errors.InvalidAddress if a non-empty lead address fails validation (this is
      * the unified mapping — the built-in checksum check already rejects Sprout and wrong-network
      * addresses).
      */
     @Throws(ZIP321.Errors::class)
-    fun leadingAddress(input: String): Pair<String?, IndexedParameter?> {
+    fun leadingAddress(input: String): Pair<String?, RecipientAddress?> {
         if (!input.startsWith(ZCASH_SCHEME)) {
             throw ZIP321.Errors.ParseError("Not `zcash:` uri")
         }
@@ -102,7 +103,7 @@ internal class Parser(
             val recipient =
                 recipient(address, network, validator)
                     ?: throw ZIP321.Errors.InvalidAddress(null)
-            return Pair(rest, IndexedParameter(index = 0u, param = Param.Address(recipient)))
+            return Pair(rest, recipient)
         }
 
         return Pair(rest, null)
@@ -229,17 +230,18 @@ internal class Parser(
      * split on `&` WITHOUT omitting empty segments, so a stray `&` or a lone `?` yields an empty
      * segment that is rejected by [parseQueryToken] (matching the reference's non-omitting split).
      * @param remainingString a string beginning with the `?` query separator.
-     * @param leadingAddress an optional leading-address indexed parameter parsed earlier.
+     * @param leadingAddress an optional leading [RecipientAddress] parsed earlier; wrapped as the
+     * empty-paramindex `address` parameter.
      */
     @Throws(ZIP321.Errors::class)
     fun parseParameters(
         remainingString: String,
-        leadingAddress: IndexedParameter?,
+        leadingAddress: RecipientAddress?,
     ): List<IndexedParameter> {
         require(remainingString.startsWith("?")) { "expected `?` query marker" }
 
         val list = ArrayList<IndexedParameter>()
-        leadingAddress?.let { list.add(it) }
+        leadingAddress?.let { list.add(IndexedParameter(index = 0u, param = Param.Address(it))) }
 
         val afterQuestionMark = remainingString.substring(1)
 
@@ -306,6 +308,15 @@ internal class Parser(
     /**
      * The throwing parse core wrapped by [org.zecdev.zip321.ZIP321.parse]. Precondition: [uriString]
      * begins with the `zcash:` scheme (the top-level input guards run in `ZIP321.parse`).
+     *
+     * Note: this used to wrap its body in a `try`/`catch (e: IllegalArgumentException)` that
+     * re-threw as [ZIP321.Errors.ParseError]. That catch was unreachable dead code: the only
+     * `require` on this call path is [parseParameters]'s `?`-prefix check, which can never fail
+     * here (`remainingText` is always either `null` or `?`-prefixed by construction — see
+     * [splitLeadingAddress]). It was removed rather than kept-but-untested; if some future change
+     * ever needs it back, [org.zecdev.zip321.ZIP321.parse]'s own outer
+     * `catch (error: IllegalArgumentException)` already produces the identical
+     * `ParseError(MALFORMED_URI)` result, so behavior is unchanged either way.
      */
     @Throws(ZIP321.Errors::class, ZIP321Error::class)
     @Suppress("ReturnCount", "ThrowsCount")
@@ -314,40 +325,39 @@ internal class Parser(
             throw ZIP321.Errors.InvalidURI
         }
 
-        try {
-            val (remainingText, leadingAddress) = leadingAddress(uriString)
+        val (remainingText, leadingAddress) = leadingAddress(uriString)
 
-            // No query part (`zcash:` or a bare `zcash:<address>`).
-            if (remainingText == null) {
-                // A bare `zcash:<address>` is the leading-address SPELLING of a one-payment
-                // request, not a distinct kind of result: it goes through exactly the same
-                // construction as `zcash:?address=<addr>`, so both produce an EQUAL
-                // `PaymentRequest` (ZIP-321 URI Semantics; matches the reference implementation).
-                // No leading address and no query is a bare `zcash:` — a valid empty request.
-                return if (leadingAddress == null) {
-                    PaymentRequest(emptyList())
-                } else {
-                    PaymentRequest.fromIndexedPayments(mapToIndexedPayments(listOf(leadingAddress)))
-                }
+        // No query part (`zcash:` or a bare `zcash:<address>`).
+        if (remainingText == null) {
+            // A bare `zcash:<address>` is the leading-address SPELLING of a one-payment request,
+            // not a distinct kind of result: it goes through exactly the same construction as
+            // `zcash:?address=<addr>`, so both produce an EQUAL `PaymentRequest` (ZIP-321 URI
+            // Semantics; matches the reference implementation). No leading address and no query
+            // is a bare `zcash:` — a valid empty request.
+            return if (leadingAddress == null) {
+                PaymentRequest(emptyList())
+            } else {
+                PaymentRequest.fromIndexedPayments(
+                    mapToIndexedPayments(
+                        listOf(IndexedParameter(index = 0u, param = Param.Address(leadingAddress))),
+                    ),
+                )
             }
-
-            val indexedParameters = parseParameters(remainingText, leadingAddress)
-
-            // `zcash:?` (empty query, no leading address) is a valid empty request.
-            if (indexedParameters.isEmpty()) {
-                return PaymentRequest(emptyList())
-            }
-
-            val indexedPayments = mapToIndexedPayments(indexedParameters)
-
-            // NOTE (mirroring the reference `TransactionRequest`): the 9999-payment cap enforced by
-            // this constructor is unreachable from the parse path — the `paramindex` grammar
-            // (NONZERO 0*3DIGIT) already rejects any index above 9999 with invalidParamIndex.
-            return PaymentRequest.fromIndexedPayments(indexedPayments)
-        } catch (e: IllegalArgumentException) {
-            val message = e.message ?: "parser failed with unknown error"
-            throw ZIP321.Errors.ParseError(message)
         }
+
+        val indexedParameters = parseParameters(remainingText, leadingAddress)
+
+        // `zcash:?` (empty query, no leading address) is a valid empty request.
+        if (indexedParameters.isEmpty()) {
+            return PaymentRequest(emptyList())
+        }
+
+        val indexedPayments = mapToIndexedPayments(indexedParameters)
+
+        // NOTE (mirroring the reference `TransactionRequest`): the 9999-payment cap enforced by
+        // this constructor is unreachable from the parse path — the `paramindex` grammar
+        // (NONZERO 0*3DIGIT) already rejects any index above 9999 with invalidParamIndex.
+        return PaymentRequest.fromIndexedPayments(indexedPayments)
     }
 }
 
@@ -357,17 +367,8 @@ internal fun Payment.Companion.fromUniqueIndexedParameters(
     parameters: List<Param>,
 ): Payment {
     val recipient =
-        parameters.firstOrNull { param ->
-            when (param) {
-                is Param.Address -> true
-                else -> false
-            }
-        }?.let { address ->
-            when (address) {
-                is Param.Address -> address.recipientAddress
-                else -> null
-            }
-        } ?: throw ZIP321.Errors.RecipientMissing(index.mapToParamIndex())
+        (parameters.firstOrNull { it is Param.Address } as? Param.Address)?.recipientAddress
+            ?: throw ZIP321.Errors.RecipientMissing(index.mapToParamIndex())
 
     var amount: NonNegativeAmount? = null
     var memo: MemoBytes? = null
@@ -397,9 +398,25 @@ internal fun Payment.Companion.fromUniqueIndexedParameters(
         // Always a list: ZIP-321 cannot spell the difference between "absent" and "empty", so
         // the model does not model one either.
         other,
-    ).getOrElse { error ->
-        throw (error as? ZIP321Error)?.withIndex(index.mapToParamIndex()) ?: error
-    }
+    ).getOrElse { error -> rethrowTagged(error, index) }
+}
+
+@KoverExcludeWithRationale
+// KOVER-EXEMPT: `Payment.create`'s only two failure cases (`TransparentMemo`,
+// `ZeroValuedTransparentOutput`) are both `ZIP321Error`, so the `?: error` fallback below —
+// re-throwing some OTHER `Throwable` type verbatim — can never execute under the current
+// implementation. Isolated into its own function (rather than inlined into
+// `fromUniqueIndexedParameters`) purely so this one defensive line, and no other, is what carries
+// the coverage exemption. Kept rather than deleted: `Result<Payment>` is typed as `Result<Payment>`
+// (not a narrower `Result<Payment, ZIP321Error>` — Kotlin's stdlib `Result` isn't parameterized on
+// the error type), so nothing at compile time stops a future `Payment.create` change from failing
+// with some other exception type, and this fallback preserves totality (no error silently eaten)
+// if that ever happens.
+private fun rethrowTagged(
+    error: Throwable,
+    index: UInt,
+): Nothing {
+    throw (error as? ZIP321Error)?.withIndex(index.mapToParamIndex()) ?: error
 }
 
 internal fun UInt.mapToParamIndex(): UInt? {

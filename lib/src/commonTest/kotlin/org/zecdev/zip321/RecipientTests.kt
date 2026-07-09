@@ -2,11 +2,14 @@ package org.zecdev.zip321
 
 import org.zecdev.zip321.model.RecipientAddress
 import org.zecdev.zip321.support.ReferenceAddressValidator
+import org.zecdev.zip321.support.validRecipient
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class RecipientTests {
     // -- The validator is the sole authority ---------------------------------
@@ -85,5 +88,36 @@ class RecipientTests {
                 ReferenceAddressValidator.MAINNET,
             ),
         )
+    }
+
+    // MARK: - equals() / hashCode() / capabilities
+
+    @Test
+    fun `equals compares value and descriptor and rejects a different type`() {
+        val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
+        val a = validRecipient(address)
+        val b = validRecipient(address)
+        val different = validRecipient("t26YoyZ1iPgiMEWL4zGUm74eVWfhyDMXzY2")
+
+        assertTrue(a == a)
+        assertEquals(a, b)
+        assertEquals(a.hashCode(), b.hashCode())
+        assertFalse(a == different)
+        @Suppress("EqualsBetweenInconvertibleTypes")
+        assertFalse(a.equals("not a RecipientAddress"))
+    }
+
+    @Test
+    fun `capabilities are read off the validator's descriptor`() {
+        val transparent = validRecipient("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU")
+        val shielded =
+            validRecipient(
+                "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
+            )
+
+        assertTrue(transparent.isTransparent)
+        assertFalse(transparent.canReceiveMemos)
+        assertFalse(shielded.isTransparent)
+        assertTrue(shielded.canReceiveMemos)
     }
 }

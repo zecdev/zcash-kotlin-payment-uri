@@ -6,6 +6,109 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added — 100% line / 98%+ branch coverage gate on commonMain/jvmMain (v2/K16)
+
+- Applied `org.jetbrains.kotlinx.kover` **0.9.8** (latest stable) to `lib/build.gradle.kts`. Kover
+  only instruments JVM tests (its own docs: non-JVM/Native targets are unsupported), so its `total`
+  report variant is, in this KMP project, exactly commonMain+jvmMain production code as exercised
+  by `jvmTest` — matching this gate's scope precisely. `commonTest`/`jvmTest` sources (including
+  the generated conformance corpus, `GeneratedVectors.kt` / `GeneratedZip321ConformanceTest.kt`,
+  which lives entirely under `commonTest`) are excluded from reports by Kover's default
+  test-source-set detection; an explicit `packages("org.zecdev.zip321.conformance")` filter
+  documents that exclusion defensively.
+- Two verification rules under `kover.reports.total.verify`, wired into `koverVerify` (runs
+  automatically as part of `check` → `build` via Kover's `total.verify.onCheck = true` default — no
+  extra plumbing needed): **100% LINE coverage** (strict), and **branch coverage ≥ 98%**
+  (deliberately pragmatic — see below). CI/local gate invocation: `./gradlew koverVerify` (or
+  simply `./gradlew build`/`check`, which already depend on it).
+- **Coverage progression: 87.7% line (899/1025) / 75.7% branch (650/859) → 100.0% line (687/687) /
+  98.6% branch (558/566).** (The denominators shifted across the drive both because dead code was
+  deleted and because K16's own property tests, added in the prior commit, already moved the
+  starting baseline up from the pre-K16 state; they shrank substantially again once the K5/K8
+  redesign moved ALL cryptography and address decoding out of `commonMain` — the SHA-256
+  expect/actual, Bech32 and Base58Check are `commonTest` reference checkers, and address validity
+  is delegated to a caller-supplied `AddressValidator` — and test-support code is not in the
+  coverage denominator at all. Neither rule moved: LINE is still a strict 100%, BRANCH still clears
+  98%. What remains measured is exactly the ZIP-321 URI grammar, the value types and the render
+  path.)
+  Closed via ~35 new/expanded test functions across
+  existing files plus five new test files (`ZIP321ErrorTests.kt`, `ParamTests.kt`,
+  `PaymentEqualityTests.kt`, `PaymentRequestTests.kt`, and JVM-only `SerializationTests.kt` for the
+  `readResolve()` singleton-identity contract, which needs a real `java.io` serialize/deserialize
+  round trip), covering: `ZIP321Error.withIndex`/`Companion.from` exhaustively over every
+  case; `Payment`/`PaymentRequest`/`Param`/`RecipientAddress`/`MemoBytes` `equals`/`hashCode`
+  exercised per-field and per-subtype; the `maxInputBytes` input guard; the deprecated `Payment`
+  `invoke` shim (only reachable by calling `Payment.invoke(...)` explicitly — within this module,
+  `Payment(args)` sugar resolves straight to the internal primary constructor, never the
+  companion's `operator fun invoke`); `PaymentRequestScope`'s DSL `label`/`otherParam`
+  (with-and-without-a-value)/no-block-`payment` forms; `Base58Check.verify`'s
+  prefix-longer-than-payload guard; `Bech32.decode`'s HRP-length and all-non-letter-input paths and
+  `Decoded`'s `equals`/`hashCode`; and several `Parser`-internal helpers
+  (`leadingAddress`/`parseParameters`/`mapToIndexedPayments`/`mapToPayments`/`parseParameterIndex`)
+  exercised directly via their own contracts, including the `RecipientMissing` case for a non-empty
+  parameter group that simply has no `address`.
+- **Dead code deleted** (mirroring the Swift S16 precedent almost exactly, including two of the
+  *same* shape of bug): `Payment.isSingleAddress()` (public, zero callers anywhere, no Swift
+  counterpart); the entire `ParamNameString` class and `QcharString` class in `Param.kt` (v1
+  leftovers — `ParamNameString` had zero callers at all; `QcharString` was exercised only by its
+  own now-deleted `QcharStringTests.kt`, never by production code) — `Param.kt` shrank by about a
+  third; `IndexedParameter`'s hand-written `equals`/`hashCode`, which is byte-for-byte what the
+  compiler already synthesizes for a `data class` with those two properties; `Param`'s hand-written
+  `equals`/`hashCode` — **provably dead**, not just untested: every concrete `Param` is a `data
+  class` subtype (`Address`, `Amount`, …) that synthesizes its OWN `equals`/`hashCode`, which always
+  wins over the sealed superclass's hand-written version via virtual dispatch, so `Param`'s version
+  could never execute for any instance, confirmed empirically (zero coverage no matter how many
+  equality assertions the suite made); `AmountParser.mapError`'s `NegativeAmount` branch
+  (the amount type is unsigned and `NonNegativeAmount.zec`'s grammar has no sign character, so that
+  specific exception can never reach this mapper); an unreachable `else` arm in `Parser.fromUniqueIndexedParameters` finding the lead
+  address (simplified `firstOrNull{when...}?.let{when...}` double-dispatch down to a single
+  `firstOrNull{...} as? Param.Address` — the exact same "always-`.address`" bug Swift's S16 fixed in
+  `Parser.leadingAddress`, found independently in a second spot here); `Parser.leadingAddress`
+  itself, restructured to return `RecipientAddress?` directly instead of wrapping it in an
+  always-`.address` `IndexedParameter` — eliminating an unreachable `when` arm in `Parser.parse`
+  (this **is** the literal Swift S16 fix, ported); `Parser.parse`'s `catch (e:
+  IllegalArgumentException)` wrapper — redundant with `ZIP321.parse`'s own outer catch of the same
+  exception type, which produces the identical `ParseError(MALFORMED_URI)` result, and the one
+  `require` on the call path that could throw it can never actually fail given how `remainingText`
+  is constructed; `Bech32.decode`'s second `code >= 128` ASCII re-guard on the data part (every
+  character was already confirmed < 128 by the loop above); `CharsetValidations`'s two full levels
+  of pure-namespacing wrapper (a `class` around a `companion object` around the actual
+  `ParamNameCharacterSet` object) — accessing a nested Kotlin `object` never needs its enclosing
+  declaration initialized at all, so both wrapper levels' own init code was permanently dead;
+  `ParamNameCharacterSet` is now a plain top-level object (file renamed to match, per detekt's
+  `MatchingDeclarationName`).
+- **One `@KoverExcludeWithRationale` exemption** (of the 3-site budget; see
+  `lib/src/commonMain/kotlin/org/zecdev/zip321/internal/KoverExcludeWithRationale.kt`, a new
+  annotation Kover's `annotatedBy` filter recognizes): `Parser.rethrowTagged`, isolating the `?:
+  error` fallback for a `Payment.create` failure that today is always a `ZIP321Error` — kept
+  defensively (the stdlib `Result` type isn't parameterized on the error type, so nothing at
+  compile time rules out `Payment.create` someday failing with something else), extracted into its
+  own tiny function so the exemption annotation's blast radius is exactly one line, not the whole
+  surrounding function.
+- **Branch coverage is gated at ≥98%, not 100% — a deliberate, justified pragmatic scope-down**
+  (loudly documented in `lib/build.gradle.kts`, repeated here per the task's own instructions).
+  Every one of the 10 remaining missed branch outcomes (across `QCharCodec.hexValue`,
+  `Render.parameter`, `NonNegativeAmount.zec`'s fraction-digit loop, `isAsciiLetter`/`isAsciiAlphanumeric`,
+  `Bech32.decode`'s mixed-case guard, and `Parser`'s `isAlpha`
+  and its `as? Param.Address` cast) was traced to the same root cause — confirmed empirically via
+  `javap -c` on the compiled class for the clearest case (`Render.parameter`): Kotlin compiles
+  `x?.let { … } ?: y` with an extra, structurally-unreachable SECOND null-check on the `let` block's
+  own (string-template, therefore never `null`) result, and similarly compiles character-range
+  checks (`ch in 'a'..'z'`) and fixed-trip-count `downTo … step` loops with synthetic bounds/entry
+  checks beyond the source-level logical branches. This is confirmed to be a coverage-tooling
+  artifact, not a real gap: every LOGICAL outcome of each affected line (both range-membership
+  directions, boundary-adjacent characters on both sides of every range boundary, all-digit /
+  all-upper / all-lower / mixed-case inputs, found/not-found results) has its own dedicated test —
+  see `QcharCodecTests`, `NonNegativeAmountTests`, `AddressValidationTests`, `Bech32Tests`,
+  `ParserTests`. 98% sits comfortably below the achieved 98.6%, leaving room for
+  incidental fluctuation while still catching a genuine regression.
+- **Kover scope after the K5/K8 redesign.** The SHA-256 expect/actual now lives in
+  `commonTest`/`jvmTest`/`iosTest` as test support, so it is outside the coverage denominator
+  entirely (as is every other test-support file); the iOS targets are outside Kover's reach by
+  construction — the plugin does not instrument Native targets — and are proven instead by
+  `iosSimulatorArm64Test`
+  running the same `commonTest` suite. No filter, exclusion or threshold was adjusted.
+
 ### Added — deterministic property-style round-trip tests (v2/K16)
 
 - `lib/src/commonTest/kotlin/org/zecdev/zip321/PropertyGenerators.kt`: a tiny inline `SplitMix64`

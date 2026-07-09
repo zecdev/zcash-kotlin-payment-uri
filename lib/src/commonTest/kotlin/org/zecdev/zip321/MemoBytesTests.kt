@@ -6,6 +6,7 @@ import kotlin.math.ceil
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class MemoBytesTests {
@@ -145,5 +146,18 @@ class MemoBytesTests {
                 MemoBytes.fromBase64URL(input)
             }
         }
+    }
+
+    // MARK: - equals()/hashCode() contract
+
+    @Test
+    fun `equals handles identity null a different type and unequal content`() {
+        val memo = MemoBytes("hello")
+        assertTrue(memo == memo) // this === other fast path
+        assertFalse(memo.equals(null))
+        @Suppress("EqualsBetweenInconvertibleTypes")
+        assertFalse(memo.equals("not a MemoBytes"))
+        assertFalse(memo.equals(MemoBytes("goodbye")))
+        assertEquals(memo.hashCode(), MemoBytes("hello").hashCode())
     }
 }

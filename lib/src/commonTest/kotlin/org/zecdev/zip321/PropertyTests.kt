@@ -3,9 +3,10 @@ package org.zecdev.zip321
 import org.zecdev.zip321.encodings.QCharCodec
 import org.zecdev.zip321.model.MemoBytes
 import org.zecdev.zip321.model.NonNegativeAmount
+import org.zecdev.zip321.model.Payment
+import org.zecdev.zip321.support.ReferenceAddressValidator
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.fail
 
 /**
  * Deterministic property-style round-trip tests (K16, mirroring Swift's S16). Each law is run over
@@ -29,22 +30,22 @@ class PropertyTests {
 
     // MARK: - Law 1: full round trip
     //
-    // parse(uriString(from = r)) == success(Request(r)) for every generated PaymentRequest r.
+    // parse(uriString(from = r)) == success(r) for every generated PaymentRequest r.
 
     @Test
     fun `Law 1 - full round trip`() {
         for (seed in 0 until 300) {
             val r = rng(1, seed)
-            val context = r.choice(Gen.allNetworks)
-            val request = Gen.indexedPaymentRequest(r, context)
+            val network = r.choice(Gen.allNetworks)
+            val request = Gen.indexedPaymentRequest(r, network)
 
             val uri = ZIP321.uriString(from = request)
-            val parsed = ZIP321.parse(uri, context)
+            val parsed = ZIP321.parse(uri, network, ReferenceAddressValidator.of(network))
 
             assertEquals(
-                Result.success(ParsedRequest.Request(request) as ParsedRequest),
+                Result.success(request),
                 parsed,
-                "seed $seed ($context): round-trip law violated for uri: $uri",
+                "seed $seed ($network): round-trip law violated for uri: $uri",
             )
         }
     }
@@ -106,17 +107,11 @@ class PropertyTests {
     fun `Law 5 - paramindex preservation`() {
         for (seed in 0 until 200) {
             val r = rng(5, seed)
-            val context = r.choice(Gen.allNetworks)
-            val request = Gen.indexedPaymentRequest(r, context)
+            val network = r.choice(Gen.allNetworks)
+            val request = Gen.indexedPaymentRequest(r, network)
 
             val uri = ZIP321.uriString(from = request)
-            val parsed = ZIP321.parse(uri, context).getOrThrow()
-            val reparsedRequest =
-                when (parsed) {
-                    is ParsedRequest.Request -> parsed.request
-                    is ParsedRequest.SingleAddress ->
-                        fail("seed $seed ($context): expected a Request, got a SingleAddress for uri: $uri")
-                }
+            val reparsedRequest = ZIP321.parse(uri, network, ReferenceAddressValidator.of(network)).getOrThrow()
 
             val originalIndices = request.indexedPayments.map { it.index }
             val reparsedIndices = reparsedRequest.indexedPayments.map { it.index }
@@ -130,6 +125,98 @@ class PropertyTests {
                     "seed $seed: payment at index ${original.index} changed across round trip",
                 )
             }
+        }
+    }
+
+    // MARK: - Law 6: the parsed model never distinguishes the two spellings
+    //
+    // parse("zcash:<addr>") == parse("zcash:?address=<addr>") for every generated recipient. The
+    // URI syntax is a rendering choice; it must not leak into the model.
+
+    @Test
+    fun `Law 6 - single-recipient spellings agree`() {
+        for (seed in 0 until 200) {
+            val r = rng(6, seed)
+            val network = r.choice(Gen.allNetworks)
+            val validator = ReferenceAddressValidator.of(network)
+            val recipient = Gen.recipient(r, network)
+
+            val leading = ZIP321.parse("zcash:${recipient.value}", network, validator)
+            val labeled = ZIP321.parse("zcash:?address=${recipient.value}", network, validator)
+
+            assertEquals(
+                leading,
+                labeled,
+                "seed $seed ($network): the two single-recipient spellings parsed differently " +
+                    "for ${recipient.value}",
+            )
+        }
+    }
+
+    // MARK: - Law 7: `otherParams` is always a list
+    //
+    // Every payment of every generated request reports a LIST of other params. There is no
+    // absent/empty split left to observe, at construction or after a round trip.
+
+    @Test
+    fun `Law 7 - otherParams is always a list`() {
+        for (seed in 0 until 200) {
+            val r = rng(7, seed)
+            val network = r.choice(Gen.allNetworks)
+            val request = Gen.indexedPaymentRequest(r, network)
+
+            val uri = ZIP321.uriString(from = request)
+            val reparsed = ZIP321.parse(uri, network, ReferenceAddressValidator.of(network)).getOrThrow()
+
+            for ((original, roundTripped) in request.payments.zip(reparsed.payments)) {
+                // Same count, same order, same contents — and never "absent".
+                assertEquals(
+                    original.otherParams,
+                    roundTripped.otherParams,
+                    "seed $seed: other params changed across the round trip",
+                )
+            }
+        }
+    }
+
+    // MARK: - Law 8 (adversarial): duplicate other-param names never construct
+    //
+    // A `Payment` whose other-param names repeat must be rejected, so that no `Payment` can exist
+    // which renders to a URI the parser would reject as a duplicate parameter.
+
+    @Test
+    fun `Law 8 - duplicate other-param names never construct`() {
+        for (seed in 0 until 200) {
+            val r = rng(8, seed)
+            val network = r.choice(Gen.allNetworks)
+            val recipient = Gen.recipient(r, network)
+            val (params, repeated) = Gen.duplicatedOtherParams(r)
+
+            val result =
+                Payment.create(
+                    recipientAddress = recipient,
+                    amount = null,
+                    memo = null,
+                    label = null,
+                    message = null,
+                    otherParams = params,
+                )
+
+            assertEquals(
+                ZIP321Error.DuplicateParameter(repeated, null),
+                result.exceptionOrNull(),
+                "seed $seed: duplicate other-param '$repeated' was accepted " +
+                    "(params: ${params.map { it.name }})",
+            )
+
+            // The builder path must agree: it feeds the same list to Payment.create.
+            val builder = Payment.Builder(recipient)
+            params.forEach { builder.otherParam(it.name, it.value) }
+            assertEquals(
+                ZIP321Error.DuplicateParameter(repeated, null),
+                builder.build().exceptionOrNull(),
+                "seed $seed: the builder accepted duplicate other-param '$repeated'",
+            )
         }
     }
 }
