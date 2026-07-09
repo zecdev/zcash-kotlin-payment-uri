@@ -24,9 +24,9 @@ object ExpectedFailures {
             "empty (zero-payment) transaction request (Parser.parse rejects when there " +
             "is no leading address and no remaining text).",
         "structure_empty_request_query_marker" to
-            "v1 throws Errors.InvalidParamName(\"paramName cannot be empty\") for 'zcash:?'; " +
-            "the reference parses it as an empty (zero-payment) transaction request " +
-            "(the '?' leads Param.from to see an empty paramname instead of zero params).",
+            "v1 throws Errors.ParseError for 'zcash:?'; the reference parses it as an empty " +
+            "(zero-payment) transaction request (the Scanner grammar splits the empty query into " +
+            "one empty segment whose paramname scan fails).",
         // --- invalid vectors v1 accepts -------------------------------------
         "spec_invalid_zero_valued_transparent_output" to
             "v1 has no zero-valued-transparent-output consensus check: 'amount=0' to a " +

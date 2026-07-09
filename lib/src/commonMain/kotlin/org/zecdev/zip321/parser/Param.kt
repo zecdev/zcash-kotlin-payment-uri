@@ -64,14 +64,14 @@ sealed class Param {
                     if (value == null) {
                         throw ZIP321.Errors.InvalidParamValue(queryKey, index)
                     }
-                    Label(value.qcharDecode())
+                    Label(decodeQcharValue(value, queryKey, index))
                 }
                 ParamName.MESSAGE.value -> {
                     // MESSAGE param can't have no value
                     if (value == null) {
                         throw ZIP321.Errors.InvalidParamValue(queryKey, index)
                     }
-                    Message(value.qcharDecode())
+                    Message(decodeQcharValue(value, queryKey, index))
                 }
                 ParamName.MEMO.value -> {
                     // MEMO param can't have no value
@@ -88,10 +88,28 @@ sealed class Param {
                     if (queryKey.startsWith("req-")) {
                         throw ZIP321.Errors.UnknownRequiredParameter(queryKey)
                     }
-                    Other(ParamNameString(queryKey), value?.qcharDecode())
+                    // `otherparam` values are percent-decoded per the `qchar` grammar (matching
+                    // the reference), then preserved. An absent value (no `=`) stays `null`.
+                    Other(ParamNameString(queryKey), value?.let { decodeQcharValue(it, queryKey, index) })
                 }
             }
         }
+
+        /**
+         * Strictly percent-decodes a `label`/`message`/`otherparam` value per the ZIP-321 `qchar`
+         * grammar, mapping a decode failure onto [ZIP321.Errors.QcharDecodeFailed]. The URI
+         * tokenizer already restricts the raw value to `qchar` characters / percent-escapes, so
+         * the only failures here are a malformed `%XX` escape or a decoded byte sequence that is
+         * not valid UTF-8.
+         */
+        @Throws(ZIP321.Errors::class)
+        private fun decodeQcharValue(
+            value: String,
+            queryKey: String,
+            index: UInt,
+        ): String =
+            QCharCodec.decode(value)
+                ?: throw ZIP321.Errors.QcharDecodeFailed(index.mapToParamIndex(), queryKey, value)
     }
 
     data class Address(val recipientAddress: RecipientAddress) : Param()
