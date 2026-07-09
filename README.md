@@ -1,4 +1,17 @@
 # zcash-kotlin-payment-uri
+
+| Job | Status |
+| --- | --- |
+| `test-jvm` (JDK 17 / 21) | [![test-jvm](https://github.com/zecdev/zcash-kotlin-payment-uri/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/zecdev/zcash-kotlin-payment-uri/actions/workflows/ci.yml) |
+| `test-apple` (iOS simulator + device-target link) | [![test-apple](https://github.com/zecdev/zcash-kotlin-payment-uri/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/zecdev/zcash-kotlin-payment-uri/actions/workflows/ci.yml) |
+| `fuzz-smoke` (Jazzer, bounded) | [![fuzz-smoke](https://github.com/zecdev/zcash-kotlin-payment-uri/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/zecdev/zcash-kotlin-payment-uri/actions/workflows/ci.yml) |
+| `dokka` (fail on warning) | [![dokka](https://github.com/zecdev/zcash-kotlin-payment-uri/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/zecdev/zcash-kotlin-payment-uri/actions/workflows/ci.yml) |
+
+All four jobs are required checks on `main` and on every pull request (see `.github/workflows/ci.yml`).
+The badges above all point at the same workflow run; GitHub does not support per-job badges, so
+check the [Actions tab](https://github.com/zecdev/zcash-kotlin-payment-uri/actions/workflows/ci.yml)
+for the individual job's status.
+
 Prototype of Zcash Payment URIs defined on ZIP-321 for Kotlin
 
 

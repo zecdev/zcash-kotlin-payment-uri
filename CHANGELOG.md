@@ -6,6 +6,67 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added — CI workflows (v2/K17)
+
+- Replaced the stale `.github/workflows/basic-test.yml` (a single `ubuntu-latest` job running
+  `./gradlew test` — a task that hasn't existed since the v2/K0 Kotlin Multiplatform conversion;
+  the per-target tasks are `jvmTest`/`iosSimulatorArm64Test`/etc) with `.github/workflows/ci.yml`,
+  a 4-job workflow (all required) on push to `main` and every PR:
+  - **`test-jvm`**: `ubuntu-latest` × JDK **17 / 21** (Temurin). Runs the explicit task list
+    `jvmTest koverVerify ktlintCheck detekt` rather than `build`/`check`: those also depend on
+    compiling the `iosArm64`/`iosSimulatorArm64` targets, and Kotlin/Native can only cross-compile
+    Apple targets on a macOS host, so the explicit list runs every JVM-side gate (unit tests, the
+    K16 Kover 100%-line/≥98%-branch coverage gate, ktlint, detekt) without ever touching a target
+    this runner can't build.
+  - **`test-apple`**: `macos-15` (Xcode's ambient default there, 16.4, matches what was already
+    verified locally in v2/K16 for `iosSimulatorArm64Test` — reconfirmed working here). Runs
+    `iosSimulatorArm64Test` (simulator tests) plus `linkDebugTestIosArm64` (device-target link
+    check; it cannot run on a device in CI).
+  - **`fuzz-smoke`**: `ubuntu-latest`. Runs the existing Jazzer JUnit `@FuzzTest`
+    (`ZIP321FuzzTest`, already exercised in fast REGRESSION mode as part of `test-jvm`'s `jvmTest`)
+    with `JAZZER_FUZZ=1` to switch it into actual mutation-based fuzzing, bounded to a smoke-sized
+    **45 seconds** via `ZIP321FuzzTest`'s own new `@FuzzTest(maxDuration = "45s")`. The documented
+    `-Djazzer.max_duration=<duration>` runtime override was tested against this project's pinned
+    jazzer-junit 0.24.0 (both as a bare CLI flag and via explicit Gradle `Test.systemProperties`
+    forwarding) and, empirically, changed nothing — the run kept going for the un-overridden
+    5-minute annotation default every time — so the bound is set directly on the annotation
+    instead, documented loudly in the test file for whoever builds a deeper/nightly fuzzing job
+    later.
+  - **`dokka`**: `ubuntu-latest`. Runs `./gradlew :lib:dokkaGenerate` (fails on any undocumented
+    public symbol or broken doc link — see the Dokka entry above).
+  - Every job checks out `submodules: recursive`; per the note in `.gitmodules`, this workflow only
+    goes green once https://github.com/zecdev/zcash-zip321-test-vectors is published and
+    `.gitmodules` is re-pointed at it.
+  - Test/coverage/lint/dokka reports and any fuzz crash artifacts are uploaded via
+    `actions/upload-artifact` (`if: failure()` for test/lint reports; `if: always()` for the
+    generated Dokka site).
+  - README.md gets a 4-job badge table (all pointing at the same `ci.yml` workflow badge — GitHub
+    has no per-job badge endpoint).
+- **Fixed real, pre-existing bugs in `.github/workflows/deploy-release.yml`** surfaced while
+  auditing it for KMP fallout:
+  - **The `deploy_release` job now runs on `macos-15`, not `ubuntu-latest`.** `./gradlew publish`
+    produces FOUR publications since v2/K0 (root Gradle-module, jvm, iosArm64,
+    iosSimulatorArm64), and Kotlin/Native can only cross-compile Apple targets on macOS — left on
+    ubuntu, a real release would have silently published only the jvm/root artifacts and
+    permanently omitted `org.zecdev:zip321-iosarm64` / `org.zecdev:zip321-iossimulatorarm64` for
+    that version.
+  - Added `submodules: recursive` to the checkout (previously entirely missing) — `publish`
+    depends on compiling and testing every target, which fails without the corpus submodule the
+    v2/K1 conformance-vector embedding needs.
+  - Removed a literal **duplicated `Checkout` step** (copy-paste artifact; the workflow checked
+    out the repository twice in a row).
+  - Removed the dead `ORG_GRADLE_PROJECT_NATIVE_TARGETS_ENABLED: false` env var: no Gradle
+    property of that name is read anywhere in `build.gradle.kts`/`settings.gradle.kts` — it did
+    nothing.
+  - Replaced `gradle/gradle-build-action` (**archived upstream**, last pushed 2024-08-22) with its
+    maintained successor `gradle/actions/setup-gradle`.
+  - Bumped `actions/checkout`, `actions/setup-java`, and `actions/upload-artifact` SHA pins to
+    their current major versions (v7.0.0 / v5.5.0 / v7.0.1), keeping the existing SHA-pinned style.
+  - The final "Upload Artifacts" step's bundle path was hardcoded to the pre-KMP
+    `zip321-lib-<version>-bundle.zip` name; globbed to `*-bundle.zip` instead of re-guessing the
+    exact filename JReleaser now produces for the 4-publication layout without a real Maven
+    Central deploy available to confirm it in this environment.
+
 ### Added — 100% line / 98%+ branch coverage gate on commonMain/jvmMain (v2/K16)
 
 - Applied `org.jetbrains.kotlinx.kover` **0.9.8** (latest stable) to `lib/build.gradle.kts`. Kover

@@ -1,0 +1,188 @@
+name: CI
+#
+# Replaces the old basic-test.yml (a single ubuntu `./gradlew test` job, stale since the v2/K0 KMP
+# conversion: there is no plain `test` task in a Kotlin Multiplatform build — the per-target tasks
+# are `jvmTest`/`iosSimulatorArm64Test`/etc). Runner/toolchain notes (as of mid-2026):
+#
+# - `test-jvm` runs on `ubuntu-latest` across a JDK 17 / 21 matrix (Temurin, via `setup-java`).
+#   Gradle itself only needs a JDK >= 17 to LAUNCH; the `commonMain`/`jvmMain` toolchain (21, via
+#   `settings.gradle.kts`'s `foojay-resolver-convention`) is auto-provisioned regardless of the
+#   launching JDK, so this matrix exercises "Gradle launched by the oldest supported JDK" and
+#   "launched by the toolchain JDK itself" rather than testing two different compilation targets.
+#   The invocation is the explicit task list `jvmTest koverVerify ktlintCheck detekt` rather than
+#   `build` (or `check`): `build`/`assemble` also depend on compiling the `iosArm64`/
+#   `iosSimulatorArm64` targets, and Kotlin/Native can only cross-compile Apple targets on a macOS
+#   host — the explicit task list runs every JVM-side gate (unit tests, the Kover 100%
+#   line / >=98% branch coverage gate, ktlint, detekt) without ever touching a target this
+#   ubuntu runner cannot build, so there's no need to reach for
+#   `kotlin.native.ignoreDisabledTargets`.
+# - `test-apple` runs on `macos-15` (Xcode's ambient default there is 16.4 — the same
+#   image/toolchain combination already verified locally in v2/K16 for
+#   `iosSimulatorArm64Test`), running the simulator test suite plus a device-target link
+#   (`linkDebugTestIosArm64`) to confirm the `iosArm64` klib/test binary actually links (it cannot
+#   run there — no physical device in CI).
+# - `fuzz-smoke` runs the existing Jazzer JUnit `@FuzzTest` (`ZIP321FuzzTest`, already exercised in
+#   REGRESSION mode as an ordinary fast JUnit test inside `test-jvm`'s `jvmTest`) in actual FUZZING
+#   mode: `JAZZER_FUZZ=1` switches Jazzer JUnit from regression mode (replay-only) to fuzzing mode.
+#   The run is capped to a smoke-sized 45 seconds via `ZIP321FuzzTest`'s own
+#   `@FuzzTest(maxDuration = "45s")` — see that file's comment for why the bound lives there and
+#   not on a `-Djazzer.max_duration` runtime flag (tested against this project's pinned
+#   jazzer-junit 0.24.0 and found not to take effect). This is a nightly-fuzzing precursor, not a
+#   substitute for one — it only proves the harness still starts up and mutates without crashing
+#   on every PR.
+# - `dokka` runs `./gradlew :lib:dokkaGenerate`, the Dokka Gradle Plugin v2 unified task (v1's
+#   `dokkaHtml` is deprecated); `failOnWarning` is set project-wide in `lib/build.gradle.kts`'s
+#   `dokka { }` block, so an undocumented public symbol or an unresolved `[Foo]`-style doc link
+#   fails the build, not just this CI job.
+#
+# NOTE: `submodules: recursive` here checks out `test-vectors` from whatever URL is currently in
+# `.gitmodules`. That is presently a local path (see the note in `.gitmodules`); this workflow —
+# and therefore every job below, all of which depend on the generated conformance corpus — only
+# goes green in CI once https://github.com/zecdev/zcash-zip321-test-vectors is published and
+# `.gitmodules` is re-pointed at it.
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-jvm:
+    name: test-jvm (JDK ${{ matrix.java }})
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ["17", "21"]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: temurin
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: JVM tests, coverage gate, ktlint, detekt
+        run: ./gradlew jvmTest koverVerify ktlintCheck detekt
+
+      - name: Upload test/coverage/lint reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-jvm-reports-jdk${{ matrix.java }}
+          path: |
+            lib/build/reports/tests/
+            lib/build/reports/kover/
+            lib/build/reports/ktlint/
+            lib/build/reports/detekt/
+
+  test-apple:
+    name: test-apple (macos-15)
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: "21"
+          distribution: temurin
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Select ambient default Xcode
+        run: |
+          echo "DEVELOPER_DIR=$(xcode-select -p)" >> "$GITHUB_ENV"
+          xcode-select -p
+
+      - name: iOS simulator tests + device-target link
+        run: ./gradlew iosSimulatorArm64Test linkDebugTestIosArm64
+
+      - name: Upload test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-apple-reports
+          path: lib/build/reports/tests/
+
+  fuzz-smoke:
+    name: fuzz-smoke (Jazzer, bounded)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: "21"
+          distribution: temurin
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      # The 45s bound lives on ZIP321FuzzTest's own `@FuzzTest(maxDuration = "45s")` (see that
+      # file's comment): the documented `-Djazzer.max_duration=<duration>` runtime override was
+      # tested against this project's pinned jazzer-junit 0.24.0 and empirically changed nothing,
+      # so JAZZER_FUZZ=1 is the only thing this step needs to switch the test from its default
+      # fast regression-mode replay (already covered by `test-jvm`'s `jvmTest`) into bounded
+      # mutation-based fuzzing.
+      - name: Fuzz ZIP321.parse for 45s (smoke, not a campaign)
+        env:
+          JAZZER_FUZZ: "1"
+        run: ./gradlew :lib:jvmTest --tests "org.zecdev.zip321.ZIP321FuzzTest"
+
+      - name: Upload crashing inputs on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fuzz-smoke-findings
+          path: |
+            lib/*.jazzer-*
+            lib/build/reports/tests/
+
+  dokka:
+    name: dokka (dokkaGenerate, fail on warning)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: "21"
+          distribution: temurin
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Generate API docs (fails on any undocumented public symbol or broken doc link)
+        run: ./gradlew :lib:dokkaGenerate
+
+      - name: Upload generated docs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dokka-html
+          path: lib/build/dokka/html

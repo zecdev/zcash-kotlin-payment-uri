@@ -31,3 +31,11 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# Jazzer fuzzing artifacts (ZIP321FuzzTest, run locally with JAZZER_FUZZ=1 or via CI's
+# fuzz-smoke job): the seed corpus directory and any crash/timeout reproducer files it drops in
+# the working directory (module root when run via `./gradlew :lib:jvmTest`).
+.cifuzz-corpus/
+crash-*
+timeout-*
+oom-*

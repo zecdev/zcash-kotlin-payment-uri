@@ -26,34 +26,56 @@ jobs:
   deploy_release:
     if: needs.check_secrets.outputs.has-secrets == 'true'
     needs: [ check_secrets ]
-    runs-on: ubuntu-latest
+    # K17: BREAKING requirement introduced by the v2/K0 KMP conversion. `./gradlew publish` now
+    # produces FOUR publications (root Gradle-module + jvm + iosArm64 + iosSimulatorArm64; see
+    # lib/build.gradle.kts's "Publication" section), and Kotlin/Native can only cross-compile
+    # Apple targets on a macOS host. This job used to run on `ubuntu-latest` (fine when it only
+    # published a single JVM jar); left as ubuntu-latest today, the iosArm64/iosSimulatorArm64
+    # compile tasks cannot run at all on that host, so the release would silently publish only
+    # the jvm/root artifacts and permanently omit `org.zecdev:zip321-iosarm64` /
+    # `org.zecdev:zip321-iossimulatorarm64` for that version. macos-15 matches ci.yml's
+    # `test-apple` job (Xcode's ambient default there is 16.4, already verified against this
+    # project's KMP targets).
+    runs-on: macos-15
     permissions:
       contents: read
     steps:
       - name: Checkout
         timeout-minutes: 1
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938
-      - name: Checkout
-        timeout-minutes: 1
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          # K17: the K1 conformance-corpus embedding (`generateConformanceVectors`, wired into
+          # every compile via `commonTest.kotlin.srcDir(...)`) reads `test-vectors/vectors/**`,
+          # so `publish` (which depends on compiling and testing every target) fails without the
+          # submodule checked out. This was previously missing here entirely — a second,
+          # independent way this workflow was broken by the v2 rewrite. See the note in
+          # `.gitmodules`: this only goes green once
+          # https://github.com/zecdev/zcash-zip321-test-vectors is published and `.gitmodules` is
+          # re-pointed at it.
+          submodules: recursive
       - name: Set up Java
-        uses: actions/setup-java@b36c23c0d998641eff861008f374ee103c25ac73
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
         timeout-minutes: 1
         with:
           java-version: '21'
           distribution: 'zulu'
       - name: Set up Gradle
-        uses: gradle/gradle-build-action@ac2d340dc04d9e1113182899e983b5400c17cda1
+        # K17: gradle/gradle-build-action is ARCHIVED upstream (last pushed 2024-08-22) — replaced
+        # by gradle/actions/setup-gradle, its maintained successor (also used by ci.yml).
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
         timeout-minutes: 10
         with:
           gradle-home-cache-cleanup: true
+      - name: Select ambient default Xcode
+        run: |
+          echo "DEVELOPER_DIR=$(xcode-select -p)" >> "$GITHUB_ENV"
+          xcode-select -p
       - name: Run chmod to make gradlew executable
         run: chmod +x ./gradlew
       - name: Deploy to Maven Local
         timeout-minutes: 25
         env:
           ORG_GRADLE_PROJECT_IS_SNAPSHOT: false
-          ORG_GRADLE_PROJECT_NATIVE_TARGETS_ENABLED: false
           JRELEASER_GPG_SECRET_KEY: ${{ secrets.JRELEASER_GPG_SECRET_KEY }}
         run: |
           ./gradlew publish --no-parallel
@@ -86,8 +108,14 @@ jobs:
           RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
       - name: Upload Artifacts
         if: ${{ always() }}
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         timeout-minutes: 1
         with:
           name: Release binaries ${{ env.RELEASE_VERSION }}
-          path: lib/build/jreleaser/deploy/mavenCentral/maven-central/zip321-lib-${{ env.RELEASE_VERSION }}-bundle.zip
+          # K17: was hardcoded to the pre-KMP "zip321-lib-<version>-bundle.zip" name (stale since
+          # before the v2/K0 artifactId remap in lib/build.gradle.kts's "Publication" section, and
+          # never exercised since — this workflow only fires on a real version tag). Globbed
+          # instead of re-guessing the exact bundle filename JReleaser now produces for the
+          # 4-publication KMP layout, without being able to run a real Maven Central deploy in
+          # this environment to confirm it.
+          path: lib/build/jreleaser/deploy/mavenCentral/maven-central/*-bundle.zip
