@@ -34,3 +34,8 @@ request with no amount, an amount + memo + message request, a multi-recipient re
   characters by the ZIP-321 `paramindex` grammar.
 - **Input size is bounded before any parsing work happens.** [org.zecdev.zip321.ZIP321.parse] rejects input
   larger than `maxInputBytes` (default [org.zecdev.zip321.ZIP321.DEFAULT_MAX_INPUT_BYTES], 8 KiB).
+- **The SHA-256 behind Base58Check comes from the platform, not from this library.** An internal
+  `expect`/`actual` delegates to `java.security.MessageDigest` on JVM/Android and to Apple's CommonCrypto
+  (`CC_SHA256`, via Kotlin/Native's bundled `platform.CoreCrypto` interop) on iOS. Both are first-party to their
+  platform, so the audited, maintained, hardware-accelerated implementations do the work while the
+  zero-runtime-dependency claim at the top of this page still holds.
