@@ -1,6 +1,7 @@
 package org.zecdev.zip321.conformance
 
 import org.zecdev.zip321.ZIP321
+import org.zecdev.zip321.ZIP321Error
 import org.zecdev.zip321.model.Payment
 import org.zecdev.zip321.model.PaymentRequest
 import org.zecdev.zip321.support.ReferenceAddressValidator
@@ -13,9 +14,8 @@ import kotlin.test.assertTrue
  *
  * Valid vectors are parsed via [ZIP321.parse]`(...).getOrThrow()` and their payments compared
  * exactly (including [org.zecdev.zip321.model.NonNegativeAmount] amounts). Invalid vectors are asserted to be
- * REJECTED (this file checks the parse decision only; the exact [org.zecdev.zip321.ZIP321Error]
- * discriminant assertion is layered on in a follow-up commit). Known divergences live in
- * [ExpectedFailures] and are asserted to currently fail.
+ * rejected with the EXACT [ZIP321Error] discriminant named by the corpus (case-name comparison).
+ * Known divergences live in [ExpectedFailures] and are asserted to currently fail.
  *
  * Deterministic: no network, no clocks; the corpus is embedded into the test sources at build time.
  */
@@ -169,4 +169,60 @@ private fun checkInvalidVector(vector: InvalidVector) {
         "vector '${vector.name}' (reference error: ${vector.error}) must be rejected " +
             "but parsed successfully as: ${result.getOrNull()} (${vector.description})",
     )
+
+    val error = result.exceptionOrNull()
+    assertTrue(
+        error is ZIP321Error,
+        "vector '${vector.name}' must fail with a ZIP321Error, was ${error?.let { it::class.simpleName }}",
+    )
+
+    val expected = expectedDiscriminant(vector.error)
+    assertEquals(
+        expected,
+        error.discriminantName(),
+        "error discriminant for '${vector.name}' (${vector.description})",
+    )
 }
+
+/**
+ * Maps a corpus `error` string (camelCase cross-language discriminant) to the expected
+ * [ZIP321Error] subclass simple name. Any unrecognized corpus discriminant fails loudly so a corpus
+ * update cannot silently pass.
+ */
+private fun expectedDiscriminant(corpusError: String): String =
+    when (corpusError) {
+        "invalidBase64" -> "InvalidBase64"
+        "memoBytesError" -> "MemoBytesError"
+        "transparentMemo" -> "TransparentMemo"
+        "zeroValuedTransparentOutput" -> "ZeroValuedTransparentOutput"
+        "tooManyPayments" -> "TooManyPayments"
+        "duplicateParameter" -> "DuplicateParameter"
+        "recipientMissing" -> "RecipientMissing"
+        "invalidAddress" -> "InvalidAddress"
+        "unknownRequiredParameter" -> "UnknownRequiredParameter"
+        "invalidParamIndex" -> "InvalidParamIndex"
+        "amountExceededSupply" -> "AmountExceededSupply"
+        "amountInvalid" -> "AmountInvalid"
+        "invalidURI" -> "InvalidURI"
+        "parseError" -> "ParseError"
+        else -> error("unmapped corpus error discriminant '$corpusError'")
+    }
+
+private fun ZIP321Error?.discriminantName(): String? =
+    when (this) {
+        is ZIP321Error.InvalidBase64 -> "InvalidBase64"
+        is ZIP321Error.MemoBytesError -> "MemoBytesError"
+        is ZIP321Error.TransparentMemo -> "TransparentMemo"
+        is ZIP321Error.ZeroValuedTransparentOutput -> "ZeroValuedTransparentOutput"
+        is ZIP321Error.TooManyPayments -> "TooManyPayments"
+        is ZIP321Error.DuplicateParameter -> "DuplicateParameter"
+        is ZIP321Error.RecipientMissing -> "RecipientMissing"
+        is ZIP321Error.InvalidAddress -> "InvalidAddress"
+        is ZIP321Error.UnknownRequiredParameter -> "UnknownRequiredParameter"
+        is ZIP321Error.InvalidParamIndex -> "InvalidParamIndex"
+        is ZIP321Error.AmountExceededSupply -> "AmountExceededSupply"
+        is ZIP321Error.AmountInvalid -> "AmountInvalid"
+        is ZIP321Error.InvalidURI -> "InvalidURI"
+        is ZIP321Error.ParseError -> "ParseError"
+        null -> null
+    }
