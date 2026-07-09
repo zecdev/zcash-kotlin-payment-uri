@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Fixed — ktlint/detekt baseline hygiene (v2/K17)
+
+- **Both lint baselines were extremely stale**: `lib/config/ktlint/baseline.xml` carried 74
+  suppressed findings, of which 72 referenced files or exact code that had since been deleted or
+  substantially rewritten (`LegacyAmount.kt` and `LegacyAmountBigDecimal.kt` — the v1 amount type
+  and its `BigDecimal` shim, both removed in K12 — `IndexedParameter.kt`'s old hand-written
+  `equals`/`hashCode`, `Param.kt`'s old `QcharString`-era shape, and stale line/column coordinates
+  in a long-since-reformatted `Render.kt`) — inert dead weight, not actively suppressing anything,
+  but obscuring the two genuinely still-open findings underneath them. `tools/detekt-baseline.xml`
+  was the same story: 72 IDs down to the 11 that reference code that still exists as written
+  (`ZIP321.kt$ZIP321.Errors.*` line lengths and `readResolve()` singletons, `MemoBytes.kt`'s
+  `readResolve()` singletons, `Param.kt$Param`'s `partiallyEqual` return count,
+  `Parser.kt$Parser` `TooManyFunctions`, and the `QcharCodec.kt` filename/object-name mismatch also
+  flagged by ktlint). The K5/K8 redesign is what drove the detekt count that low: the crypto and
+  the whole `ParserContext` address-validation machinery left `commonMain` entirely, taking their
+  baselined findings with them. Regenerated both via `./gradlew ktlintGenerateBaseline` /
+  `./gradlew :lib:detektBaseline` and diffed the results line-by-line to confirm every removed
+  entry was dead (not a live suppression getting silently dropped) and that zero *new* findings
+  were introduced — this is a strict shrink, matching the task's own "do not add new entries" rule
+  from the other direction. Run right after the Dokka KDoc pass below (rather than before it) on
+  purpose: that pass shifts line numbers in `Render.kt`/`MemoBytes.kt`/`Payment.kt`, which would
+  have immediately re-staled a baseline regenerated any earlier.
+- No production code changed as part of this entry; the two real remaining ktlint findings
+  (`MemoBytes.kt`'s `maxLength` property-naming, `QcharCodec.kt`'s filename/object-name mismatch)
+  and the detekt findings above are both pre-existing and out of scope for this milestone.
+
 ### Added — API documentation via Dokka (v2/K17)
 
 - Applied the **Dokka Gradle Plugin v2, 2.2.0** (latest stable; v2 has been the default since Dokka
