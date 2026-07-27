@@ -6,6 +6,60 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added (v2/K2)
+- **New public `NonNegativeAmount` value type**
+  (`lib/src/commonMain/kotlin/org/zecdev/zip321/model/NonNegativeAmount.kt`):
+  a `Comparable` `@JvmInline value class` wrapping an **unsigned** `ULong`
+  count of zatoshi with `NonNegativeAmount.MAX_MONEY`
+  (`2_100_000_000_000_000u`) as the upper bound. `Result`-based factories
+  `NonNegativeAmount.zatoshi(ULong)` (raw zatoshi) and
+  `NonNegativeAmount.zec(String)` (decimal ZEC string) enforce the **strict**
+  ZIP-321 `amountparam` grammar (`1*DIGIT [ "." 1*8DIGIT ]`): leading zeros in
+  the whole part are accepted, while `"123."`, `".5"`, empty strings, signs,
+  whitespace, and scientific notation are rejected, using checked integer
+  arithmetic only (failures carry the `NonNegativeAmount.AmountException`
+  sealed hierarchy: `NegativeAmount`, `ExceededSupply`,
+  `TooManyFractionalDigits`, `InvalidDecimalString`). `decimalString()`
+  renders exactly like the reference `amount_str` (librustzcash `zip321`:
+  whole part always, fraction only when nonzero, trailing zeros trimmed) — it
+  does NOT inherit the v1 8-significant-digit rounding bug. The type is
+  amount-agnostic: zero is representable; zero-amount policy (e.g.
+  zero-valued transparent outputs) belongs to `Payment`-level validation.
+- **Non-negativity is now structural.** The backing type is `ULong` (not a
+  checked `Long`), mirroring the `u64`-backed `Zatoshis` of the librustzcash
+  `zip321` reference and the `UInt64`-backed `NonNegativeAmount` of
+  `zcash-swift-payment-uri`: a negative amount is unrepresentable rather than
+  rejected at runtime. `AmountException.NegativeAmount` is therefore
+  unreachable from either factory — `zatoshi()` takes an unsigned count, and
+  `zec()` reports a leading sign as `InvalidDecimalString` — and is retained
+  only so the error taxonomy stays identical to the Swift library's
+  `AmountError`.
+- **Java interop, accepted v2 break:** because the public API exposes `ULong`,
+  Kotlin mangles the names of the `value` accessor and of every function with
+  an unsigned parameter or return type in the JVM artifact (`zip321-jvm`), so
+  they are not callable from plain Java under their Kotlin names. Kotlin
+  consumers (including Android) are unaffected: they see
+  `NonNegativeAmount.zatoshi(ULong)`, `value: ULong`, and `MAX_MONEY: ULong`
+  normally. This is a deliberate v2 API break, taken so the Kotlin, Swift, and
+  Rust representations of a ZIP-321 amount agree exactly; Java callers that
+  need a raw zatoshi count should parse via `zec(String)` / render via
+  `decimalString()`, or add a thin Kotlin shim.
+
+### Changed (v2/K2)
+- **The v1 `NonNegativeAmount` class is renamed `LegacyAmount`** and is
+  `@Deprecated("Use NonNegativeAmount")`, freeing its name for the new value
+  type (`zcash-swift-payment-uri` renamed the equivalent struct the same way).
+  There is deliberately **no** typealias for the old name — it now denotes the
+  replacement type — so any reference to `NonNegativeAmount` in v1 code is a
+  hard break, which is acceptable while v2 is unreleased. The legacy behavior
+  itself is unchanged (including its lenient `"123."`/`".5"` parsing and the
+  known 8-significant-digit render rounding bug, both preserved until the v2
+  parser rewrite); its JVM `BigDecimal` interop moved to
+  `lib/src/jvmMain/kotlin/org/zecdev/zip321/model/LegacyAmountBigDecimal.kt`.
+  Internal use sites (parser, renderer, model, tests) suppress the deprecation
+  warning file-wide with `@file:Suppress("DEPRECATION")` until the parser
+  adopts the new type, keeping the build warning-free.
+
 ### Changed — test suite on all targets (v2/K1)
 - The test suite moved from jvm-only **kotest** to **`kotlin.test`** in
   `commonTest`, so the same tests now compile and run on every KMP target

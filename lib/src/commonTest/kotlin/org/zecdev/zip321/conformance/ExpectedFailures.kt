@@ -54,7 +54,7 @@ object ExpectedFailures {
             "part); the ZIP-321 grammar requires the integer part.",
         "spec_invalid_zero_valued_transparent_output" to
             "v1 has no zero-valued-transparent-output consensus check: 'amount=0' to a " +
-            "transparent recipient parses successfully (NonNegativeAmount permits 0)."
+            "transparent recipient parses successfully (LegacyAmount permits 0)."
     )
 
     /**
@@ -66,7 +66,7 @@ object ExpectedFailures {
     val renderMismatch: Map<String, String> = mapOf(
         "amount_just_below_max_money" to
             "v1 re-renders amount 20999999.99999999 ZEC as 21000000: " +
-            "NonNegativeAmount.zatoshiToZEC builds BigDecimal(zatoshis, MathContext(8, " +
+            "LegacyAmount.zatoshiToZEC builds BigDecimal(zatoshis, MathContext(8, " +
             "HALF_EVEN)), rounding to 8 SIGNIFICANT DIGITS and silently inflating the " +
             "amount to max supply. Amount-corrupting round-trip bug, not just formatting.",
         "amount_parse_simple_large_decimal" to

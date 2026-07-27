@@ -1,3 +1,8 @@
+// `LegacyAmount` (the v1 amount type; it carried the `NonNegativeAmount` name before v2) is
+// deprecated in favor of the v2 `NonNegativeAmount` but remains in use until the parser adopts
+// it (v2 parser rewrite); keep this file warning-free meanwhile.
+@file:Suppress("DEPRECATION")
+
 package org.zecdev.zip321.parser
 
 import org.zecdev.zip321.ParamName
@@ -5,8 +10,8 @@ import org.zecdev.zip321.ZIP321
 import org.zecdev.zip321.ZIP321.Errors.TooManyPayments
 import org.zecdev.zip321.extensions.qcharDecode
 import org.zecdev.zip321.extensions.qcharEncoded
+import org.zecdev.zip321.model.LegacyAmount
 import org.zecdev.zip321.model.MemoBytes
-import org.zecdev.zip321.model.NonNegativeAmount
 import org.zecdev.zip321.model.RecipientAddress
 
 sealed class Param {
@@ -46,14 +51,14 @@ sealed class Param {
                     }
 
                     try {
-                        Amount(NonNegativeAmount(decimalString = value))
-                    } catch (error: NonNegativeAmount.AmountError.NegativeAmount) {
+                        Amount(LegacyAmount(decimalString = value))
+                    } catch (error: LegacyAmount.AmountError.NegativeAmount) {
                         throw ZIP321.Errors.AmountTooSmall(index)
-                    } catch (error: NonNegativeAmount.AmountError.GreaterThanSupply) {
+                    } catch (error: LegacyAmount.AmountError.GreaterThanSupply) {
                         throw ZIP321.Errors.AmountExceededSupply(index)
-                    } catch (error: NonNegativeAmount.AmountError.InvalidTextInput) {
+                    } catch (error: LegacyAmount.AmountError.InvalidTextInput) {
                         throw ZIP321.Errors.ParseError("Invalid text input $value")
-                    } catch (error: NonNegativeAmount.AmountError.TooManyFractionalDigits) {
+                    } catch (error: LegacyAmount.AmountError.TooManyFractionalDigits) {
                         throw ZIP321.Errors.AmountTooSmall(index)
                     }
                 }
@@ -93,7 +98,7 @@ sealed class Param {
     }
 
     data class Address(val recipientAddress: RecipientAddress) : Param()
-    data class Amount(val amount: NonNegativeAmount) : Param()
+    data class Amount(val amount: LegacyAmount) : Param()
     data class Memo(val memoBytes: MemoBytes) : Param()
     data class Label(val label: String) : Param()
     data class Message(val message: String) : Param()

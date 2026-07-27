@@ -1,9 +1,14 @@
+// `LegacyAmount` (the v1 amount type; it carried the `NonNegativeAmount` name before v2) is
+// deprecated in favor of the v2 `NonNegativeAmount` but remains in use until the parser adopts
+// it (v2 parser rewrite); keep this file warning-free meanwhile.
+@file:Suppress("DEPRECATION")
+
 package org.zecdev.zip321.parser
 
 import org.zecdev.zip321.ZIP321
 import org.zecdev.zip321.ZIP321.ParserResult
+import org.zecdev.zip321.model.LegacyAmount
 import org.zecdev.zip321.model.MemoBytes
-import org.zecdev.zip321.model.NonNegativeAmount
 import org.zecdev.zip321.model.OtherParam
 import org.zecdev.zip321.model.Payment
 import org.zecdev.zip321.model.PaymentRequest
@@ -328,7 +333,7 @@ fun Payment.Companion.fromUniqueIndexedParameters(index: UInt, parameters: List<
         }
     } ?: throw ZIP321.Errors.RecipientMissing(index.mapToParamIndex())
 
-    var amount: NonNegativeAmount? = null
+    var amount: LegacyAmount? = null
     var memo: MemoBytes? = null
     var label: String? = null
     var message: String? = null

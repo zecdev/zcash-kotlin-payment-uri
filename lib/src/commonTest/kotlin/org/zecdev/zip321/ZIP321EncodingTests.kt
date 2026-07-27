@@ -1,8 +1,13 @@
+// `LegacyAmount` (the v1 amount type; it carried the `NonNegativeAmount` name before v2) is
+// deprecated in favor of the v2 `NonNegativeAmount` but remains in use until the parser adopts
+// it (v2 parser rewrite); keep this file warning-free meanwhile.
+@file:Suppress("DEPRECATION")
+
 package org.zecdev.zip321
 
 import org.zecdev.zip321.ZIP321.FormattingOptions.EnumerateAllPayments
 import org.zecdev.zip321.ZIP321.FormattingOptions.UseEmptyParamIndex
-import org.zecdev.zip321.model.NonNegativeAmount
+import org.zecdev.zip321.model.LegacyAmount
 import org.zecdev.zip321.model.Payment
 import org.zecdev.zip321.model.PaymentRequest
 import org.zecdev.zip321.model.RecipientAddress
@@ -18,7 +23,7 @@ class ZIP321EncodingTests {
         val payment1 =
             Payment(
                 recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
-                nonNegativeAmount = NonNegativeAmount("123.45"),
+                nonNegativeAmount = LegacyAmount("123.45"),
                 memo = null,
                 label = "apple",
                 message = null,
@@ -32,7 +37,7 @@ class ZIP321EncodingTests {
                         "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
                         ParserContext.TESTNET,
                     ),
-                nonNegativeAmount = NonNegativeAmount("1.2345"),
+                nonNegativeAmount = LegacyAmount("1.2345"),
                 memo = null,
                 label = "banana",
                 message = null,
@@ -51,7 +56,7 @@ class ZIP321EncodingTests {
         val payment1 =
             Payment(
                 recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
-                nonNegativeAmount = NonNegativeAmount("123.45"),
+                nonNegativeAmount = LegacyAmount("123.45"),
                 memo = null,
                 label = "apple",
                 message = null,
@@ -65,7 +70,7 @@ class ZIP321EncodingTests {
                         "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
                         ParserContext.TESTNET,
                     ),
-                nonNegativeAmount = NonNegativeAmount("1.2345"),
+                nonNegativeAmount = LegacyAmount("1.2345"),
                 memo = null,
                 label = "banana",
                 message = null,
@@ -84,7 +89,7 @@ class ZIP321EncodingTests {
         val payment1 =
             Payment(
                 recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
-                nonNegativeAmount = NonNegativeAmount("123.45"),
+                nonNegativeAmount = LegacyAmount("123.45"),
                 memo = null,
                 label = "apple",
                 message = null,
@@ -98,7 +103,7 @@ class ZIP321EncodingTests {
                         "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
                         ParserContext.TESTNET,
                     ),
-                nonNegativeAmount = NonNegativeAmount("1.2345"),
+                nonNegativeAmount = LegacyAmount("1.2345"),
                 memo = null,
                 label = "banana",
                 message = null,
