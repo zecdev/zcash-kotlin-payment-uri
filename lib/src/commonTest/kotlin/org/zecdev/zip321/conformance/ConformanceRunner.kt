@@ -91,7 +91,7 @@ private data class ObservedPayment(
 private fun Payment.toObserved(): ObservedPayment =
     ObservedPayment(
         address = recipientAddress.value,
-        // NonNegativeAmount stores Long zatoshis internally and toString() renders them.
+        // LegacyAmount stores Long zatoshis internally and toString() renders them.
         amountZat = nonNegativeAmount?.toString()?.toLong(),
         memoBase64 = memo?.toBase64URL(),
         label = label,

@@ -6,6 +6,98 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Fixed (v2/K4)
+- **Zero-length memos are now valid** (conformance fix): `MemoBytes` accepts
+  0 to 512 bytes, matching the reference implementation (consensus zero-pads
+  memos to 512 bytes, so an empty memo is well-defined). A URI containing
+  `memo=` now parses to a payment with an empty (not absent) memo instead of
+  being rejected, and the conformance vector `structure_empty_memo_on_sapling`
+  now passes — its entry has been removed from the expected-failure map
+  (now 12 entries). The `MemoBytes.MemoError.MemoEmpty` case has been removed
+  accordingly.
+- **`MemoBytes(String)` now bounds the UTF-8 byte count, not the char count**:
+  the v1 check `string.length <= 512` could accept multi-byte strings whose
+  UTF-8 encoding exceeds 512 bytes (an invalid memo). The constructor now
+  encodes first and checks the byte length, matching the Swift implementation
+  and the ZIP-302 limit.
+
+### Added (v2/K3)
+- **Internal strict unpadded base64url codec (RFC 4648 §5)**
+  (`lib/src/commonMain/kotlin/org/zecdev/zip321/parser/Base64URL.kt`):
+  `encode(ByteArray): String` and `decode(String): ByteArray?`, pure Kotlin
+  common code. Encoding uses the RFC 4648 §5 url-safe alphabet with NO
+  padding, exactly like the reference implementation's
+  `BASE64_URL_SAFE_NO_PAD`. Decoding strictly rejects: `+`, `/`, `=`
+  (padding included), whitespace, any character outside the base64url
+  alphabet (including non-ASCII), impossible lengths (`length % 4 == 1`),
+  and non-canonical encodings whose trailing bits are nonzero (e.g. `"QR"`).
+  The empty string round-trips to zero bytes.
+
+### Changed (v2/K3)
+- **`MemoBytes` now encodes/decodes through the strict `Base64URL` codec**,
+  replacing the K0 hand-rolled translate-and-pad decoder (which mapped
+  `-`/`_` to `+`/`/`, right-padded with `=`, then decoded classic base64).
+  Decoding is stricter than before: classic-alphabet `+`/`/`, `=` padding,
+  and non-canonical encodings with nonzero trailing bits are now rejected
+  (the old path silently accepted them). No conformance vector and no unit
+  test exercised the lenient forms — the expected-failure map is unchanged.
+  The lenient `String.decodeBase64URL()` public extension is removed along
+  with the old implementation.
+
+### Added (v2/K2)
+- **New public `NonNegativeAmount` value type**
+  (`lib/src/commonMain/kotlin/org/zecdev/zip321/model/NonNegativeAmount.kt`):
+  a `Comparable` `@JvmInline value class` wrapping an **unsigned** `ULong`
+  count of zatoshi with `NonNegativeAmount.MAX_MONEY`
+  (`2_100_000_000_000_000u`) as the upper bound. `Result`-based factories
+  `NonNegativeAmount.zatoshi(ULong)` (raw zatoshi) and
+  `NonNegativeAmount.zec(String)` (decimal ZEC string) enforce the **strict**
+  ZIP-321 `amountparam` grammar (`1*DIGIT [ "." 1*8DIGIT ]`): leading zeros in
+  the whole part are accepted, while `"123."`, `".5"`, empty strings, signs,
+  whitespace, and scientific notation are rejected, using checked integer
+  arithmetic only (failures carry the `NonNegativeAmount.AmountException`
+  sealed hierarchy: `NegativeAmount`, `ExceededSupply`,
+  `TooManyFractionalDigits`, `InvalidDecimalString`). `decimalString()`
+  renders exactly like the reference `amount_str` (librustzcash `zip321`:
+  whole part always, fraction only when nonzero, trailing zeros trimmed) — it
+  does NOT inherit the v1 8-significant-digit rounding bug. The type is
+  amount-agnostic: zero is representable; zero-amount policy (e.g.
+  zero-valued transparent outputs) belongs to `Payment`-level validation.
+- **Non-negativity is now structural.** The backing type is `ULong` (not a
+  checked `Long`), mirroring the `u64`-backed `Zatoshis` of the librustzcash
+  `zip321` reference and the `UInt64`-backed `NonNegativeAmount` of
+  `zcash-swift-payment-uri`: a negative amount is unrepresentable rather than
+  rejected at runtime. `AmountException.NegativeAmount` is therefore
+  unreachable from either factory — `zatoshi()` takes an unsigned count, and
+  `zec()` reports a leading sign as `InvalidDecimalString` — and is retained
+  only so the error taxonomy stays identical to the Swift library's
+  `AmountError`.
+- **Java interop, accepted v2 break:** because the public API exposes `ULong`,
+  Kotlin mangles the names of the `value` accessor and of every function with
+  an unsigned parameter or return type in the JVM artifact (`zip321-jvm`), so
+  they are not callable from plain Java under their Kotlin names. Kotlin
+  consumers (including Android) are unaffected: they see
+  `NonNegativeAmount.zatoshi(ULong)`, `value: ULong`, and `MAX_MONEY: ULong`
+  normally. This is a deliberate v2 API break, taken so the Kotlin, Swift, and
+  Rust representations of a ZIP-321 amount agree exactly; Java callers that
+  need a raw zatoshi count should parse via `zec(String)` / render via
+  `decimalString()`, or add a thin Kotlin shim.
+
+### Changed (v2/K2)
+- **The v1 `NonNegativeAmount` class is renamed `LegacyAmount`** and is
+  `@Deprecated("Use NonNegativeAmount")`, freeing its name for the new value
+  type (`zcash-swift-payment-uri` renamed the equivalent struct the same way).
+  There is deliberately **no** typealias for the old name — it now denotes the
+  replacement type — so any reference to `NonNegativeAmount` in v1 code is a
+  hard break, which is acceptable while v2 is unreleased. The legacy behavior
+  itself is unchanged (including its lenient `"123."`/`".5"` parsing and the
+  known 8-significant-digit render rounding bug, both preserved until the v2
+  parser rewrite); its JVM `BigDecimal` interop moved to
+  `lib/src/jvmMain/kotlin/org/zecdev/zip321/model/LegacyAmountBigDecimal.kt`.
+  Internal use sites (parser, renderer, model, tests) suppress the deprecation
+  warning file-wide with `@file:Suppress("DEPRECATION")` until the parser
+  adopts the new type, keeping the build warning-free.
+
 ### Changed — test suite on all targets (v2/K1)
 - The test suite moved from jvm-only **kotest** to **`kotlin.test`** in
   `commonTest`, so the same tests now compile and run on every KMP target

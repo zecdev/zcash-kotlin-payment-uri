@@ -1,10 +1,15 @@
+// `LegacyAmount` (the v1 amount type; it carried the `NonNegativeAmount` name before v2) is
+// deprecated in favor of the v2 `NonNegativeAmount` but remains in use until the parser adopts
+// it (v2 parser rewrite); keep this file warning-free meanwhile.
+@file:Suppress("DEPRECATION")
+
 package org.zecdev.zip321.model
 
 import org.zecdev.zip321.parser.ParamNameString
 
 data class Payment(
     val recipientAddress: RecipientAddress,
-    val nonNegativeAmount: NonNegativeAmount?,
+    val nonNegativeAmount: LegacyAmount?,
     val memo: MemoBytes?,
     val label: String?,
     val message: String?,

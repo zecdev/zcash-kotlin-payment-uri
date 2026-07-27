@@ -1,6 +1,7 @@
 package org.zecdev.zip321
 
 import org.zecdev.zip321.model.MemoBytes
+import org.zecdev.zip321.parser.Base64URL
 import kotlin.math.ceil
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -63,32 +64,86 @@ class MemoBytesTests {
     }
 
     @Test
-    fun `InitWithStringThrows`() {
-        assertFailsWith<MemoBytes.MemoError.MemoEmpty> {
-            MemoBytes("")
+    fun `UTF8StringRoundTrip`() {
+        val memo = MemoBytes("This is a unicode memo ✨🦄🏆🎉")
+        val decoded = MemoBytes.fromBase64URL(memo.toBase64URL())
+
+        assertEquals(memo, decoded)
+        assertEquals("This is a unicode memo ✨🦄🏆🎉", decoded.data.decodeToString())
+    }
+
+    @Test
+    fun `RawBytesRoundTrip`() {
+        val bytes = byteArrayOf(0x00, 0xFF.toByte(), 0x10, 0x80.toByte(), 0x7F)
+
+        val memo = MemoBytes(bytes)
+        val decoded = MemoBytes.fromBase64URL(memo.toBase64URL())
+
+        assertEquals(memo, decoded)
+        assertTrue(decoded.data.contentEquals(bytes))
+    }
+
+    // MARK: - length boundaries: 0..512 bytes are valid, 513 is not.
+
+    @Test
+    fun `EmptyMemoIsValidAndRoundTrips`() {
+        // consensus zero-pads memos to 512 bytes, so a zero-length memo is a
+        // well-defined empty memo (`memo=` in a ZIP-321 URI).
+        val fromBytes = MemoBytes(byteArrayOf())
+        val fromString = MemoBytes("")
+        val fromBase64 = MemoBytes.fromBase64URL("")
+
+        assertEquals(fromString, fromBytes)
+        assertEquals(fromBase64, fromBytes)
+        assertEquals("", fromBytes.toBase64URL())
+        assertTrue(fromBytes.data.isEmpty())
+    }
+
+    @Test
+    fun `LengthBoundaries`() {
+        assertEquals(0, MemoBytes(byteArrayOf()).data.size)
+        assertEquals(1, MemoBytes(byteArrayOf(0x61)).data.size)
+        assertEquals(512, MemoBytes(ByteArray(MemoBytes.maxLength) { 0x61 }).data.size)
+
+        assertFailsWith<MemoBytes.MemoError.MemoTooLong> {
+            MemoBytes(ByteArray(MemoBytes.maxLength + 1) { 0x61 })
         }
+
+        assertEquals(512, MemoBytes("a".repeat(MemoBytes.maxLength)).data.size)
+
         assertFailsWith<MemoBytes.MemoError.MemoTooLong> {
             MemoBytes("a".repeat(MemoBytes.maxLength + 1))
         }
-    }
 
-    @Test
-    fun `InitWithBytesThrows`() {
-        assertFailsWith<MemoBytes.MemoError.MemoEmpty> {
-            MemoBytes(byteArrayOf())
-        }
+        // 513 bytes of valid base64url decode fine but exceed the memo limit.
+        val oversized = Base64URL.encode(ByteArray(MemoBytes.maxLength + 1) { 0x61 })
         assertFailsWith<MemoBytes.MemoError.MemoTooLong> {
-            MemoBytes(ByteArray(MemoBytes.maxLength + 1))
+            MemoBytes.fromBase64URL(oversized)
         }
     }
 
+    // MARK: - base64url rejections (strict unpadded RFC 4648 §5 decoding)
+
+    private val rejectedBase64URLStrings: List<Pair<String, String>> =
+        listOf(
+            "QTw+Qg" to "'+' belongs to classic base64, not base64url",
+            "QTw/Qg" to "'/' belongs to classic base64, not base64url",
+            "Zg==" to "'=' padding is forbidden",
+            "AB=" to "'=' padding is forbidden",
+            "A===" to "'=' padding is forbidden",
+            "A" to "length % 4 == 1 is impossible",
+            "Zg Zg" to "whitespace is rejected",
+            "Zg\n" to "whitespace is rejected",
+            "QR" to "nonzero trailing bits (non-canonical encoding)",
+            "····" to "non-ASCII characters are rejected",
+        )
+
     @Test
-    fun `SingleBase64CharacterThrows`() {
-        assertFailsWith<MemoBytes.MemoError.InvalidBase64URL> {
-            MemoBytes.fromBase64URL("A")
-        }
-        assertFailsWith<MemoBytes.MemoError.InvalidBase64URL> {
-            MemoBytes.fromBase64URL("AAAAA")
+    fun `InitWithInvalidBase64URLFails`() {
+        for ((input, reason) in rejectedBase64URLStrings) {
+            assertFailsWith<MemoBytes.MemoError.InvalidBase64URL>(reason) {
+                MemoBytes.fromBase64URL(input)
+            }
         }
     }
 }

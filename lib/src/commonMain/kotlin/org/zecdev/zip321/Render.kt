@@ -1,8 +1,13 @@
+// `LegacyAmount` (the v1 amount type; it carried the `NonNegativeAmount` name before v2) is
+// deprecated in favor of the v2 `NonNegativeAmount` but remains in use until the parser adopts
+// it (v2 parser rewrite); keep this file warning-free meanwhile.
+@file:Suppress("DEPRECATION")
+
 package org.zecdev.zip321
 
 import org.zecdev.zip321.extensions.qcharEncoded
+import org.zecdev.zip321.model.LegacyAmount
 import org.zecdev.zip321.model.MemoBytes
-import org.zecdev.zip321.model.NonNegativeAmount
 import org.zecdev.zip321.model.Payment
 import org.zecdev.zip321.model.PaymentRequest
 import org.zecdev.zip321.model.RecipientAddress
@@ -31,7 +36,7 @@ object Render {
         return "$label${parameterIndex(index)}=$qcharValue"
     }
 
-    fun parameter(nonNegativeAmount: NonNegativeAmount, index: UInt?): String {
+    fun parameter(nonNegativeAmount: LegacyAmount, index: UInt?): String {
         return "${ParamName.AMOUNT.value}${
             parameterIndex(
                 index
