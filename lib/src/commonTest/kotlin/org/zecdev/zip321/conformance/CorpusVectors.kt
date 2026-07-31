@@ -29,7 +29,7 @@ data class VectorPayment(
     /** Recipient address exactly as it appears in the URI. */
     val address: String,
     /** Amount in zatoshis, or null when no `amount` param is present. */
-    val amountZat: Long?,
+    val amountZat: ULong?,
     /** The memo param value as it appears in the URI (base64url, no padding), or null when absent. */
     val memoBase64: String?,
     /** Percent-decoded label value, or null when absent. */
@@ -86,7 +86,9 @@ object CorpusLoader {
                             address = p.getValue("address").jsonPrimitive.content,
                             amountZat =
                                 p.getValue("amountZat").let {
-                                    if (it is JsonNull) null else it.jsonPrimitive.long
+                                    // corpus amounts are non-negative JSON integers; the v2 amount
+                                    // type is unsigned, so decode them straight into a ULong.
+                                    if (it is JsonNull) null else it.jsonPrimitive.content.toULong()
                                 },
                             memoBase64 = p.getValue("memoBase64").contentOrNull(),
                             label = p.getValue("label").contentOrNull(),

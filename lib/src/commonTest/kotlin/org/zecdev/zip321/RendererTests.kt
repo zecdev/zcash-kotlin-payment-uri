@@ -1,12 +1,7 @@
-// `LegacyAmount` (the v1 amount type; it carried the `NonNegativeAmount` name before v2) is
-// deprecated in favor of the v2 `NonNegativeAmount` but remains in use until the parser adopts
-// it (v2 parser rewrite); keep this file warning-free meanwhile.
-@file:Suppress("DEPRECATION")
-
 package org.zecdev.zip321
 
-import org.zecdev.zip321.model.LegacyAmount
 import org.zecdev.zip321.model.MemoBytes
+import org.zecdev.zip321.model.NonNegativeAmount
 import org.zecdev.zip321.model.Payment
 import org.zecdev.zip321.model.PaymentRequest
 import org.zecdev.zip321.support.validRecipient
@@ -16,22 +11,22 @@ import kotlin.test.assertEquals
 /*
  * NOTE (K1/v2): amounts previously built with `123.456.toBigDecimal()` (JVM
  * BigDecimal setup sugar) are constructed via the equivalent common
- * `LegacyAmount(String)` constructor; the resulting zatoshi values and
+ * `NonNegativeAmount.zec(String)` factory; the resulting zatoshi values and
  * every expected rendered string are unchanged.
  */
 class RendererTests {
     @Test
     fun `Amount parameter is rendered with no paramIndex`() {
         val expected = "amount=123.456"
-        val nonNegativeAmount = LegacyAmount("123.456")
-        assertEquals(expected, Render.parameter(nonNegativeAmount, null))
+        val amount = NonNegativeAmount.zec("123.456").getOrThrow()
+        assertEquals(expected, Render.parameter(amount, null))
     }
 
     @Test
     fun `Amount parameter is rendered with paramIndex`() {
         val expected = "amount.1=123.456"
-        val nonNegativeAmount = LegacyAmount("123.456")
-        assertEquals(expected, Render.parameter(nonNegativeAmount, 1u))
+        val amount = NonNegativeAmount.zec("123.456").getOrThrow()
+        assertEquals(expected, Render.parameter(amount, 1u))
     }
 
     @Test
@@ -113,11 +108,11 @@ class RendererTests {
         val payment0 =
             Payment(
                 recipientAddress = recipient0,
-                nonNegativeAmount = LegacyAmount("123.456"),
+                amount = NonNegativeAmount.zec("123.456").getOrThrow(),
                 memo = null,
                 label = null,
                 message = null,
-                otherParams = null,
+                otherParams = emptyList(),
             )
 
         assertEquals(expected, Render.payment(payment0, null))
@@ -133,11 +128,11 @@ class RendererTests {
         val payment1 =
             Payment(
                 recipientAddress = recipient1,
-                nonNegativeAmount = LegacyAmount("0.789"),
+                amount = NonNegativeAmount.zec("0.789").getOrThrow(),
                 memo = MemoBytes("This is a unicode memo ✨🦄🏆🎉"),
                 label = null,
                 message = null,
-                otherParams = null,
+                otherParams = emptyList(),
             )
 
         assertEquals(expected, Render.payment(payment1, 1u))
@@ -152,11 +147,11 @@ class RendererTests {
         val payment0 =
             Payment(
                 recipientAddress = recipient0,
-                nonNegativeAmount = LegacyAmount("123.456"),
+                amount = NonNegativeAmount.zec("123.456").getOrThrow(),
                 memo = null,
                 label = null,
                 message = null,
-                otherParams = null,
+                otherParams = emptyList(),
             )
 
         assertEquals(expected, Render.payment(payment0, null, omittingAddressLabel = true))
@@ -172,11 +167,11 @@ class RendererTests {
         val payment1 =
             Payment(
                 recipientAddress = recipient1,
-                nonNegativeAmount = LegacyAmount("0.789"),
+                amount = NonNegativeAmount.zec("0.789").getOrThrow(),
                 memo = MemoBytes("This is a unicode memo ✨🦄🏆🎉"),
                 label = null,
                 message = null,
-                otherParams = null,
+                otherParams = emptyList(),
             )
 
         assertEquals(expected, Render.payment(payment1, 1u, omittingAddressLabel = true))
@@ -189,11 +184,11 @@ class RendererTests {
         val payment1 =
             Payment(
                 recipientAddress = validRecipient("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"),
-                nonNegativeAmount = LegacyAmount("123.45"),
+                amount = NonNegativeAmount.zec("123.45").getOrThrow(),
                 memo = null,
                 label = "apple",
                 message = null,
-                otherParams = null,
+                otherParams = emptyList(),
             )
 
         val payment2 =
@@ -202,11 +197,11 @@ class RendererTests {
                     validRecipient(
                         "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
                     ),
-                nonNegativeAmount = LegacyAmount("1.2345"),
+                amount = NonNegativeAmount.zec("1.2345").getOrThrow(),
                 memo = null,
                 label = "banana",
                 message = null,
-                otherParams = null,
+                otherParams = emptyList(),
             )
 
         val paymentRequest = PaymentRequest(listOf(payment1, payment2))
@@ -221,11 +216,11 @@ class RendererTests {
         val payment1 =
             Payment(
                 recipientAddress = validRecipient("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"),
-                nonNegativeAmount = LegacyAmount("123.45"),
+                amount = NonNegativeAmount.zec("123.45").getOrThrow(),
                 memo = null,
                 label = "apple",
                 message = null,
-                otherParams = null,
+                otherParams = emptyList(),
             )
 
         val payment2 =
@@ -234,11 +229,11 @@ class RendererTests {
                     validRecipient(
                         "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
                     ),
-                nonNegativeAmount = LegacyAmount("1.2345"),
+                amount = NonNegativeAmount.zec("1.2345").getOrThrow(),
                 memo = null,
                 label = "banana",
                 message = null,
-                otherParams = null,
+                otherParams = emptyList(),
             )
 
         val paymentRequest = PaymentRequest(listOf(payment1, payment2))
@@ -253,11 +248,11 @@ class RendererTests {
         val payment1 =
             Payment(
                 recipientAddress = validRecipient("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"),
-                nonNegativeAmount = LegacyAmount("123.45"),
+                amount = NonNegativeAmount.zec("123.45").getOrThrow(),
                 memo = null,
                 label = "apple",
                 message = null,
-                otherParams = null,
+                otherParams = emptyList(),
             )
 
         val payment2 =
@@ -266,11 +261,11 @@ class RendererTests {
                     validRecipient(
                         "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
                     ),
-                nonNegativeAmount = LegacyAmount("1.2345"),
+                amount = NonNegativeAmount.zec("1.2345").getOrThrow(),
                 memo = null,
                 label = "banana",
                 message = null,
-                otherParams = null,
+                otherParams = emptyList(),
             )
 
         val paymentRequest = PaymentRequest(listOf(payment1, payment2))

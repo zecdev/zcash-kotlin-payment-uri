@@ -1,8 +1,3 @@
-// `LegacyAmount` (the v1 amount type; it carried the `NonNegativeAmount` name before v2) is
-// deprecated in favor of the v2 `NonNegativeAmount` but remains in use until the parser adopts
-// it (v2 parser rewrite); keep this file warning-free meanwhile.
-@file:Suppress("DEPRECATION")
-
 package org.zecdev.zip321.parser
 
 import org.zecdev.zip321.AddressValidator
@@ -13,13 +8,14 @@ import org.zecdev.zip321.ZIP321.Errors.TooManyPayments
 import org.zecdev.zip321.encodings.QCharCodec
 import org.zecdev.zip321.extensions.qcharDecode
 import org.zecdev.zip321.extensions.qcharEncoded
-import org.zecdev.zip321.model.LegacyAmount
 import org.zecdev.zip321.model.MemoBytes
+import org.zecdev.zip321.model.NonNegativeAmount
 import org.zecdev.zip321.model.RecipientAddress
 
-sealed class Param {
+internal sealed class Param {
     companion object {
         @Throws(ZIP321.Errors::class)
+        @Suppress("CyclomaticComplexMethod", "ThrowsCount", "LongMethod")
         fun from(
             queryKey: String,
             value: String?,
@@ -55,9 +51,8 @@ sealed class Param {
                         throw ZIP321.Errors.InvalidParamValue(queryKey, index)
                     }
 
-                    // Strict ZIP-321 `amountparam` grammar via `NonNegativeAmount`, bridged to
-                    // the still-`LegacyAmount`-typed `Payment.nonNegativeAmount`.
-                    Amount(LegacyAmount.fromNonNegativeAmount(AmountParser.parse(value, index)))
+                    // Strict ZIP-321 `amountparam` grammar via `NonNegativeAmount`.
+                    Amount(AmountParser.parse(value, index))
                 }
                 ParamName.LABEL.value -> {
                     // LABEL param can't have no value
@@ -90,7 +85,7 @@ sealed class Param {
                     }
                     // `otherparam` values are percent-decoded per the `qchar` grammar (matching
                     // the reference), then preserved. An absent value (no `=`) stays `null`.
-                    Other(ParamNameString(queryKey), value?.let { decodeQcharValue(it, queryKey, index) })
+                    Other(queryKey, value?.let { decodeQcharValue(it, queryKey, index) })
                 }
             }
         }
@@ -114,7 +109,7 @@ sealed class Param {
 
     data class Address(val recipientAddress: RecipientAddress) : Param()
 
-    data class Amount(val amount: LegacyAmount) : Param()
+    data class Amount(val amount: NonNegativeAmount) : Param()
 
     data class Memo(val memoBytes: MemoBytes) : Param()
 
@@ -122,7 +117,7 @@ sealed class Param {
 
     data class Message(val message: String) : Param()
 
-    data class Other(val paramName: ParamNameString, val value: String?) : Param()
+    data class Other(val paramName: String, val value: String?) : Param()
 
     val name: String
         get() =
@@ -132,7 +127,7 @@ sealed class Param {
                 is Memo -> ParamName.MEMO.name.lowercase()
                 is Label -> ParamName.LABEL.name.lowercase()
                 is Message -> ParamName.MESSAGE.name.lowercase()
-                is Other -> paramName.value
+                is Other -> paramName
             }
 
     override fun equals(other: Any?): Boolean {
@@ -198,7 +193,7 @@ sealed class Param {
     }
 }
 
-fun List<Param>.hasDuplicateParam(param: Param): Boolean {
+internal fun List<Param>.hasDuplicateParam(param: Param): Boolean {
     for (i in this) {
         if (i.partiallyEqual(param)) return true else continue
     }
@@ -212,7 +207,7 @@ fun List<Param>.hasDuplicateParam(param: Param): Boolean {
  *  ```
  *   paramname       = ALPHA *( ALPHA / DIGIT / "+" / "-" )
  */
-class ParamNameString(val value: String) {
+internal class ParamNameString(val value: String) {
     init {
         // String can't be empty
         require(value.isNotEmpty()) { throw ZIP321.Errors.InvalidParamName(value) }
@@ -246,7 +241,7 @@ class ParamNameString(val value: String) {
     }
 }
 
-class QcharString private constructor(private val encoded: String) {
+internal class QcharString private constructor(private val encoded: String) {
     companion object {
         /**
          * Initializes a [QcharString] from a non-qchar-encoded input string.
@@ -261,6 +256,7 @@ class QcharString private constructor(private val encoded: String) {
          *
          * @return A [QcharString] instance, or `null` if strict mode detects an issue.
          */
+        @Suppress("ReturnCount")
         fun from(
             value: String,
             strict: Boolean = false,

@@ -1,8 +1,8 @@
 package org.zecdev.zip321.parser
 
-data class IndexedParameter(
+internal data class IndexedParameter(
     val index: UInt,
-    val param: Param
+    val param: Param,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

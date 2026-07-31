@@ -1,29 +1,23 @@
 package org.zecdev.zip321.conformance
 
 import org.zecdev.zip321.ZIP321
+import org.zecdev.zip321.ZIP321Error
 import org.zecdev.zip321.model.Payment
+import org.zecdev.zip321.model.PaymentRequest
 import org.zecdev.zip321.support.ReferenceAddressValidator
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /**
- * Conformance runner for the shared ZIP-321 vector corpus in the
- * `test-vectors` git submodule (oracle: librustzcash `zip321` crate).
+ * Conformance runner for the shared ZIP-321 vector corpus in the `test-vectors` git submodule
+ * (oracle: librustzcash `zip321` crate).
  *
- * The runner measures and documents where the current v1 implementation
- * diverges from the reference semantics; it does not assert v1 error types
- * (the corpus `error` discriminants are reference documentation only).
- * Known divergences live in [ExpectedFailures] and are asserted to
- * currently fail, so this suite is green as committed and flags stale
- * entries (XPASS) once the library is fixed.
+ * Valid vectors are parsed via [ZIP321.parse]`(...).getOrThrow()` and their payments compared
+ * exactly (including [org.zecdev.zip321.model.NonNegativeAmount] amounts). Invalid vectors are asserted to be
+ * rejected with the EXACT [ZIP321Error] discriminant named by the corpus (case-name comparison).
+ * Known divergences live in [ExpectedFailures] and are asserted to currently fail.
  *
- * K1: the kotest `FreeSpec` that previously hosted these checks is replaced
- * by `GeneratedZip321ConformanceTest` (one `kotlin.test` function per corpus
- * vector, generated at build time alongside the embedded vectors), which
- * dispatches into [ConformanceRunner] by vector name. Assertions and the
- * expected-failure semantics are unchanged.
- *
- * Deterministic: no network, no clocks; the corpus is embedded into the test
- * sources at build time.
+ * Deterministic: no network, no clocks; the corpus is embedded into the test sources at build time.
  */
 internal object ConformanceRunner {
     val validVectors: List<ValidVector> by lazy { CorpusLoader.loadValid() }
@@ -50,11 +44,9 @@ internal object ConformanceRunner {
     }
 
     /**
-     * Valid vector must re-render to the reference canonical URI (or be an
-     * xfail). Vectors that already fail to parse (documented in
-     * [ExpectedFailures.conformance]) cannot be re-rendered; as in the
-     * pre-K1 kotest runner they are excluded from the render check instead
-     * of being double-counted as render gaps.
+     * Valid vector must re-render to the reference canonical URI (or be an xfail). Vectors that
+     * already fail to parse (documented in [ExpectedFailures.conformance]) cannot be re-rendered;
+     * they are excluded from the render check instead of being double-counted as render gaps.
      */
     fun checkRender(name: String) {
         val vector = validVector(name)
@@ -66,7 +58,7 @@ internal object ConformanceRunner {
         }
     }
 
-    /** Invalid vector must be rejected with a [ZIP321.Errors] (or be an xfail). */
+    /** Invalid vector must be rejected by [ZIP321.parse] (or be an xfail). */
     fun checkInvalid(name: String) {
         val vector = invalidVector(name)
         expectDocumentedOutcome(vector.name, ExpectedFailures.conformance) {
@@ -76,13 +68,12 @@ internal object ConformanceRunner {
 }
 
 /**
- * A parsed payment as observed from the v1 API, normalized for comparison
- * against a [VectorPayment]. Note v1's model does not retain the original
- * ZIP-321 paramindex, so payments are compared positionally.
+ * A parsed payment as observed from the v2 API, normalized for comparison against a
+ * [VectorPayment].
  */
 private data class ObservedPayment(
     val address: String,
-    val amountZat: Long?,
+    val amountZat: ULong?,
     val memoBase64: String?,
     val label: String?,
     val message: String?,
@@ -92,53 +83,37 @@ private data class ObservedPayment(
 private fun Payment.toObserved(): ObservedPayment =
     ObservedPayment(
         address = recipientAddress.value,
-        // LegacyAmount stores Long zatoshis internally and toString() renders them.
-        amountZat = nonNegativeAmount?.toString()?.toLong(),
+        amountZat = amount?.value,
         memoBase64 = memo?.toBase64URL(),
         label = label,
         message = message,
-        other = otherParams.orEmpty().map { it.key.value to it.value },
+        other = otherParams.map { it.name to it.value },
     )
 
 /**
- * Parses a corpus vector through the SAME delegation path a production caller
- * uses: the library owns the URI grammar, and the test-only
- * [ReferenceAddressValidator] for the vector's network is the authority on
- * every recipient address. This is what makes the corpus's
- * checksum-corruption, mixed-case, Sprout and wrong-network vectors
- * executable — the library rejects exactly what the VALIDATOR rejects.
+ * Parses a corpus vector through the SAME delegation path a production caller uses: the library
+ * owns the URI grammar, and the test-only [ReferenceAddressValidator] for the vector's network is
+ * the authority on every recipient address. This is what makes the corpus's checksum-corruption,
+ * mixed-case, Sprout and wrong-network vectors executable — the library rejects exactly what the
+ * VALIDATOR rejects.
  */
 private fun parseVectorUri(
     uri: String,
     network: String,
-): ZIP321.ParserResult {
+): Result<PaymentRequest> {
     val expecting = networkOfVector(network)
-    return ZIP321.request(uri, expecting, ReferenceAddressValidator.of(expecting))
+    return ZIP321.parse(uri, expecting, ReferenceAddressValidator.of(expecting))
 }
 
-private fun ZIP321.ParserResult.toObservedPayments(): List<ObservedPayment> =
-    when (this) {
-        is ZIP321.ParserResult.SingleAddress ->
-            listOf(
-                ObservedPayment(
-                    address = singleRecipient.value,
-                    amountZat = null,
-                    memoBase64 = null,
-                    label = null,
-                    message = null,
-                    other = emptyList(),
-                ),
-            )
-        is ZIP321.ParserResult.Request -> paymentRequest.payments.map { it.toObserved() }
-    }
+private fun parseVector(vector: ValidVector): PaymentRequest = parseVectorUri(vector.uri, vector.network).getOrThrow()
+
+private fun PaymentRequest.toObservedPayments(): List<ObservedPayment> = payments.map { it.toObserved() }
 
 private fun checkValidVector(vector: ValidVector) {
     val result =
         try {
-            parseVectorUri(vector.uri, vector.network)
+            parseVector(vector)
         } catch (t: Throwable) {
-            // NOTE: common code has no AssertionError(message, cause) constructor;
-            // the rejection is described in the message instead.
             throw AssertionError(
                 "vector '${vector.name}' must parse but was rejected with " +
                     "${t::class.simpleName}: ${t.message} (${vector.description})",
@@ -169,23 +144,17 @@ private fun checkValidVector(vector: ValidVector) {
 
 private fun checkRenderRoundTrip(vector: ValidVector) {
     val canonical = checkNotNull(vector.canonicalUri)
+    val result = parseVector(vector)
     val rendered =
-        when (val result = parseVectorUri(vector.uri, vector.network)) {
-            is ZIP321.ParserResult.SingleAddress ->
-                // Reference renders an address-only request as `zcash:<address>`.
-                ZIP321.request(result.singleRecipient)
-            is ZIP321.ParserResult.Request ->
-                ZIP321.uriString(
-                    from = result.paymentRequest,
-                    // Mirror librustzcash to_uri(): the first payment uses the empty
-                    // paramindex (address in the hier-part when it is the only one),
-                    // subsequent payments are enumerated from `.1`.
-                    formattingOptions =
-                        ZIP321.FormattingOptions.UseEmptyParamIndex(
-                            omitAddressLabel = result.paymentRequest.payments.size == 1,
-                        ),
-                )
-        }
+        ZIP321.uriString(
+            from = result,
+            // Mirror librustzcash to_uri(): the first payment uses the empty paramindex,
+            // subsequent payments are enumerated from `.1`.
+            formattingOptions =
+                ZIP321.FormattingOptions.UseEmptyParamIndex(
+                    omitAddressLabel = result.payments.size == 1,
+                ),
+        )
     assertEquals(
         canonical,
         rendered,
@@ -194,19 +163,66 @@ private fun checkRenderRoundTrip(vector: ValidVector) {
 }
 
 private fun checkInvalidVector(vector: InvalidVector) {
-    val result =
-        try {
-            parseVectorUri(vector.uri, vector.network)
-        } catch (expected: ZIP321.Errors) {
-            return // correctly rejected; v1 error *types* are deliberately not asserted
-        } catch (t: Throwable) {
-            throw AssertionError(
-                "vector '${vector.name}' (reference error: ${vector.error}) was rejected, " +
-                    "but with ${t::class.qualifiedName} instead of a ZIP321.Errors: ${t.message}",
-            )
-        }
-    throw AssertionError(
+    val result = parseVectorUri(vector.uri, vector.network)
+    assertTrue(
+        result.isFailure,
         "vector '${vector.name}' (reference error: ${vector.error}) must be rejected " +
-            "but parsed successfully as: $result (${vector.description})",
+            "but parsed successfully as: ${result.getOrNull()} (${vector.description})",
+    )
+
+    val error = result.exceptionOrNull()
+    assertTrue(
+        error is ZIP321Error,
+        "vector '${vector.name}' must fail with a ZIP321Error, was ${error?.let { it::class.simpleName }}",
+    )
+
+    val expected = expectedDiscriminant(vector.error)
+    assertEquals(
+        expected,
+        error.discriminantName(),
+        "error discriminant for '${vector.name}' (${vector.description})",
     )
 }
+
+/**
+ * Maps a corpus `error` string (camelCase cross-language discriminant) to the expected
+ * [ZIP321Error] subclass simple name. Any unrecognized corpus discriminant fails loudly so a corpus
+ * update cannot silently pass.
+ */
+private fun expectedDiscriminant(corpusError: String): String =
+    when (corpusError) {
+        "invalidBase64" -> "InvalidBase64"
+        "memoBytesError" -> "MemoBytesError"
+        "transparentMemo" -> "TransparentMemo"
+        "zeroValuedTransparentOutput" -> "ZeroValuedTransparentOutput"
+        "tooManyPayments" -> "TooManyPayments"
+        "duplicateParameter" -> "DuplicateParameter"
+        "recipientMissing" -> "RecipientMissing"
+        "invalidAddress" -> "InvalidAddress"
+        "unknownRequiredParameter" -> "UnknownRequiredParameter"
+        "invalidParamIndex" -> "InvalidParamIndex"
+        "amountExceededSupply" -> "AmountExceededSupply"
+        "amountInvalid" -> "AmountInvalid"
+        "invalidURI" -> "InvalidURI"
+        "parseError" -> "ParseError"
+        else -> error("unmapped corpus error discriminant '$corpusError'")
+    }
+
+private fun ZIP321Error?.discriminantName(): String? =
+    when (this) {
+        is ZIP321Error.InvalidBase64 -> "InvalidBase64"
+        is ZIP321Error.MemoBytesError -> "MemoBytesError"
+        is ZIP321Error.TransparentMemo -> "TransparentMemo"
+        is ZIP321Error.ZeroValuedTransparentOutput -> "ZeroValuedTransparentOutput"
+        is ZIP321Error.TooManyPayments -> "TooManyPayments"
+        is ZIP321Error.DuplicateParameter -> "DuplicateParameter"
+        is ZIP321Error.RecipientMissing -> "RecipientMissing"
+        is ZIP321Error.InvalidAddress -> "InvalidAddress"
+        is ZIP321Error.UnknownRequiredParameter -> "UnknownRequiredParameter"
+        is ZIP321Error.InvalidParamIndex -> "InvalidParamIndex"
+        is ZIP321Error.AmountExceededSupply -> "AmountExceededSupply"
+        is ZIP321Error.AmountInvalid -> "AmountInvalid"
+        is ZIP321Error.InvalidURI -> "InvalidURI"
+        is ZIP321Error.ParseError -> "ParseError"
+        null -> null
+    }

@@ -13,7 +13,7 @@ import org.zecdev.zip321.model.NonNegativeAmount
  * decimal point (`".5"`, `"123."`), a sign, whitespace, scientific notation, and any `%` escape
  * (amount values are never percent-decoded), matching the reference `parse_amount`.
  */
-object AmountParser {
+internal object AmountParser {
     /**
      * Parses [string] into a [NonNegativeAmount].
      *

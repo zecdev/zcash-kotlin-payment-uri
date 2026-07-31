@@ -9,7 +9,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFails
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 // NOTE (K11/v2): the leading-address helpers are now `splitLeadingAddress` (pure split on the
 // first `?`) and `leadingAddress` (validates a non-empty lead address). A rejected non-empty lead
@@ -109,6 +108,6 @@ class ParserTests {
     @Test
     fun `parse resolves a full request with a leading address`() {
         val result = parser().parse("zcash:$testnetAddress?amount=1.0001&message=lunch")
-        assertTrue(result is ZIP321.ParserResult.Request)
+        assertEquals(1, result.payments.size)
     }
 }

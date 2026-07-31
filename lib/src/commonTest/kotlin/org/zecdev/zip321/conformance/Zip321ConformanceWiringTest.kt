@@ -16,7 +16,7 @@ class Zip321ConformanceWiringTest {
     @Test
     fun `corpus contains the expected number of uniquely-named vectors`() {
         assertEquals(22, validVectors.size, "valid vector count")
-        assertEquals(28, invalidVectors.size, "invalid vector count")
+        assertEquals(29, invalidVectors.size, "invalid vector count")
         assertEquals(
             allNames.size,
             allNames.toSet().size,

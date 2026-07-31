@@ -4,7 +4,7 @@ import org.zecdev.zip321.model.RecipientAddress
 import org.zecdev.zip321.support.ReferenceAddressValidator
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
@@ -140,9 +140,9 @@ class AddressValidationTests {
                 AddressDescriptor(Network.MAINNET, isTransparent = false, canReceiveMemos = true)
             }
 
-        val result = ZIP321.request("zcash:notanaddressatall?amount=1", Network.MAINNET, validator)
+        val request =
+            ZIP321.parse("zcash:notanaddressatall?amount=1", Network.MAINNET, validator).getOrThrow()
 
-        val request = (result as ZIP321.ParserResult.Request).paymentRequest
         assertEquals("notanaddressatall", request.payments.first().recipientAddress.value)
     }
 
@@ -152,13 +152,13 @@ class AddressValidationTests {
      */
     @Test
     fun `the validator can reject a well-formed address`() {
-        assertFailsWith<ZIP321.Errors.InvalidAddress> {
-            ZIP321.request(
+        assertIs<ZIP321Error.InvalidAddress>(
+            ZIP321.parse(
                 "zcash:?address=$SAPLING_TESTNET&amount=1",
                 Network.TESTNET,
                 AddressValidator { null },
-            )
-        }
+            ).exceptionOrNull(),
+        )
     }
 
     /**
@@ -176,7 +176,7 @@ class AddressValidationTests {
             AddressValidator {
                 AddressDescriptor(Network.MAINNET, isTransparent = false, canReceiveMemos = true)
             }
-        ZIP321.request(memoURI, Network.MAINNET, asShielded)
+        ZIP321.parse(memoURI, Network.MAINNET, asShielded).getOrThrow()
 
         // The same URI with a validator that reports a recipient that cannot
         // receive memos is rejected by the ZIP-321 transparent-memo rule.
@@ -184,9 +184,9 @@ class AddressValidationTests {
             AddressValidator {
                 AddressDescriptor(Network.MAINNET, isTransparent = true, canReceiveMemos = false)
             }
-        assertFailsWith<ZIP321.Errors.TransparentMemoNotAllowed> {
-            ZIP321.request(memoURI, Network.MAINNET, asTransparent)
-        }
+        assertIs<ZIP321Error.TransparentMemo>(
+            ZIP321.parse(memoURI, Network.MAINNET, asTransparent).exceptionOrNull(),
+        )
     }
 
     /**
@@ -202,11 +202,11 @@ class AddressValidationTests {
                 AddressDescriptor(Network.TESTNET, isTransparent = false, canReceiveMemos = true)
             }
 
-        ZIP321.request(
+        ZIP321.parse(
             "zcash:$SAPLING_TESTNET?amount=1&address.1=$P2PKH_TESTNET&amount.1=2",
             Network.TESTNET,
             validator,
-        )
+        ).getOrThrow()
 
         assertEquals(listOf(SAPLING_TESTNET, P2PKH_TESTNET), seen)
     }
@@ -227,12 +227,14 @@ class AddressValidationTests {
                 AddressDescriptor(Network.TESTNET, isTransparent = false, canReceiveMemos = true)
             }
 
-        assertFailsWith<ZIP321.Errors.InvalidAddress> {
-            ZIP321.request("zcash:?address=$SAPLING_TESTNET&amount=1", Network.MAINNET, testnetSayingValidator)
-        }
+        val uri = "zcash:?address=$SAPLING_TESTNET&amount=1"
+
+        assertIs<ZIP321Error.InvalidAddress>(
+            ZIP321.parse(uri, Network.MAINNET, testnetSayingValidator).exceptionOrNull(),
+        )
 
         // The same URI and validator against the matching network parses.
-        ZIP321.request("zcash:?address=$SAPLING_TESTNET&amount=1", Network.TESTNET, testnetSayingValidator)
+        ZIP321.parse(uri, Network.TESTNET, testnetSayingValidator).getOrThrow()
     }
 
     /** The mismatch is reported for indexed recipients too, carrying the index. */
@@ -250,9 +252,9 @@ class AddressValidationTests {
         val uri = "zcash:?address=$SAPLING_TESTNET&amount=1&address.1=$SAPLING_MAINNET&amount.1=2"
 
         val error =
-            assertFailsWith<ZIP321.Errors.InvalidAddress> {
-                ZIP321.request(uri, Network.TESTNET, mixedNetworkValidator)
-            }
+            assertIs<ZIP321Error.InvalidAddress>(
+                ZIP321.parse(uri, Network.TESTNET, mixedNetworkValidator).exceptionOrNull(),
+            )
         assertEquals(1u, error.index)
     }
 
