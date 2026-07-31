@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added (v2/K6) — test support only
+- **Bech32 / Bech32m reference checker**
+  (`lib/src/commonTest/kotlin/org/zecdev/zip321/support/Bech32.kt`), per
+  BIP-173 / BIP-350 — **test support, not part of the shipped library**:
+  `Variant` enum (`BECH32` checksum constant `1`, `BECH32M` checksum constant
+  `0x2bc830a3`), `decode(String): Decoded?` (mixed-case rejected *before*
+  lowercasing, 1023-char limit, printable-ASCII 33..126 charset, separator is
+  the last `'1'`, HRP 1..83 chars, >= 6 checksum chars, BCH polymod), and
+  `verify(String, expectedHrp, variant): Boolean`. Port of the Swift
+  reference's test-support `Bech32.swift`, including its citation of why the
+  length limit is 1023 (the `bech32` Rust crate's per-checksum `CODE_LENGTH`)
+  rather than BIP-173's 90-char segwit cap. `Bech32Tests` ports the
+  BIP-173/BIP-350 known-answer vectors, real Sapling/Unified/regtest Zcash
+  addresses, and their corpus-corrupted (checksum-broken) variants.
+
 ### Added (v2/K5) — test support only
 - **SHA-256 wrapper for the reference address checkers**
   (`lib/src/commonTest/kotlin/org/zecdev/zip321/support/Sha256.kt`), which is
