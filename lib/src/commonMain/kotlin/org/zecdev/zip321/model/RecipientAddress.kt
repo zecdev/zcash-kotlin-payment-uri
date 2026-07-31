@@ -1,57 +1,66 @@
 package org.zecdev.zip321.model
 
-import org.zecdev.zip321.parser.ParserContext
+import org.zecdev.zip321.AddressDescriptor
+import org.zecdev.zip321.AddressValidator
+import org.zecdev.zip321.Network
 
 typealias RequestParams = Pair<String, String>
 
-class RecipientAddress private constructor(
+/**
+ * A Zcash recipient address that some [AddressValidator] has accepted, carried
+ * together with what that validator said about it.
+ *
+ * A [RecipientAddress] is an opaque string plus a [descriptor]. This library
+ * never inspects [value] — it does not decode, re-check or classify the address
+ * in any way. Every capability question it needs to answer while applying the
+ * [ZIP-321](https://zips.z.cash/zip-0321) payment rules is read off the
+ * descriptor the validator produced.
+ *
+ * The primary constructor wraps an address a caller has ALREADY validated,
+ * together with its description. Use it when the address came from somewhere
+ * other than a URI — a wallet's own address book, a QR scan the wallet has
+ * already resolved, a test fixture. The descriptor is trusted as-is. To
+ * validate a raw string instead, use [RecipientAddress.create].
+ *
+ * @property value the string-encoded address, verbatim as the validator saw it.
+ * @property descriptor what the [AddressValidator] reported about [value].
+ */
+data class RecipientAddress(
     val value: String,
-    val network: ParserContext
+    val descriptor: AddressDescriptor,
 ) {
-    sealed class RecipientAddressError(message: String) : Exception(message) {
-        object InvalidRecipient : RecipientAddressError("The provided recipient is invalid") {
-            private fun readResolve(): Any = InvalidRecipient
-        }
-    }
+    /**
+     * The consensus network this address belongs to, as reported by the
+     * validator that accepted it.
+     */
+    val network: Network get() = descriptor.network
 
     /**
-     * Initialize an opaque Recipient address that's convertible to a String with or without a
-     * validating function.
-     * @param value the string representing the recipient
-     * @param network: The parser context for the network this address would belong to
-     * @param validating a closure that validates the given input.
-     * @throws `null` if the validating function resolves the input as invalid,
-     * or a [RecipientAddress] if the input is valid or no validating closure is passed.
+     * Whether funds sent here land in the transparent pool. Read straight off
+     * the validator's descriptor.
      */
-    @Throws(RecipientAddressError::class)
-    constructor(value: String, network: ParserContext, validating: ((String) -> Boolean)? = null) : this(
-        when (validating?.invoke(value)) {
-            null, true -> {
-                if (network.isValid(value)) {
-                    value
-                } else {
-                    throw RecipientAddressError.InvalidRecipient
-                }
-            }
-            false -> {
-                throw RecipientAddressError.InvalidRecipient
-            }
-        },
-        network
-    )
+    internal val isTransparent: Boolean get() = descriptor.isTransparent
 
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is RecipientAddress) return false
+    /**
+     * Whether this recipient can receive a ZIP-302 memo. Read straight off the
+     * validator's descriptor.
+     */
+    internal val canReceiveMemos: Boolean get() = descriptor.canReceiveMemos
 
-        return value == other.value
-    }
-
-    override fun hashCode(): Int {
-        return value.hashCode()
-    }
-
-    fun isTransparent(): Boolean {
-        return network.isTransparent(value)
+    /** Namespace for validated [RecipientAddress] construction. */
+    companion object {
+        /**
+         * Validates [value] with [validator] and, if accepted, wraps it.
+         *
+         * @param value the string-encoded address.
+         * @param validator the authority on this address. Returning `null` from
+         * [AddressValidator.validate] rejects the address.
+         * @return the wrapped address, or `null` when the validator rejects
+         * [value].
+         */
+        fun create(
+            value: String,
+            validator: AddressValidator,
+        ): RecipientAddress? = validator.validate(value)?.let { RecipientAddress(value, it) }
     }
 }

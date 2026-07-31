@@ -5,6 +5,8 @@
 
 package org.zecdev.zip321.parser
 
+import org.zecdev.zip321.AddressValidator
+import org.zecdev.zip321.Network
 import org.zecdev.zip321.ZIP321
 import org.zecdev.zip321.ZIP321.ParserResult
 import org.zecdev.zip321.model.LegacyAmount
@@ -37,16 +39,14 @@ private const val MAX_INDEX_DIGITS = 4
  *   paramname  = *( any char up to "&" / "." / "=" )   then validated
  */
 class Parser(
-    private val context: ParserContext,
-    addressValidation: ((String) -> Boolean)?
+    private val network: Network,
+    private val validator: AddressValidator,
 ) {
-
-    val defaultValidation: (String) -> Boolean = addressValidation?.let { customValidation ->
-        {
-                address: String ->
-            context.isValid(address) && customValidation(address)
-        }
-    } ?: { address: String -> context.isValid(address) }
+    // Address validation is fully DELEGATED. This parser implements the
+    // ZIP-321 URI grammar and nothing else: whether a recipient string is a
+    // valid, payable Zcash address — and what it can receive — is decided
+    // exclusively by [validator], which is a REQUIRED constructor argument.
+    // There is no built-in check to fall back on, weaken or compose with.
 
     // -- leading address -----------------------------------------------------
 
@@ -56,8 +56,8 @@ class Parser(
      * still-unparsed text.
      *
      * Mirrors kudzu's `maybeLeadingAddressParse`: the address is the maximal
-     * run of ASCII letters/digits, accepted only when [ParserContext.isValid]
-     * holds. When it does not, nothing is consumed.
+     * run of ASCII letters/digits, accepted only when [validator] accepts it.
+     * When it does not, nothing is consumed.
      */
     fun parseLeadingAddress(input: String): Pair<IndexedParameter?, String> {
         require(input.startsWith(ZCASH_SCHEME)) { "expected `zcash:` scheme" }
@@ -65,13 +65,13 @@ class Parser(
         var end = 0
         while (end < rest.length && rest[end].isAsciiLetterOrDigit()) end++
         val run = rest.substring(0, end)
-        if (run.isNotEmpty() && context.isValid(run)) {
-            val addr = IndexedParameter(
-                index = 0u,
-                param = Param.Address(
-                    RecipientAddress(run, context, validating = defaultValidation)
+        val recipient = if (run.isEmpty()) null else recipient(run, network, validator)
+        if (recipient != null) {
+            val addr =
+                IndexedParameter(
+                    index = 0u,
+                    param = Param.Address(recipient),
                 )
-            )
             return Pair(addr, rest.substring(end))
         }
         return Pair(null, rest)
@@ -102,12 +102,13 @@ class Parser(
     // -- optionally-indexed paramname ---------------------------------------
 
     /** Parses a whole `paramname[.index]` token (no `=value`). */
-    fun parseOptionallyIndexedParamName(input: String): Pair<String, UInt?> =
-        parseOptionallyIndexedParamNameAt(input, 0).first
+    fun parseOptionallyIndexedParamName(input: String): Pair<String, UInt?> {
+        return parseOptionallyIndexedParamNameAt(input, 0).first
+    }
 
     private fun parseOptionallyIndexedParamNameAt(
         input: String,
-        pos: Int
+        pos: Int,
     ): Pair<Pair<String, UInt?>, Int> {
         // paramname: any char up to the first of '&', '.', '=' (or end).
         var p = pos
@@ -138,12 +139,13 @@ class Parser(
     // -- key/value -----------------------------------------------------------
 
     /** Parses a whole `paramname[.index][=value]` token. */
-    fun parseQueryKeyAndValue(input: String): Pair<Pair<String, UInt?>, String?> =
-        parseQueryKeyAndValueAt(input, 0).first
+    fun parseQueryKeyAndValue(input: String): Pair<Pair<String, UInt?>, String?> {
+        return parseQueryKeyAndValueAt(input, 0).first
+    }
 
     private fun parseQueryKeyAndValueAt(
         input: String,
-        pos: Int
+        pos: Int,
     ): Pair<Pair<Pair<String, UInt?>, String?>, Int> {
         val (nameIndex, afterName) = parseOptionallyIndexedParamNameAt(input, pos)
         if (afterName < input.length && input[afterName] == '=') {
@@ -185,27 +187,26 @@ class Parser(
      * providing validation of Query keys and values. An address validation can be provided.
      */
     @Throws(ZIP321.Errors.InvalidParamValue::class)
-    fun zcashParameter(
-        parsedQueryKeyValue: Pair<Pair<String, UInt?>, String?>,
-        validatingAddress: ((String) -> Boolean)? = null
-    ): IndexedParameter {
+    fun zcashParameter(parsedQueryKeyValue: Pair<Pair<String, UInt?>, String?>): IndexedParameter {
         val queryKey = parsedQueryKeyValue.first.first
-        val queryKeyIndex = parsedQueryKeyValue.first.second?.let {
-            if (it == 0u) {
-                throw ZIP321.Errors.InvalidParamIndex("$queryKey.0")
-            } else {
-                it
-            }
-        } ?: 0u
+        val queryKeyIndex =
+            parsedQueryKeyValue.first.second?.let {
+                if (it == 0u) {
+                    throw ZIP321.Errors.InvalidParamIndex("$queryKey.0")
+                } else {
+                    it
+                }
+            } ?: 0u
         val queryValue = parsedQueryKeyValue.second
 
-        val param = Param.from(
-            queryKey,
-            queryValue,
-            queryKeyIndex,
-            context,
-            validatingAddress
-        )
+        val param =
+            Param.from(
+                queryKey,
+                queryValue,
+                queryKeyIndex,
+                network,
+                validator,
+            )
 
         return IndexedParameter(queryKeyIndex, param)
     }
@@ -217,7 +218,7 @@ class Parser(
      */
     fun parseParameters(
         remainingString: String,
-        leadingAddress: IndexedParameter?
+        leadingAddress: IndexedParameter?,
     ): List<IndexedParameter> {
         val list = ArrayList<IndexedParameter>()
 
@@ -225,7 +226,7 @@ class Parser(
 
         list.addAll(
             parseQueryParams(remainingString)
-                .map { zcashParameter(it, defaultValidation) }
+                .map { zcashParameter(it) },
         )
 
         if (list.isEmpty()) {
@@ -252,7 +253,7 @@ class Parser(
                 if (paramVecByIndex.hasDuplicateParam(idxParam.param)) {
                     throw ZIP321.Errors.DuplicateParameter(
                         idxParam.param.name,
-                        idxParam.index.mapToParamIndex()
+                        idxParam.index.mapToParamIndex(),
                     )
                 } else {
                     paramVecByIndex.add(idxParam.param)
@@ -287,15 +288,16 @@ class Parser(
                     is Param.Address -> return ParserResult.SingleAddress(param.recipientAddress)
                     else ->
                         throw ZIP321.Errors.ParseError(
-                            "leading parameter after `zcash:` that is not an address"
+                            "leading parameter after `zcash:` that is not an address",
                         )
                 }
             }
 
             // remaining text is not empty there's still work to do
-            val payments = mapToPayments(
-                parseParameters(remainingText, leadingAddress)
-            )
+            val payments =
+                mapToPayments(
+                    parseParameters(remainingText, leadingAddress),
+                )
 
             val totalPayments = payments.size.toUInt()
 
@@ -308,8 +310,8 @@ class Parser(
             } else {
                 ParserResult.Request(
                     PaymentRequest(
-                        payments
-                    )
+                        payments,
+                    ),
                 )
             }
         } catch (e: IllegalArgumentException) {
@@ -320,18 +322,22 @@ class Parser(
 }
 
 @Suppress("detekt:CyclomaticComplexMethod")
-fun Payment.Companion.fromUniqueIndexedParameters(index: UInt, parameters: List<Param>): Payment {
-    val recipient = parameters.firstOrNull { param ->
-        when (param) {
-            is Param.Address -> true
-            else -> false
-        }
-    }?.let { address ->
-        when (address) {
-            is Param.Address -> address.recipientAddress
-            else -> null
-        }
-    } ?: throw ZIP321.Errors.RecipientMissing(index.mapToParamIndex())
+fun Payment.Companion.fromUniqueIndexedParameters(
+    index: UInt,
+    parameters: List<Param>,
+): Payment {
+    val recipient =
+        parameters.firstOrNull { param ->
+            when (param) {
+                is Param.Address -> true
+                else -> false
+            }
+        }?.let { address ->
+            when (address) {
+                is Param.Address -> address.recipientAddress
+                else -> null
+            }
+        } ?: throw ZIP321.Errors.RecipientMissing(index.mapToParamIndex())
 
     var amount: LegacyAmount? = null
     var memo: MemoBytes? = null
@@ -345,7 +351,9 @@ fun Payment.Companion.fromUniqueIndexedParameters(index: UInt, parameters: List<
             is Param.Amount -> amount = param.amount
             is Param.Label -> label = param.label
             is Param.Memo -> {
-                if (recipient.isTransparent()) {
+                // The validator's descriptor is authoritative: a recipient it
+                // reports as unable to receive memos may not carry one.
+                if (!recipient.canReceiveMemos) {
                     throw ZIP321.Errors.TransparentMemoNotAllowed(index.mapToParamIndex())
                 }
 
@@ -365,7 +373,7 @@ fun Payment.Companion.fromUniqueIndexedParameters(index: UInt, parameters: List<
         when (other.isEmpty()) {
             true -> null
             false -> other
-        }
+        },
     )
 }
 
@@ -375,3 +383,35 @@ fun UInt.mapToParamIndex(): UInt? {
         true -> null
     }
 }
+
+/**
+ * Wraps [value] as a [RecipientAddress] when [validator] accepts it.
+ *
+ * The validator is AUTHORITATIVE: this library performs no address validation
+ * of its own, so a `null` return here means the caller rejected the address and
+ * the request is invalid.
+ *
+ * The one rule the library applies on top of the validator's verdict is a
+ * COMPARISON, not a validation: the accepted address must belong to the network
+ * the request is being parsed FOR. A request is parsed against one expected
+ * network, so a recipient the validator places on another network makes the
+ * request invalid — reported as an invalid address, since from the caller's
+ * point of view that address cannot be paid in this context. ZIP-321 itself is
+ * network-agnostic (the librustzcash reference parses addresses without a
+ * network), so this enforcement is a consumer-library requirement, deliberately
+ * made explicit through `expecting`.
+ *
+ * @param value the raw address string as it appeared in the URI.
+ * @param network the network the request is being parsed for.
+ * @param validator the caller-supplied authority on addresses.
+ */
+internal fun recipient(
+    value: String,
+    network: Network,
+    validator: AddressValidator,
+): RecipientAddress? =
+    validator.validate(value)
+        // The network comparison, and nothing else, is applied on top of the
+        // validator's verdict.
+        ?.takeIf { descriptor -> descriptor.network == network }
+        ?.let { descriptor -> RecipientAddress(value, descriptor) }

@@ -2,6 +2,7 @@ package org.zecdev.zip321.conformance
 
 import org.zecdev.zip321.ZIP321
 import org.zecdev.zip321.model.Payment
+import org.zecdev.zip321.support.ReferenceAddressValidator
 import kotlin.test.assertEquals
 
 /**
@@ -99,10 +100,21 @@ private fun Payment.toObserved(): ObservedPayment =
         other = otherParams.orEmpty().map { it.key.value to it.value },
     )
 
+/**
+ * Parses a corpus vector through the SAME delegation path a production caller
+ * uses: the library owns the URI grammar, and the test-only
+ * [ReferenceAddressValidator] for the vector's network is the authority on
+ * every recipient address. This is what makes the corpus's
+ * checksum-corruption, mixed-case, Sprout and wrong-network vectors
+ * executable — the library rejects exactly what the VALIDATOR rejects.
+ */
 private fun parseVectorUri(
     uri: String,
     network: String,
-): ZIP321.ParserResult = ZIP321.request(uri, networkToParserContext(network), validatingRecipients = null)
+): ZIP321.ParserResult {
+    val expecting = networkOfVector(network)
+    return ZIP321.request(uri, expecting, ReferenceAddressValidator.of(expecting))
+}
 
 private fun ZIP321.ParserResult.toObservedPayments(): List<ObservedPayment> =
     when (this) {

@@ -28,19 +28,6 @@ object ExpectedFailures {
             "the reference parses it as an empty (zero-payment) transaction request " +
             "(the '?' leads Param.from to see an empty paramname instead of zero params).",
         // --- invalid vectors v1 accepts -------------------------------------
-        "invalid_address_sapling_bad_checksum" to
-            "v1 heuristic address validation (prefix + length + charset only, no bech32 " +
-            "checksum verification) accepts a Sapling address with a corrupted checksum.",
-        "invalid_address_unified_mainnet_bad_checksum" to
-            "v1 heuristic address validation performs no bech32m/F4Jumble verification and " +
-            "accepts a mainnet unified address with a corrupted checksum.",
-        "invalid_address_transparent_bad_checksum" to
-            "v1 heuristic address validation performs no base58check verification and " +
-            "accepts a transparent address with a corrupted checksum.",
-        "invalid_address_sapling_mixed_case" to
-            "v1 accepts a mixed-case Sapling address ('...0YY2ex5...'); bech32 forbids " +
-            "mixed case, but v1 only checks prefix/length/alphanumeric so the corrupted " +
-            "encoding passes.",
         "invalid_amount_trailing_decimal_point" to
             "v1 accepts amount '123.' (parsed via BigDecimal, which allows a bare trailing " +
             "decimal point); the ZIP-321 grammar requires at least one digit after '.'.",

@@ -6,6 +6,71 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Changed (v2/K8) — BREAKING: address validation is fully delegated
+- **The library no longer validates Zcash addresses.** It implements the
+  [ZIP-321](https://zips.z.cash/zip-0321) URI **grammar** and nothing else.
+  Whether a recipient string is a valid, payable Zcash address — and what that
+  recipient can receive — is now answered exclusively by a caller-supplied
+  validator, whose verdict is AUTHORITATIVE and is never second-guessed.
+- **New public API** (`org.zecdev.zip321`):
+  - `enum class Network { MAINNET, TESTNET, REGTEST }` — the consensus network a
+    request is parsed against.
+  - `data class AddressDescriptor(network, isTransparent, canReceiveMemos)` —
+    what a validator reports about an address it accepts. These are exactly the
+    three facts ZIP-321 semantics depend on: the network the request is checked
+    against, whether a `memo` may accompany the recipient, and whether a
+    zero-valued output to it is permitted. `isTransparent` and
+    `canReceiveMemos` are independent on purpose, so kinds that are neither
+    plainly transparent nor plainly shielded (TEX; a UA whose receiver set the
+    caller resolves) are describable without this library enumerating address
+    kinds it deliberately does not model.
+  - `fun interface AddressValidator { fun validate(address: String): AddressDescriptor? }`
+    — `null` rejects the address; anything else is trusted verbatim. Being a
+    `fun interface`, a lambda can be passed directly.
+- **`ParserContext` is DELETED.** It was both "the network" and "the built-in
+  structural validator"; those roles are now `Network` and `AddressValidator`
+  respectively. Its checksum/prefix machinery does not move into the library —
+  it is gone from `commonMain` entirely (the equivalent checkers live in
+  `commonTest` as test support, v2/K5–K7).
+- **`RecipientAddress` is now `value` + `descriptor`.** The public constructor
+  wraps an address a caller has ALREADY validated; `RecipientAddress.create(value,
+  validator)` validates and returns `null` on rejection. There is no throwing
+  constructor and no `RecipientAddressError` any more. `isTransparent()`/memo
+  capability are read off the descriptor rather than re-derived from the string.
+- **`ZIP321.request(uriString, expecting: Network, validator: AddressValidator)`**
+  replaces `request(uriString, context: ParserContext, validatingRecipients:
+  ((String) -> Boolean)?)`. The validator is REQUIRED, precisely so that address
+  validity can never silently come from a structural approximation baked into a
+  URI parser. The v1 "AND-composed optional closure" model is gone: there is no
+  built-in check for an injected one to compose with.
+- Wallets should implement `AddressValidator` by delegating to their Zcash SDK's
+  own address support (librustzcash's `ZcashAddress` via the mobile SDKs'
+  FFI/JNI bindings), which is the only place that can answer these questions
+  correctly — including Unified Address receiver decoding and which address
+  kinds the wallet is willing to pay.
+- Conformance xfail burn-down: `invalid_address_sapling_bad_checksum`,
+  `invalid_address_unified_mainnet_bad_checksum`,
+  `invalid_address_transparent_bad_checksum` and
+  `invalid_address_sapling_mixed_case` now pass and were removed from the
+  expected-failure map. They pass because the test suite injects a validator
+  (`ReferenceAddressValidator`) that really verifies encodings — which is
+  exactly the point: the library rejects what the VALIDATOR rejects.
+- Removed the now-unused `CharsetValidations` Base58/Bech32 character sets and
+  their `isValidBase58Char`/`isValidBech32Char` helpers.
+
+### Added (v2/K8) — the expected network is enforced
+- **A recipient whose network is not the expected one is rejected.** A ZIP-321
+  request is parsed against exactly one consensus network, named by
+  `expecting`. When the validator accepts an address but reports a different
+  `AddressDescriptor.network`, the request is rejected with an invalid-address
+  error carrying the payment's `paramindex`.
+
+  This is a COMPARISON, not a validation: the library still learns an address's
+  network only from the validator, and has no way of its own to tell. ZIP-321
+  itself is network-agnostic — the librustzcash reference parses addresses
+  without a network at all — so enforcing it is a consumer-library requirement,
+  made explicit and documented at the parse boundary.
+
 ### Added (v2/K7) — test support only
 - **Base58Check reference checker**
   (`lib/src/commonTest/kotlin/org/zecdev/zip321/support/Base58Check.kt`) —

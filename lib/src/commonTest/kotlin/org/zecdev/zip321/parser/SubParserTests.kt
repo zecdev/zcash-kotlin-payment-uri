@@ -5,13 +5,15 @@
 
 package org.zecdev.zip321.parser
 
+import org.zecdev.zip321.Network
 import org.zecdev.zip321.ZIP321
 import org.zecdev.zip321.extensions.qcharDecode
 import org.zecdev.zip321.model.LegacyAmount
 import org.zecdev.zip321.model.MemoBytes
 import org.zecdev.zip321.model.OtherParam
 import org.zecdev.zip321.model.Payment
-import org.zecdev.zip321.model.RecipientAddress
+import org.zecdev.zip321.support.ReferenceAddressValidator
+import org.zecdev.zip321.support.validRecipient
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
@@ -36,13 +38,13 @@ class SubParserTests {
     fun `parses non-zero single digit`() {
         assertEquals(
             1u,
-            Parser(ParserContext.TESTNET, addressValidation = null)
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET)
                 .parseParameterIndex("1"),
         )
 
         assertEquals(
             9u,
-            Parser(ParserContext.TESTNET, addressValidation = null)
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET)
                 .parseParameterIndex("9"),
         )
     }
@@ -50,7 +52,7 @@ class SubParserTests {
     @Test
     fun `fails on zero single digit`() {
         assertFails {
-            Parser(ParserContext.TESTNET, addressValidation = null)
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET)
                 .parseParameterIndex("0")
         }
     }
@@ -59,12 +61,12 @@ class SubParserTests {
     fun `parses many digits`() {
         assertEquals(
             12u,
-            Parser(ParserContext.TESTNET, addressValidation = null)
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET)
                 .parseParameterIndex("12"),
         )
         assertEquals(
             123u,
-            Parser(ParserContext.TESTNET, addressValidation = null)
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET)
                 .parseParameterIndex("123"),
         )
     }
@@ -72,7 +74,7 @@ class SubParserTests {
     @Test
     fun `fails on leading zero many digits`() {
         assertFails {
-            Parser(ParserContext.TESTNET, addressValidation = null)
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET)
                 .parseParameterIndex("090")
         }
     }
@@ -80,7 +82,7 @@ class SubParserTests {
     @Test
     fun `fails on too many digits`() {
         assertFails {
-            Parser(ParserContext.TESTNET, addressValidation = null)
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET)
                 .parseParameterIndex("19999")
         }
     }
@@ -91,7 +93,7 @@ class SubParserTests {
     fun `parses a non-indexed parameter`() {
         assertEquals(
             Pair<String, UInt?>("address", null),
-            Parser(ParserContext.TESTNET, addressValidation = null)
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET)
                 .parseOptionallyIndexedParamName("address"),
         )
     }
@@ -100,7 +102,7 @@ class SubParserTests {
     fun `parses a indexed parameter`() {
         assertEquals(
             Pair<String, UInt?>("address", 123u),
-            Parser(ParserContext.TESTNET, addressValidation = null)
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET)
                 .parseOptionallyIndexedParamName("address.123"),
         )
     }
@@ -108,7 +110,7 @@ class SubParserTests {
     @Test
     fun `fails to parse a zero-index parameter`() {
         assertFails {
-            Parser(ParserContext.TESTNET, addressValidation = null)
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET)
                 .parseOptionallyIndexedParamName("address.0")
         }
     }
@@ -116,7 +118,7 @@ class SubParserTests {
     @Test
     fun `fails to parse leading zero parameter`() {
         assertFails {
-            Parser(ParserContext.TESTNET, addressValidation = null)
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET)
                 .parseOptionallyIndexedParamName("address.023")
         }
     }
@@ -124,7 +126,7 @@ class SubParserTests {
     @Test
     fun `fails to parse a parameter with an index greater than 9999`() {
         assertFails {
-            Parser(ParserContext.TESTNET, addressValidation = null)
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET)
                 .parseOptionallyIndexedParamName("address.19999")
         }
     }
@@ -132,7 +134,7 @@ class SubParserTests {
     @Test
     fun `fails to parse a paramname with invalid characters`() {
         assertFails {
-            Parser(ParserContext.TESTNET, addressValidation = null)
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET)
                 .parseOptionallyIndexedParamName("add[ress[1].1")
         }
     }
@@ -142,7 +144,7 @@ class SubParserTests {
     @Test
     fun `parses a query key with no index`() {
         val parsedQueryParam =
-            Parser(ParserContext.TESTNET, addressValidation = null)
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET)
                 .parseQueryKeyAndValue("address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU")
 
         assertEquals("address", parsedQueryParam.first.first)
@@ -153,7 +155,7 @@ class SubParserTests {
     @Test
     fun `parses a query key with a valid index`() {
         val parsedQueryParam =
-            Parser(ParserContext.TESTNET, addressValidation = null)
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET)
                 .parseQueryKeyAndValue("address.123=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU")
 
         assertEquals("address", parsedQueryParam.first.first)
@@ -164,7 +166,7 @@ class SubParserTests {
     @Test
     fun `fails to parse a query key with invalid index`() {
         assertFails {
-            Parser(ParserContext.TESTNET, addressValidation = null)
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET)
                 .parseQueryKeyAndValue("address.00123=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU")
         }
     }
@@ -175,7 +177,7 @@ class SubParserTests {
     fun `parser catches query qcharencoded values`() {
         assertEquals(
             Pair(Pair("message", 1u), "Thank%20You%20For%20Your%20Purchase"),
-            Parser(ParserContext.TESTNET, addressValidation = null)
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET)
                 .parseQueryKeyAndValue("message.1=Thank%20You%20For%20Your%20Purchase"),
         )
     }
@@ -188,7 +190,7 @@ class SubParserTests {
         val input = Pair<Pair<String, UInt?>, String>(Pair(query, index), value)
         assertEquals(
             IndexedParameter(1u, Param.Amount(amount = LegacyAmount(value))),
-            Parser(ParserContext.TESTNET, addressValidation = null).zcashParameter(input),
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET).zcashParameter(input),
         )
     }
 
@@ -203,7 +205,7 @@ class SubParserTests {
 
         assertEquals(
             IndexedParameter(1u, Param.Message(qcharDecodedValue)),
-            Parser(ParserContext.TESTNET, addressValidation = null).zcashParameter(input),
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET).zcashParameter(input),
         )
     }
 
@@ -218,7 +220,7 @@ class SubParserTests {
 
         assertEquals(
             IndexedParameter(1u, Param.Label(qcharDecodedValue)),
-            Parser(ParserContext.TESTNET, addressValidation = null).zcashParameter(input),
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET).zcashParameter(input),
         )
     }
 
@@ -231,7 +233,7 @@ class SubParserTests {
         val memo = MemoBytes.fromBase64URL(value)
         assertEquals(
             IndexedParameter(99u, Param.Memo(memo)),
-            Parser(ParserContext.TESTNET, addressValidation = null).zcashParameter(input),
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET).zcashParameter(input),
         )
     }
 
@@ -243,7 +245,7 @@ class SubParserTests {
         val input = Pair<Pair<String, UInt?>, String>(Pair(query, index), value)
         assertEquals(
             input,
-            Parser(ParserContext.TESTNET, addressValidation = null)
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET)
                 .parseQueryKeyAndValue(
                     "memo.99=VGhpcyBpcyBhIHVuaWNvZGUgbWVtbyDinKjwn6aE8J-PhvCfjok",
                 ),
@@ -257,7 +259,7 @@ class SubParserTests {
         val input = Pair<Pair<String, UInt?>, String>(Pair(query, null), value)
         assertEquals(
             IndexedParameter(0u, Param.Other(ParamNameString(query), value)),
-            Parser(ParserContext.TESTNET, addressValidation = null).zcashParameter(input),
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET).zcashParameter(input),
         )
     }
 
@@ -268,9 +270,8 @@ class SubParserTests {
         val remainingString = "?address=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount=1&memo=VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg&message=Thank%20you%20for%20your%20purchase"
 
         val recipient =
-            RecipientAddress(
+            validRecipient(
                 "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
-                ParserContext.TESTNET,
             )
 
         val expected =
@@ -283,7 +284,7 @@ class SubParserTests {
 
         assertEquals(
             expected,
-            Parser(ParserContext.TESTNET, addressValidation = null).parseParameters(remainingString, null),
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET).parseParameters(remainingString, null),
         )
     }
 
@@ -292,9 +293,8 @@ class SubParserTests {
         val remainingString = "?amount=1&memo=VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg&message=Thank%20you%20for%20your%20purchase"
 
         val recipient =
-            RecipientAddress(
+            validRecipient(
                 "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
-                ParserContext.TESTNET,
             )
 
         val expected =
@@ -309,7 +309,7 @@ class SubParserTests {
 
         assertEquals(
             expected,
-            Parser(ParserContext.TESTNET, addressValidation = null).parseParameters(remainingString, leadingAddress),
+            Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET).parseParameters(remainingString, leadingAddress),
         )
     }
 
@@ -320,9 +320,8 @@ class SubParserTests {
         val params =
             listOf(
                 Param.Address(
-                    RecipientAddress(
+                    validRecipient(
                         "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
-                        ParserContext.TESTNET,
                     ),
                 ),
                 Param.Amount(LegacyAmount("1")),
@@ -339,9 +338,8 @@ class SubParserTests {
         val params =
             listOf(
                 Param.Address(
-                    RecipientAddress(
+                    validRecipient(
                         "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
-                        ParserContext.TESTNET,
                     ),
                 ),
                 Param.Amount(LegacyAmount("1")),
@@ -353,9 +351,8 @@ class SubParserTests {
         assertTrue(
             params.hasDuplicateParam(
                 Param.Address(
-                    RecipientAddress(
+                    validRecipient(
                         "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
-                        ParserContext.TESTNET,
                     ),
                 ),
             ),
@@ -367,9 +364,8 @@ class SubParserTests {
     @Test
     fun `Payment is created from indexed parameters`() {
         val recipient =
-            RecipientAddress(
+            validRecipient(
                 "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
-                ParserContext.TESTNET,
             )
 
         val params =
@@ -399,9 +395,8 @@ class SubParserTests {
     @Test
     fun `duplicate addresses are detected`() {
         val shieldedRecipient =
-            RecipientAddress(
+            validRecipient(
                 "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
-                ParserContext.TESTNET,
             )
 
         val duplicateAddressParams: List<IndexedParameter> =
@@ -417,7 +412,7 @@ class SubParserTests {
 
         val error =
             assertFailsWith<ZIP321.Errors> {
-                Parser(ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateAddressParams)
+                Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET).mapToPayments(duplicateAddressParams)
             }
         assertEquals(ZIP321.Errors.DuplicateParameter("address", null), error)
     }
@@ -425,9 +420,8 @@ class SubParserTests {
     @Test
     fun `duplicate amounts are detected`() {
         val shieldedRecipient =
-            RecipientAddress(
+            validRecipient(
                 "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
-                ParserContext.TESTNET,
             )
 
         val duplicateAmountParams: List<IndexedParameter> =
@@ -443,7 +437,7 @@ class SubParserTests {
 
         val error =
             assertFailsWith<ZIP321.Errors> {
-                Parser(ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateAmountParams)
+                Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET).mapToPayments(duplicateAmountParams)
             }
         assertEquals(ZIP321.Errors.DuplicateParameter("amount", null), error)
     }
@@ -451,9 +445,8 @@ class SubParserTests {
     @Test
     fun `duplicate message are detected`() {
         val shieldedRecipient =
-            RecipientAddress(
+            validRecipient(
                 "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
-                ParserContext.TESTNET,
             )
 
         val duplicateParams: List<IndexedParameter> =
@@ -470,7 +463,7 @@ class SubParserTests {
 
         val error =
             assertFailsWith<ZIP321.Errors> {
-                Parser(ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateParams)
+                Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET).mapToPayments(duplicateParams)
             }
         assertEquals(ZIP321.Errors.DuplicateParameter("message", null), error)
     }
@@ -478,9 +471,8 @@ class SubParserTests {
     @Test
     fun `duplicate memos are detected`() {
         val shieldedRecipient =
-            RecipientAddress(
+            validRecipient(
                 "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
-                ParserContext.TESTNET,
             )
 
         val duplicateParams: List<IndexedParameter> =
@@ -496,7 +488,7 @@ class SubParserTests {
 
         val error =
             assertFailsWith<ZIP321.Errors> {
-                Parser(ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateParams)
+                Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET).mapToPayments(duplicateParams)
             }
         assertEquals(ZIP321.Errors.DuplicateParameter("memo", null), error)
     }
@@ -504,9 +496,8 @@ class SubParserTests {
     @Test
     fun `duplicate other params are detected`() {
         val shieldedRecipient =
-            RecipientAddress(
+            validRecipient(
                 "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
-                ParserContext.TESTNET,
             )
 
         val duplicateParams: List<IndexedParameter> =
@@ -522,7 +513,7 @@ class SubParserTests {
 
         val error =
             assertFailsWith<ZIP321.Errors> {
-                Parser(ParserContext.TESTNET, addressValidation = null).mapToPayments(duplicateParams)
+                Parser(Network.TESTNET, ReferenceAddressValidator.TESTNET).mapToPayments(duplicateParams)
             }
         assertEquals(ZIP321.Errors.DuplicateParameter("future", null), error)
     }

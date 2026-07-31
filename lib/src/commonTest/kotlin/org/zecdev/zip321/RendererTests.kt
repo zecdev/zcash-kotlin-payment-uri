@@ -9,8 +9,7 @@ import org.zecdev.zip321.model.LegacyAmount
 import org.zecdev.zip321.model.MemoBytes
 import org.zecdev.zip321.model.Payment
 import org.zecdev.zip321.model.PaymentRequest
-import org.zecdev.zip321.model.RecipientAddress
-import org.zecdev.zip321.parser.ParserContext
+import org.zecdev.zip321.support.validRecipient
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -40,7 +39,7 @@ class RendererTests {
         val expected = "address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val address0 = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
 
-        val recipient0 = RecipientAddress(value = address0, ParserContext.TESTNET)
+        val recipient0 = validRecipient(address0)
         assertEquals(expected, Render.parameter(recipient0, null))
     }
 
@@ -49,7 +48,7 @@ class RendererTests {
         val expected = "address.1=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
         val address0 = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
 
-        val recipient0 = RecipientAddress(value = address0, ParserContext.TESTNET)
+        val recipient0 = validRecipient(address0)
         assertEquals(expected, Render.parameter(recipient0, 1u))
     }
 
@@ -110,7 +109,7 @@ class RendererTests {
         val expected = "address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount=123.456"
         val address0 = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
 
-        val recipient0 = RecipientAddress(value = address0, ParserContext.TESTNET)
+        val recipient0 = validRecipient(address0)
         val payment0 =
             Payment(
                 recipientAddress = recipient0,
@@ -130,7 +129,7 @@ class RendererTests {
             "address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=0.789&memo.1=VGhpcyBpcyBhIHVuaWNvZGUgbWVtbyDinKjwn6aE8J-PhvCfjok"
         val address1 = "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez"
 
-        val recipient1 = RecipientAddress(value = address1, ParserContext.TESTNET)
+        val recipient1 = validRecipient(address1)
         val payment1 =
             Payment(
                 recipientAddress = recipient1,
@@ -149,7 +148,7 @@ class RendererTests {
         val expected = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU?amount=123.456"
         val address0 = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
 
-        val recipient0 = RecipientAddress(value = address0, ParserContext.TESTNET)
+        val recipient0 = validRecipient(address0)
         val payment0 =
             Payment(
                 recipientAddress = recipient0,
@@ -169,7 +168,7 @@ class RendererTests {
             "address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=0.789&memo.1=VGhpcyBpcyBhIHVuaWNvZGUgbWVtbyDinKjwn6aE8J-PhvCfjok"
         val address1 = "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez"
 
-        val recipient1 = RecipientAddress(value = address1, ParserContext.TESTNET)
+        val recipient1 = validRecipient(address1)
         val payment1 =
             Payment(
                 recipientAddress = recipient1,
@@ -189,7 +188,7 @@ class RendererTests {
 
         val payment1 =
             Payment(
-                recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
+                recipientAddress = validRecipient("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"),
                 nonNegativeAmount = LegacyAmount("123.45"),
                 memo = null,
                 label = "apple",
@@ -200,9 +199,8 @@ class RendererTests {
         val payment2 =
             Payment(
                 recipientAddress =
-                    RecipientAddress(
+                    validRecipient(
                         "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
-                        ParserContext.TESTNET,
                     ),
                 nonNegativeAmount = LegacyAmount("1.2345"),
                 memo = null,
@@ -222,7 +220,7 @@ class RendererTests {
 
         val payment1 =
             Payment(
-                recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
+                recipientAddress = validRecipient("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"),
                 nonNegativeAmount = LegacyAmount("123.45"),
                 memo = null,
                 label = "apple",
@@ -233,9 +231,8 @@ class RendererTests {
         val payment2 =
             Payment(
                 recipientAddress =
-                    RecipientAddress(
+                    validRecipient(
                         "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
-                        ParserContext.TESTNET,
                     ),
                 nonNegativeAmount = LegacyAmount("1.2345"),
                 memo = null,
@@ -255,7 +252,7 @@ class RendererTests {
 
         val payment1 =
             Payment(
-                recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
+                recipientAddress = validRecipient("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"),
                 nonNegativeAmount = LegacyAmount("123.45"),
                 memo = null,
                 label = "apple",
@@ -266,9 +263,8 @@ class RendererTests {
         val payment2 =
             Payment(
                 recipientAddress =
-                    RecipientAddress(
+                    validRecipient(
                         "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
-                        ParserContext.TESTNET,
                     ),
                 nonNegativeAmount = LegacyAmount("1.2345"),
                 memo = null,

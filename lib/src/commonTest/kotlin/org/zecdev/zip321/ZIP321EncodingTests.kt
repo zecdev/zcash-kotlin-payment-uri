@@ -10,8 +10,7 @@ import org.zecdev.zip321.ZIP321.FormattingOptions.UseEmptyParamIndex
 import org.zecdev.zip321.model.LegacyAmount
 import org.zecdev.zip321.model.Payment
 import org.zecdev.zip321.model.PaymentRequest
-import org.zecdev.zip321.model.RecipientAddress
-import org.zecdev.zip321.parser.ParserContext
+import org.zecdev.zip321.support.validRecipient
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -22,7 +21,7 @@ class ZIP321EncodingTests {
 
         val payment1 =
             Payment(
-                recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
+                recipientAddress = validRecipient("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"),
                 nonNegativeAmount = LegacyAmount("123.45"),
                 memo = null,
                 label = "apple",
@@ -33,9 +32,8 @@ class ZIP321EncodingTests {
         val payment2 =
             Payment(
                 recipientAddress =
-                    RecipientAddress(
+                    validRecipient(
                         "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
-                        ParserContext.TESTNET,
                     ),
                 nonNegativeAmount = LegacyAmount("1.2345"),
                 memo = null,
@@ -55,7 +53,7 @@ class ZIP321EncodingTests {
 
         val payment1 =
             Payment(
-                recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
+                recipientAddress = validRecipient("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"),
                 nonNegativeAmount = LegacyAmount("123.45"),
                 memo = null,
                 label = "apple",
@@ -66,9 +64,8 @@ class ZIP321EncodingTests {
         val payment2 =
             Payment(
                 recipientAddress =
-                    RecipientAddress(
+                    validRecipient(
                         "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
-                        ParserContext.TESTNET,
                     ),
                 nonNegativeAmount = LegacyAmount("1.2345"),
                 memo = null,
@@ -88,7 +85,7 @@ class ZIP321EncodingTests {
 
         val payment1 =
             Payment(
-                recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET),
+                recipientAddress = validRecipient("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"),
                 nonNegativeAmount = LegacyAmount("123.45"),
                 memo = null,
                 label = "apple",
@@ -99,9 +96,8 @@ class ZIP321EncodingTests {
         val payment2 =
             Payment(
                 recipientAddress =
-                    RecipientAddress(
+                    validRecipient(
                         "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
-                        ParserContext.TESTNET,
                     ),
                 nonNegativeAmount = LegacyAmount("1.2345"),
                 memo = null,
@@ -118,7 +114,7 @@ class ZIP321EncodingTests {
     @Test
     fun `request RecipientAddress encodes single address with default formatting options`() {
         val expected = "zcash:tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
-        val recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET)
+        val recipientAddress = validRecipient("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU")
 
         assertEquals(expected, ZIP321.request(recipientAddress))
     }
@@ -126,7 +122,7 @@ class ZIP321EncodingTests {
     @Test
     fun `request RecipientAddress encodes single address with empty param index and address label not omitted`() {
         val expected = "zcash:?address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
-        val recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET)
+        val recipientAddress = validRecipient("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU")
 
         assertEquals(expected, ZIP321.request(recipientAddress, UseEmptyParamIndex(false)))
     }
@@ -134,7 +130,7 @@ class ZIP321EncodingTests {
     @Test
     fun `request RecipientAddress encodes single address with all payments enumerated`() {
         val expected = "zcash:?address.1=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
-        val recipientAddress = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET)
+        val recipientAddress = validRecipient("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU")
 
         assertEquals(expected, ZIP321.request(recipientAddress, EnumerateAllPayments))
     }
