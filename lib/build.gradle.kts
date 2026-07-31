@@ -179,14 +179,20 @@ kotlin {
         }
     }
 
-    // iOS targets. This PR only requires that they COMPILE with zero
-    // runtime dependencies (commonMain is pure Kotlin).
+    // iOS targets. Declaring iosArm64 + iosSimulatorArm64 alongside jvm makes
+    // Kotlin's DEFAULT HIERARCHY TEMPLATE (applied automatically since 1.9.20)
+    // materialise the intermediate `iosMain`/`iosTest` source sets, so a single
+    // `src/iosTest` actual is shared by both iOS targets — no manual
+    // `sourceSets` wiring or `applyDefaultHierarchyTemplate()` needed.
     iosArm64()
     iosSimulatorArm64()
 
     sourceSets {
         val commonMain by getting {
-            // ZERO runtime dependencies. No kudzu, no guava, no commons-math3.
+            // ZERO runtime dependencies. No kudzu, no guava, no commons-math3 —
+            // and no crypto: the library performs no address validation, so it
+            // needs no hash, no Bech32 and no Base58Check. Those live in
+            // `commonTest` as reference checkers for the test suite only.
         }
 
         val commonTest by getting {

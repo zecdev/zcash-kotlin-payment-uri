@@ -6,6 +6,63 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added (v2/K7) — test support only
+- **Base58Check reference checker**
+  (`lib/src/commonTest/kotlin/org/zecdev/zip321/support/Base58Check.kt`) —
+  **test support, not part of the shipped library**: `decode(String):
+  ByteArray?` (base58 big-integer decode via `ByteArray`/`MutableList<Byte>`
+  arithmetic — no `BigInteger` dependency — 4-byte SHA-256d checksum
+  verification using the v2/K5 `Sha256`, leading-`'1'` zero-byte preservation)
+  and `verify(String, expectedVersionBytes: List<ByteArray>): Boolean`. Port of
+  the Swift reference's test-support `Base58Check.swift`, including its table
+  citing the mainnet/testnet/regtest transparent-address version-byte prefixes
+  from librustzcash `zcash_protocol`. `Base58CheckTests` ports
+  testnet/mainnet P2PKH decode, corpus corrupted-checksum rejection,
+  wrong-version-bytes rejection, leading-zero-byte preservation,
+  invalid-alphabet-character rejection (`0`/`O`/`I`/`l`), and too-short-input
+  rejection.
+
+### Added (v2/K6) — test support only
+- **Bech32 / Bech32m reference checker**
+  (`lib/src/commonTest/kotlin/org/zecdev/zip321/support/Bech32.kt`), per
+  BIP-173 / BIP-350 — **test support, not part of the shipped library**:
+  `Variant` enum (`BECH32` checksum constant `1`, `BECH32M` checksum constant
+  `0x2bc830a3`), `decode(String): Decoded?` (mixed-case rejected *before*
+  lowercasing, 1023-char limit, printable-ASCII 33..126 charset, separator is
+  the last `'1'`, HRP 1..83 chars, >= 6 checksum chars, BCH polymod), and
+  `verify(String, expectedHrp, variant): Boolean`. Port of the Swift
+  reference's test-support `Bech32.swift`, including its citation of why the
+  length limit is 1023 (the `bech32` Rust crate's per-checksum `CODE_LENGTH`)
+  rather than BIP-173's 90-char segwit cap. `Bech32Tests` ports the
+  BIP-173/BIP-350 known-answer vectors, real Sapling/Unified/regtest Zcash
+  addresses, and their corpus-corrupted (checksum-broken) variants.
+
+### Added (v2/K5) — test support only
+- **SHA-256 wrapper for the reference address checkers**
+  (`lib/src/commonTest/kotlin/org/zecdev/zip321/support/Sha256.kt`), which is
+  **test support and not part of the shipped library**. `hash(ByteArray)` and
+  `doubleHash(ByteArray)` delegate to an `internal expect fun
+  sha256(ByteArray): ByteArray` whose actuals are each platform's **own**
+  cryptographic library — `java.security.MessageDigest.getInstance("SHA-256")`
+  in `jvmTest` (a fresh, therefore thread-safe, digest instance per call) and
+  CommonCrypto's `CC_SHA256` via Kotlin/Native's bundled `platform.CoreCrypto`
+  interop in `iosTest`. `expect`/`actual` behaves in test source sets exactly
+  as it does in main source sets; `iosTest` is materialised for both iOS
+  targets by Kotlin's default hierarchy template.
+
+  It lives in `commonTest` because the library **performs no address
+  validation of its own** and therefore needs no cryptography: `commonMain`
+  ships zero hash, Bech32 or Base58Check code. This digest exists solely so the
+  test-only address-encoding checkers (v2/K6, v2/K7) can verify the SHA-256d
+  checksums of transparent addresses, which is what makes the shared
+  conformance corpus's checksum-corruption vectors executable.
+
+  `Sha256Tests` pins the *wiring* — expect/actual plumbing, digest byte order,
+  `doubleHash` composition — with four known-answer vectors: `SHA-256("")`,
+  FIPS 180-4 B.1 `"abc"`, B.2's two-block message, and SHA-256d(`"hello"`).
+  Living in `commonTest`, they run under both `jvmTest` and
+  `iosSimulatorArm64Test`, exercising each actual in turn.
+
 ### Fixed (v2/K4)
 - **Zero-length memos are now valid** (conformance fix): `MemoBytes` accepts
   0 to 512 bytes, matching the reference implementation (consensus zero-pads
