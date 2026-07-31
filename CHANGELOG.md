@@ -6,6 +6,76 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added — fluent builders and DSL (v2/K14)
+
+- **`Payment.Builder`** (`Builder(recipient)` + chainable `amount(NonNegativeAmount)`, `amount(zec: String)`,
+  `memo(MemoBytes)`, `memo(utf8: String)`, `label(...)`, `message(...)`,
+  `otherParam(name, value)`, terminal `build(): Result<Payment>`). Fallible inputs are validated
+  LAZILY at `build()`: a bad `amount(zec = ...)` surfaces as `AmountInvalid` (or
+  `AmountExceededSupply`), an oversized `memo(utf8 = ...)` as `MemoBytesError`, an invalid
+  `otherParam` name as `ParseError(INVALID_PARAMETER)`; a memo to a transparent recipient surfaces
+  as `TransparentMemo` via `Payment.create`. When several fields are invalid, the first error wins
+  in FIXED field order (amount → memo → other params → structural rules), matching the Swift
+  library byte-for-byte.
+  `Payment.Builder` accumulates `otherParam(...)` calls into the payment's always-present
+  `otherParams` list; a repeated name surfaces at `build()` as `DuplicateParameter` through
+  `Payment.create`.
+- **`PaymentRequest.Builder`** (`add(payment)` auto-indexing sequentially from `0`,
+  `add(payment, at = n)` for an explicit paramindex, `Builder(payments)` seeding, terminal
+  `build(): Result<PaymentRequest>`). Deferred validation: a repeated index fails with
+  `DuplicateParameter("address", index)` and an index above `9999` fails with `TooManyPayments`.
+- **`paymentRequest { }` DSL** — the idiomatic Kotlin equivalent of the Swift library's
+  `@resultBuilder` entry point `PaymentRequest.build { }`:
+  `paymentRequest { payment(recipient) { amount(zec = "1.00"); memo(utf8 = "Thanks") } }` returns
+  `Result<PaymentRequest>`. `payment(prebuilt)` / `payments(list)` mirror the Swift
+  result-builder's `Payment` / `[Payment]` expression statements. The DSL is a thin layer over the
+  builders: its output is `assertEquals`-identical to the explicit `Builder` chains and it shares
+  their first-error-wins deferred-error semantics.
+
+### Breaking changes (v2/K14)
+
+- **`OtherParam`'s constructor is now internal; construct via
+  `OtherParam.create(name, value): Result<OtherParam>`**, which validates the name against the
+  ZIP-321 grammar and reserved-name rules: an empty name, a reserved query key (`address`,
+  `amount`, `label`, `memo`, `message`), any `req-`-prefixed name, or a name that is not a valid
+  `paramname` (`ALPHA *( ALPHA / DIGIT / "+" / "-" )`) fails with
+  `ParseError(INVALID_PARAMETER)`. The parse path constructs instances internally from
+  already-validated grammar tokens. (`copy()` follows the constructor's visibility via
+  `@ConsistentCopyVisibility`.)
+
+### Breaking changes — v2.0.0 canonical renderer (v2/K13)
+
+- **The renderer now renders from `PaymentRequest.indexedPayments`, preserving each payment's
+  ACTUAL stored `paramindex`.** A request whose only payment sits at index `5` renders
+  `zcash:?address.5=…&amount.5=1` (previously it was collapsed onto the empty index). Per-payment
+  parameter order matches the reference exactly: address, amount, memo, label, message, then
+  `otherParams` in stored order. The `Render` object itself (a v1 public implementation detail) is
+  now `internal`; render through `ZIP321.uriString` / `ZIP321.request`.
+- **The default `formattingOptions` of `ZIP321.uriString(from)` and `ZIP321.request(payment)`
+  changed to `FormattingOptions.UseEmptyParamIndex(omitAddressLabel = true)`** — the canonical
+  reference form (previously `EnumerateAllPayments`). A single payment at the empty paramindex
+  renders as the leading-address form `zcash:<addr>?amount=…`; multi-payment (or any payment at a
+  non-zero index) renders as `zcash:?address[.n]=…&…` — address-label omission only ever applies
+  to a single payment at index `0`. The round-trip law `parse(uriString(from = r)) == Request(r)`
+  holds for every request `r` under the default options (asserted over the corpus's valid vectors).
+- **`FormattingOptions.EnumerateAllPayments` is now a documented NORMALIZATION mode**: it discards
+  stored paramindices and re-numbers payments sequentially from `1` (`address.1=…&address.2=…`)
+  under `zcash:?`.
+- **The v1 `ZIP321.maxPaymentsAllowed = 2109` constant was removed.** It was a v1 remnant with no
+  basis in ZIP-321 and made the parser wrongly reject any `paramindex` in `[2108, 9999]`. The only
+  limits are the `paramindex` grammar (`NONZERO 0*3DIGIT`, i.e. ≤ 9999) and
+  `PaymentRequest.MAX_PAYMENT_COUNT` (9999) for programmatic construction; `address.2500=…` now
+  parses fine.
+
+### Fixed (v2/K13)
+
+- **A single payment at a non-zero paramindex now re-renders faithfully** instead of being
+  collapsed onto the empty index, fixing the `structure_index_gap_only_address_5` conformance
+  divergence. The conformance expected-failure map is now EMPTY: every valid corpus vector passes
+  parse, error-discriminant, and canonical-render checks.
+- **The empty request renders as `zcash:` under every `FormattingOptions`** (previously only the
+  default path handled it).
+
 ### Breaking changes — v2.0.0 public API reshape (v2/K12)
 
 This is the deliberate breaking-change milestone of the v2 rewrite. The public surface now matches
@@ -81,8 +151,9 @@ the cross-language v2 contract shared with the Swift library.
   asserts the exact `ZIP321Error` discriminant against the corpus. Expected-failure ledger: burned
   `structure_empty_request`, `structure_empty_request_query_marker`,
   `spec_invalid_zero_valued_transparent_output`, `amount_just_below_max_money`, and
-  `amount_parse_simple_large_decimal`; the sole remaining entry is the render-owned
-  `structure_index_gap_only_address_5` (renderer rewrite, K13).
+  `amount_parse_simple_large_decimal`; the sole remaining entry, the render-owned
+  `structure_index_gap_only_address_5`, was burned by the K13 renderer rewrite (see above) — the
+  expected-failure ledger is now EMPTY.
 
 ### Changed (v2/K11)
 - **The ZIP-321 URI grammar is rewritten onto the `Scanner`.** `parser/Parser.kt` replaces the

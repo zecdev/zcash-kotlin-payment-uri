@@ -22,16 +22,12 @@ object ExpectedFailures {
     /**
      * Valid vectors whose re-rendered URI (via `ZIP321.uriString`) differs
      * from the reference `canonicalUri` (librustzcash `to_uri()` output).
-     * Tracked separately from [conformance] because v1's default formatting
-     * may legitimately differ from the Rust canonical form.
+     *
+     * EMPTY as of K13: the canonical renderer preserves parsed paramindices,
+     * so the default rendering matches the reference `to_uri()` output for
+     * every valid vector.
      */
-    val renderMismatch: Map<String, String> = mapOf(
-        "structure_index_gap_only_address_5" to
-            "the renderer still enumerates payments positionally from the empty/`.1` paramindex " +
-            "rather than preserving the parsed paramindex, so a request parsed from " +
-            "'address.5='/'amount.5=' re-renders as 'zcash:<addr>?amount=1' instead of " +
-            "preserving/enumerating indices like the reference canonical form (renderer rewrite, K13)."
-    )
+    val renderMismatch: Map<String, String> = emptyMap()
 }
 
 /**

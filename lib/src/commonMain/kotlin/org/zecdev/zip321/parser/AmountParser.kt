@@ -9,7 +9,7 @@ import org.zecdev.zip321.model.NonNegativeAmount
  * implements the grammar with checked integer arithmetic) and mapping its
  * [NonNegativeAmount.AmountException] onto the closest v1 [ZIP321.Errors] case.
  *
- * Unlike the deprecated `LegacyAmount(decimalString)` path this rejects a leading or trailing
+ * Unlike the lenient v1 amount parsing (removed in v2) this rejects a leading or trailing
  * decimal point (`".5"`, `"123."`), a sign, whitespace, scientific notation, and any `%` escape
  * (amount values are never percent-decoded), matching the reference `parse_amount`.
  */
@@ -32,7 +32,7 @@ internal object AmountParser {
 
     /**
      * Maps a strict [NonNegativeAmount.AmountException] onto the closest v1 `amount` error,
-     * preserving the mapping used for the deprecated `LegacyAmount` path:
+     * preserving the v1 error mapping:
      *   - [NonNegativeAmount.AmountException.ExceededSupply] (including `ULong`-overflowing
      *     strings) -> [ZIP321.Errors.AmountExceededSupply]
      *   - [NonNegativeAmount.AmountException.InvalidDecimalString] (grammar-shape failure: empty

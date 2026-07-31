@@ -144,17 +144,10 @@ private fun checkValidVector(vector: ValidVector) {
 
 private fun checkRenderRoundTrip(vector: ValidVector) {
     val canonical = checkNotNull(vector.canonicalUri)
-    val result = parseVector(vector)
-    val rendered =
-        ZIP321.uriString(
-            from = result,
-            // Mirror librustzcash to_uri(): the first payment uses the empty paramindex,
-            // subsequent payments are enumerated from `.1`.
-            formattingOptions =
-                ZIP321.FormattingOptions.UseEmptyParamIndex(
-                    omitAddressLabel = result.payments.size == 1,
-                ),
-        )
+    // The DEFAULT formatting options are the canonical reference form (K13): each payment renders
+    // at its ACTUAL stored paramindex, and a single payment at the empty paramindex uses the
+    // leading-address form, mirroring librustzcash to_uri().
+    val rendered = ZIP321.uriString(from = parseVector(vector))
     assertEquals(
         canonical,
         rendered,

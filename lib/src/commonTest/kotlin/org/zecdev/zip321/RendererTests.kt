@@ -1,7 +1,9 @@
 package org.zecdev.zip321
 
+import org.zecdev.zip321.model.IndexedPayment
 import org.zecdev.zip321.model.MemoBytes
 import org.zecdev.zip321.model.NonNegativeAmount
+import org.zecdev.zip321.model.OtherParam
 import org.zecdev.zip321.model.Payment
 import org.zecdev.zip321.model.PaymentRequest
 import org.zecdev.zip321.support.validRecipient
@@ -74,13 +76,13 @@ class RendererTests {
     @Test
     fun `required future parameter is rendered with no paramIndex`() {
         val expected = "req-futureParam=Future%20is%20Z"
-        assertEquals(expected, Render.parameter(label = "req-futureParam", value = "Future is Z", index = null))
+        assertEquals(expected, Render.parameter(name = "req-futureParam", decodedValue = "Future is Z", index = null))
     }
 
     @Test
     fun `required future parameter is rendered with paramIndex`() {
         val expected = "req-futureParam.1=Future%20is%20Z"
-        assertEquals(expected, Render.parameter(label = "req-futureParam", value = "Future is Z", index = 1u))
+        assertEquals(expected, Render.parameter(name = "req-futureParam", decodedValue = "Future is Z", index = 1u))
     }
 
     @Test
@@ -178,7 +180,7 @@ class RendererTests {
     }
 
     @Test
-    fun `Payment request renderer increments index when start index is given`() {
+    fun `Payment request renderer enumerates all payments from 1 in normalization mode`() {
         val expected = "zcash:?address.1=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount.1=123.45&label.1=apple&address.2=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.2=1.2345&label.2=banana"
 
         val payment1 =
@@ -206,11 +208,11 @@ class RendererTests {
 
         val paymentRequest = PaymentRequest(listOf(payment1, payment2))
 
-        assertEquals(expected, Render.request(paymentRequest, 1u))
+        assertEquals(expected, Render.request(paymentRequest, ZIP321.FormattingOptions.EnumerateAllPayments))
     }
 
     @Test
-    fun `Payment request renderer increments index when start index is null`() {
+    fun `Payment request renderer preserves stored indices with empty param index`() {
         val expected = "zcash:?address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount=123.45&label=apple&address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=1.2345&label.1=banana"
 
         val payment1 =
@@ -238,12 +240,18 @@ class RendererTests {
 
         val paymentRequest = PaymentRequest(listOf(payment1, payment2))
 
-        assertEquals(expected, Render.request(paymentRequest, null))
+        assertEquals(
+            expected,
+            Render.request(paymentRequest, ZIP321.FormattingOptions.UseEmptyParamIndex(omitAddressLabel = false)),
+        )
     }
 
+    // NOTE (K13): label omission only applies to a SINGLE payment at the empty paramindex
+    // (matching the reference `to_uri`); a multi-payment request always renders every address
+    // with an explicit `address[.n]=` label.
     @Test
-    fun `Payment request renderer increments index when start index is null and address parameter is omitted`() {
-        val expected = "zcash:tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU?amount=123.45&label=apple&address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=1.2345&label.1=banana"
+    fun `Payment request renderer ignores address label omission for multi-payment requests`() {
+        val expected = "zcash:?address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount=123.45&label=apple&address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=1.2345&label.1=banana"
 
         val payment1 =
             Payment(
@@ -270,6 +278,85 @@ class RendererTests {
 
         val paymentRequest = PaymentRequest(listOf(payment1, payment2))
 
-        assertEquals(expected, Render.request(paymentRequest, null, true))
+        assertEquals(
+            expected,
+            Render.request(paymentRequest, ZIP321.FormattingOptions.UseEmptyParamIndex(omitAddressLabel = true)),
+        )
+    }
+
+    // MARK: K13 — canonical renderer semantics
+
+    @Test
+    fun `parameterIndex renders empty for null and the empty paramindex`() {
+        assertEquals("", Render.parameterIndex(null))
+        assertEquals("", Render.parameterIndex(0u))
+        assertEquals(".1", Render.parameterIndex(1u))
+        assertEquals(".9999", Render.parameterIndex(9999u))
+    }
+
+    @Test
+    fun `empty request renders as the bare scheme in either mode`() {
+        val empty = PaymentRequest(emptyList())
+        assertEquals("zcash:", Render.request(empty, ZIP321.FormattingOptions.UseEmptyParamIndex(true)))
+        assertEquals("zcash:", Render.request(empty, ZIP321.FormattingOptions.UseEmptyParamIndex(false)))
+        assertEquals("zcash:", Render.request(empty, ZIP321.FormattingOptions.EnumerateAllPayments))
+    }
+
+    @Test
+    fun `otherparam with a value renders the equals separator and a value-less one does not`() {
+        val withValue = OtherParam(name = "future-param", value = "hello world")
+        val valueless = OtherParam(name = "flag", value = null)
+        val emptyValue = OtherParam(name = "empty", value = "")
+
+        assertEquals("future-param=hello%20world", Render.parameter(withValue, null))
+        assertEquals("flag.2", Render.parameter(valueless, 2u))
+        assertEquals("empty=", Render.parameter(emptyValue, null))
+    }
+
+    @Test
+    fun `a lone payment at a non-zero index renders at its ACTUAL stored index`() {
+        val expected =
+            "zcash:?address.5=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.5=1"
+
+        val payment =
+            Payment(
+                recipientAddress =
+                    validRecipient(
+                        "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
+                    ),
+                amount = NonNegativeAmount.zec("1").getOrThrow(),
+                memo = null,
+                label = null,
+                message = null,
+                otherParams = emptyList(),
+            )
+        val request = PaymentRequest.fromIndexedPayments(listOf(IndexedPayment(5u, payment)))
+
+        // The stored index is preserved even when label omission is requested (the payment is
+        // not at the empty paramindex, so the leading-address form does not apply).
+        assertEquals(expected, Render.request(request, ZIP321.FormattingOptions.UseEmptyParamIndex(true)))
+        assertEquals(expected, Render.request(request, ZIP321.FormattingOptions.UseEmptyParamIndex(false)))
+    }
+
+    @Test
+    fun `EnumerateAllPayments re-numbers stored indices sequentially from 1`() {
+        val payment =
+            Payment(
+                recipientAddress =
+                    validRecipient(
+                        "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
+                    ),
+                amount = NonNegativeAmount.zec("1").getOrThrow(),
+                memo = null,
+                label = null,
+                message = null,
+                otherParams = emptyList(),
+            )
+        val request = PaymentRequest.fromIndexedPayments(listOf(IndexedPayment(5u, payment)))
+
+        assertEquals(
+            "zcash:?address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=1",
+            Render.request(request, ZIP321.FormattingOptions.EnumerateAllPayments),
+        )
     }
 }

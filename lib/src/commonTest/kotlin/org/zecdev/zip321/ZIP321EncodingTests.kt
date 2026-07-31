@@ -10,9 +10,12 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ZIP321EncodingTests {
+    // NOTE (K13): the DEFAULT formatting options changed to the canonical reference form
+    // (UseEmptyParamIndex(omitAddressLabel = true)); payments render at their ACTUAL stored
+    // paramindices (0 -> empty suffix, 1 -> `.1`) instead of being re-enumerated from `.1`.
     @Test
     fun `uriString PaymentRequest FormattingOptions encodes multiple payments with default formatting options`() {
-        val expected = "zcash:?address.1=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount.1=123.45&label.1=apple&address.2=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.2=1.2345&label.2=banana"
+        val expected = "zcash:?address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount=123.45&label=apple&address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=1.2345&label.1=banana"
 
         val payment1 =
             Payment(
@@ -42,9 +45,12 @@ class ZIP321EncodingTests {
         assertEquals(expected, ZIP321.uriString(paymentRequest))
     }
 
+    // NOTE (K13): address-label omission only applies to a SINGLE payment at the empty
+    // paramindex (matching the reference `to_uri`); a multi-payment request renders every
+    // address with an explicit `address[.n]=` label.
     @Test
     fun `uriString PaymentRequest FormattingOptions encodes multiple payments with empty param index and address label omitted`() {
-        val expected = "zcash:tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU?amount=123.45&label=apple&address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=1.2345&label.1=banana"
+        val expected = "zcash:?address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount=123.45&label=apple&address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=1.2345&label.1=banana"
 
         val payment1 =
             Payment(
