@@ -391,12 +391,27 @@ fun UInt.mapToParamIndex(): UInt? {
  * of its own, so a `null` return here means the caller rejected the address and
  * the request is invalid.
  *
+ * The one rule the library applies on top of the validator's verdict is a
+ * COMPARISON, not a validation: the accepted address must belong to the network
+ * the request is being parsed FOR. A request is parsed against one expected
+ * network, so a recipient the validator places on another network makes the
+ * request invalid — reported as an invalid address, since from the caller's
+ * point of view that address cannot be paid in this context. ZIP-321 itself is
+ * network-agnostic (the librustzcash reference parses addresses without a
+ * network), so this enforcement is a consumer-library requirement, deliberately
+ * made explicit through `expecting`.
+ *
  * @param value the raw address string as it appeared in the URI.
  * @param network the network the request is being parsed for.
  * @param validator the caller-supplied authority on addresses.
  */
 internal fun recipient(
     value: String,
-    @Suppress("UNUSED_PARAMETER") network: Network,
+    network: Network,
     validator: AddressValidator,
-): RecipientAddress? = RecipientAddress.create(value, validator)
+): RecipientAddress? =
+    validator.validate(value)
+        // The network comparison, and nothing else, is applied on top of the
+        // validator's verdict.
+        ?.takeIf { descriptor -> descriptor.network == network }
+        ?.let { descriptor -> RecipientAddress(value, descriptor) }

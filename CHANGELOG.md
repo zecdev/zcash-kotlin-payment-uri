@@ -58,6 +58,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed the now-unused `CharsetValidations` Base58/Bech32 character sets and
   their `isValidBase58Char`/`isValidBech32Char` helpers.
 
+### Added (v2/K8) — the expected network is enforced
+- **A recipient whose network is not the expected one is rejected.** A ZIP-321
+  request is parsed against exactly one consensus network, named by
+  `expecting`. When the validator accepts an address but reports a different
+  `AddressDescriptor.network`, the request is rejected with an invalid-address
+  error carrying the payment's `paramindex`.
+
+  This is a COMPARISON, not a validation: the library still learns an address's
+  network only from the validator, and has no way of its own to tell. ZIP-321
+  itself is network-agnostic — the librustzcash reference parses addresses
+  without a network at all — so enforcing it is a consumer-library requirement,
+  made explicit and documented at the parse boundary.
+
 ### Added (v2/K7) — test support only
 - **Base58Check reference checker**
   (`lib/src/commonTest/kotlin/org/zecdev/zip321/support/Base58Check.kt`) —

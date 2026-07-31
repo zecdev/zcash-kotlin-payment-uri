@@ -211,6 +211,51 @@ class AddressValidationTests {
         assertEquals(listOf(SAPLING_TESTNET, P2PKH_TESTNET), seen)
     }
 
+    // -- The expected network ------------------------------------------------
+
+    /**
+     * The library asks for ONE expected network. A validator that accepts an
+     * address but places it on another network makes the request invalid: the
+     * library compares `descriptor.network` against `expecting` and reports an
+     * invalid address.
+     */
+    @Test
+    fun `address on another network is rejected`() {
+        // The validator accepts and reports testnet; the request expects mainnet.
+        val testnetSayingValidator =
+            AddressValidator {
+                AddressDescriptor(Network.TESTNET, isTransparent = false, canReceiveMemos = true)
+            }
+
+        assertFailsWith<ZIP321.Errors.InvalidAddress> {
+            ZIP321.request("zcash:?address=$SAPLING_TESTNET&amount=1", Network.MAINNET, testnetSayingValidator)
+        }
+
+        // The same URI and validator against the matching network parses.
+        ZIP321.request("zcash:?address=$SAPLING_TESTNET&amount=1", Network.TESTNET, testnetSayingValidator)
+    }
+
+    /** The mismatch is reported for indexed recipients too, carrying the index. */
+    @Test
+    fun `address on another network is rejected at its paramindex`() {
+        val mixedNetworkValidator =
+            AddressValidator { address ->
+                AddressDescriptor(
+                    if (address == SAPLING_TESTNET) Network.TESTNET else Network.MAINNET,
+                    isTransparent = false,
+                    canReceiveMemos = true,
+                )
+            }
+
+        val uri = "zcash:?address=$SAPLING_TESTNET&amount=1&address.1=$SAPLING_MAINNET&amount.1=2"
+
+        val error =
+            assertFailsWith<ZIP321.Errors.InvalidAddress> {
+                ZIP321.request(uri, Network.TESTNET, mixedNetworkValidator)
+            }
+        assertEquals(1u, error.index)
+    }
+
     // -- The reference (test-only) validator: valid matrix --------------------
 
     @Test
