@@ -59,6 +59,7 @@ value class NonNegativeAmount private constructor(val value: ULong) : Comparable
         object InvalidDecimalString : AmountException("Invalid ZIP-321 amount decimal string")
     }
 
+    /** Namespace for the [zatoshi]/[zec] validated factories and the [MAX_MONEY] bound. */
     companion object {
         /** `MAX_MONEY`: the maximum number of zatoshi that can ever exist (21_000_000 ZEC). */
         const val MAX_MONEY: ULong = 2_100_000_000_000_000u
@@ -172,5 +173,6 @@ value class NonNegativeAmount private constructor(val value: ULong) : Comparable
         return "$whole.$fractionDigits"
     }
 
+    /** Orders by [value], the raw zatoshi count. */
     override fun compareTo(other: NonNegativeAmount): Int = value.compareTo(other.value)
 }

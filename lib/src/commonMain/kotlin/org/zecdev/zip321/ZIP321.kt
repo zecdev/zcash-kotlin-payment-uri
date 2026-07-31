@@ -136,7 +136,13 @@ object ZIP321 {
         object EnumerateAllPayments : FormattingOptions()
 
         /** Canonical mode: preserves each payment's stored `paramindex` (index `0` is empty). */
-        data class UseEmptyParamIndex(val omitAddressLabel: Boolean) : FormattingOptions()
+        data class UseEmptyParamIndex(
+            /**
+             * Whether a single payment at index `0` renders as the leading-address form
+             * `zcash:<addr>?…` instead of `zcash:?address=<addr>&…`.
+             */
+            val omitAddressLabel: Boolean,
+        ) : FormattingOptions()
     }
 
     /**

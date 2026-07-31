@@ -2,6 +2,9 @@ package org.zecdev.zip321.extensions
 
 import org.zecdev.zip321.encodings.QCharCodec
 
+/**
+ * Percent-encodes this string as a ZIP-321 `qchar` value, delegating to [QCharCodec.encode].
+ */
 fun String.qcharEncoded(): String {
     return QCharCodec.encode(this)
 }

@@ -6,6 +6,120 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Fixed — ktlint/detekt baseline hygiene (v2/K17)
+
+- **Both lint baselines were extremely stale**: `lib/config/ktlint/baseline.xml` carried 74
+  suppressed findings, of which 72 referenced files or exact code that had since been deleted or
+  substantially rewritten (`LegacyAmount.kt` and `LegacyAmountBigDecimal.kt` — the v1 amount type
+  and its `BigDecimal` shim, both removed in K12 — `IndexedParameter.kt`'s old hand-written
+  `equals`/`hashCode`, `Param.kt`'s old `QcharString`-era shape, and stale line/column coordinates
+  in a long-since-reformatted `Render.kt`) — inert dead weight, not actively suppressing anything,
+  but obscuring the two genuinely still-open findings underneath them. `tools/detekt-baseline.xml`
+  was the same story: 72 IDs down to the 11 that reference code that still exists as written
+  (`ZIP321.kt$ZIP321.Errors.*` line lengths and `readResolve()` singletons, `MemoBytes.kt`'s
+  `readResolve()` singletons, `Param.kt$Param`'s `partiallyEqual` return count,
+  `Parser.kt$Parser` `TooManyFunctions`, and the `QcharCodec.kt` filename/object-name mismatch also
+  flagged by ktlint). The K5/K8 redesign is what drove the detekt count that low: the crypto and
+  the whole `ParserContext` address-validation machinery left `commonMain` entirely, taking their
+  baselined findings with them. Regenerated both via `./gradlew ktlintGenerateBaseline` /
+  `./gradlew :lib:detektBaseline` and diffed the results line-by-line to confirm every removed
+  entry was dead (not a live suppression getting silently dropped) and that zero *new* findings
+  were introduced — this is a strict shrink, matching the task's own "do not add new entries" rule
+  from the other direction. Run right after the Dokka KDoc pass below (rather than before it) on
+  purpose: that pass shifts line numbers in `Render.kt`/`MemoBytes.kt`/`Payment.kt`, which would
+  have immediately re-staled a baseline regenerated any earlier.
+- No production code changed as part of this entry; the two real remaining ktlint findings
+  (`MemoBytes.kt`'s `maxLength` property-naming, `QcharCodec.kt`'s filename/object-name mismatch)
+  and the detekt findings above are both pre-existing and out of scope for this milestone.
+
+### Added — API documentation via Dokka (v2/K17)
+
+- Applied the **Dokka Gradle Plugin v2, 2.2.0** (latest stable; v2 has been the default since Dokka
+  2.1.0, superseding the deprecated v1 `dokkaHtml` task/DSL) to `lib/build.gradle.kts`. The unified
+  entry point is `./gradlew :lib:dokkaGenerate` (HTML-only: `dokkaGeneratePublicationHtml`); output
+  lands in `lib/build/dokka/html`.
+- `reportUndocumented` + `failOnWarning` are wired project-wide in the new `dokka { }` block: any
+  undocumented **public** declaration, or any unresolved `[Foo]`-style doc link, fails the build —
+  not just a CI report. Running this surfaced 61 real gaps, all now fixed with real (not
+  boilerplate) KDoc: every `ZIP321Error` case's constructor parameter (`index`/`name`/`count`/
+  `raw`/`reason`), `ParsedRequest`/`ZIP321.ParserResult`'s nested data classes and their properties,
+  `Payment`/`PaymentRequest`/`MemoBytes`/`RecipientAddress`/`NonNegativeAmount`'s `equals`/`hashCode`/
+  `toString`/`compareTo` overrides and `Companion` objects, `OtherParam`'s fields, `MemoBytes.MemoError`
+  and its cases, `RecipientAddress` (the class itself) and its `RecipientAddressError`, `ParserContext`
+  (the class itself, previously entirely undocumented despite its members being documented),
+  `AddressValidator.isValid`, `ParamNameCharacterSet.characters`/`isAsciiLetter`/`isAsciiAlphanumeric`,
+  `qcharEncoded()`, and `ParamName.value`.
+- Added `lib/Module.md`, the module-level Dokka overview page: a "Getting started" section that
+  **links to** (rather than duplicates) the four canonical usage scenarios already written as a
+  KDoc sample on the `paymentRequest` DSL entry point (single source of truth — Dokka has no
+  file-include directive, only symbol links, so the module page references
+  `[org.zecdev.zip321.paymentRequest]` instead of copying its sample text), plus a security section
+  covering AND-composed address validation, the no-data-leakage `ZIP321Error` policy, and the
+  bounded `maxInputBytes` input cap.
+- `dokka.dokkaSourceSets.configureEach { sourceLink { ... } }` points generated symbol pages at
+  `https://github.com/zecdev/zcash-kotlin-payment-uri/blob/main`.
+
+### Added — CI workflows (v2/K17)
+
+- Replaced the stale `.github/workflows/basic-test.yml` (a single `ubuntu-latest` job running
+  `./gradlew test` — a task that hasn't existed since the v2/K0 Kotlin Multiplatform conversion;
+  the per-target tasks are `jvmTest`/`iosSimulatorArm64Test`/etc) with `.github/workflows/ci.yml`,
+  a 4-job workflow (all required) on push to `main` and every PR:
+  - **`test-jvm`**: `ubuntu-latest` × JDK **17 / 21** (Temurin). Runs the explicit task list
+    `jvmTest koverVerify ktlintCheck detekt` rather than `build`/`check`: those also depend on
+    compiling the `iosArm64`/`iosSimulatorArm64` targets, and Kotlin/Native can only cross-compile
+    Apple targets on a macOS host, so the explicit list runs every JVM-side gate (unit tests, the
+    K16 Kover 100%-line/≥98%-branch coverage gate, ktlint, detekt) without ever touching a target
+    this runner can't build.
+  - **`test-apple`**: `macos-15` (Xcode's ambient default there, 16.4, matches what was already
+    verified locally in v2/K16 for `iosSimulatorArm64Test` — reconfirmed working here). Runs
+    `iosSimulatorArm64Test` (simulator tests) plus `linkDebugTestIosArm64` (device-target link
+    check; it cannot run on a device in CI).
+  - **`fuzz-smoke`**: `ubuntu-latest`. Runs the existing Jazzer JUnit `@FuzzTest`
+    (`ZIP321FuzzTest`, already exercised in fast REGRESSION mode as part of `test-jvm`'s `jvmTest`)
+    with `JAZZER_FUZZ=1` to switch it into actual mutation-based fuzzing, bounded to a smoke-sized
+    **45 seconds** via `ZIP321FuzzTest`'s own new `@FuzzTest(maxDuration = "45s")`. The documented
+    `-Djazzer.max_duration=<duration>` runtime override was tested against this project's pinned
+    jazzer-junit 0.24.0 (both as a bare CLI flag and via explicit Gradle `Test.systemProperties`
+    forwarding) and, empirically, changed nothing — the run kept going for the un-overridden
+    5-minute annotation default every time — so the bound is set directly on the annotation
+    instead, documented loudly in the test file for whoever builds a deeper/nightly fuzzing job
+    later.
+  - **`dokka`**: `ubuntu-latest`. Runs `./gradlew :lib:dokkaGenerate` (fails on any undocumented
+    public symbol or broken doc link — see the Dokka entry above).
+  - Every job checks out `submodules: recursive`; per the note in `.gitmodules`, this workflow only
+    goes green once https://github.com/zecdev/zcash-zip321-test-vectors is published and
+    `.gitmodules` is re-pointed at it.
+  - Test/coverage/lint/dokka reports and any fuzz crash artifacts are uploaded via
+    `actions/upload-artifact` (`if: failure()` for test/lint reports; `if: always()` for the
+    generated Dokka site).
+  - README.md gets a 4-job badge table (all pointing at the same `ci.yml` workflow badge — GitHub
+    has no per-job badge endpoint).
+- **Fixed real, pre-existing bugs in `.github/workflows/deploy-release.yml`** surfaced while
+  auditing it for KMP fallout:
+  - **The `deploy_release` job now runs on `macos-15`, not `ubuntu-latest`.** `./gradlew publish`
+    produces FOUR publications since v2/K0 (root Gradle-module, jvm, iosArm64,
+    iosSimulatorArm64), and Kotlin/Native can only cross-compile Apple targets on macOS — left on
+    ubuntu, a real release would have silently published only the jvm/root artifacts and
+    permanently omitted `org.zecdev:zip321-iosarm64` / `org.zecdev:zip321-iossimulatorarm64` for
+    that version.
+  - Added `submodules: recursive` to the checkout (previously entirely missing) — `publish`
+    depends on compiling and testing every target, which fails without the corpus submodule the
+    v2/K1 conformance-vector embedding needs.
+  - Removed a literal **duplicated `Checkout` step** (copy-paste artifact; the workflow checked
+    out the repository twice in a row).
+  - Removed the dead `ORG_GRADLE_PROJECT_NATIVE_TARGETS_ENABLED: false` env var: no Gradle
+    property of that name is read anywhere in `build.gradle.kts`/`settings.gradle.kts` — it did
+    nothing.
+  - Replaced `gradle/gradle-build-action` (**archived upstream**, last pushed 2024-08-22) with its
+    maintained successor `gradle/actions/setup-gradle`.
+  - Bumped `actions/checkout`, `actions/setup-java`, and `actions/upload-artifact` SHA pins to
+    their current major versions (v7.0.0 / v5.5.0 / v7.0.1), keeping the existing SHA-pinned style.
+  - The final "Upload Artifacts" step's bundle path was hardcoded to the pre-KMP
+    `zip321-lib-<version>-bundle.zip` name; globbed to `*-bundle.zip` instead of re-guessing the
+    exact filename JReleaser now produces for the 4-publication layout without a real Maven
+    Central deploy available to confirm it in this environment.
+
 ### Added — 100% line / 98%+ branch coverage gate on commonMain/jvmMain (v2/K16)
 
 - Applied `org.jetbrains.kotlinx.kover` **0.9.8** (latest stable) to `lib/build.gradle.kts`. Kover

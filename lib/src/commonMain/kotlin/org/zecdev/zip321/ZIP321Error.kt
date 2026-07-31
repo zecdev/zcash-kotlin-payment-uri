@@ -12,61 +12,108 @@ package org.zecdev.zip321
  * precisely so that raw input can never be smuggled into an error value.
  */
 sealed class ZIP321Error : Exception() {
-    /** A `memo` value was not valid unpadded base64url. */
+    /**
+     * A `memo` value was not valid unpadded base64url.
+     *
+     * @param index the `paramindex` of the offending payment, or `null` for the empty index.
+     */
     data class InvalidBase64(val index: UInt?) : ZIP321Error()
 
-    /** A decoded memo exceeded 512 bytes or failed a required UTF-8 check. */
+    /**
+     * A decoded memo exceeded 512 bytes or failed a required UTF-8 check.
+     *
+     * @param index the `paramindex` of the offending payment, or `null` for the empty index.
+     */
     data class MemoBytesError(val index: UInt?) : ZIP321Error()
 
     /**
      * A `memo` was supplied for a payment whose recipient cannot receive memos (a transparent
      * address).
+     *
+     * @param index the `paramindex` of the offending payment, or `null` for the empty index.
      */
     data class TransparentMemo(val index: UInt?) : ZIP321Error()
 
     /**
      * A zero-valued `amount` was requested for a transparent recipient, which is disallowed by
      * consensus.
+     *
+     * @param index the `paramindex` of the offending payment, or `null` for the empty index.
      */
     data class ZeroValuedTransparentOutput(val index: UInt?) : ZIP321Error()
 
-    /** The request specified more payments than the format allows (> 9999). */
+    /**
+     * The request specified more payments than the format allows (> 9999).
+     *
+     * @param count the number of payments the request specified.
+     */
     data class TooManyPayments(val count: UInt) : ZIP321Error()
 
-    /** The same parameter name occurred more than once at the same `paramindex`. */
+    /**
+     * The same parameter name occurred more than once at the same `paramindex`.
+     *
+     * @param name the repeated parameter name.
+     * @param index the `paramindex` at which it repeated, or `null` for the empty index.
+     */
     data class DuplicateParameter(val name: String, val index: UInt?) : ZIP321Error()
 
-    /** A `paramindex` carried non-address parameters but no matching address. */
+    /**
+     * A `paramindex` carried non-address parameters but no matching address.
+     *
+     * @param index the `paramindex` missing its address, or `null` for the empty index.
+     */
     data class RecipientMissing(val index: UInt?) : ZIP321Error()
 
     /**
      * An address string was not a valid encoding of a supported address type (bad checksum,
      * mixed-case bech32, wrong network, Sprout, ...).
+     *
+     * @param index the `paramindex` of the offending address, or `null` for the empty index.
      */
     data class InvalidAddress(val index: UInt?) : ZIP321Error()
 
-    /** A `req-`-prefixed parameter the parser does not recognize was present. */
+    /**
+     * A `req-`-prefixed parameter the parser does not recognize was present.
+     *
+     * @param name the unrecognized `req-`-prefixed parameter name.
+     */
     data class UnknownRequiredParameter(val name: String) : ZIP321Error()
 
     /**
      * A `paramindex` was malformed (leading zero, or out of range). The raw token is bounded to a
      * handful of characters by the grammar.
+     *
+     * @param raw the raw, grammar-bounded (`<= 5` characters) `paramindex` token that failed.
      */
     data class InvalidParamIndex(val raw: String) : ZIP321Error()
 
-    /** An `amount` parsed to a numeric value that exceeds `MAX_MONEY`. */
+    /**
+     * An `amount` parsed to a numeric value that exceeds `MAX_MONEY`.
+     *
+     * @param index the `paramindex` of the offending payment, or `null` for the empty index.
+     */
     data class AmountExceededSupply(val index: UInt?) : ZIP321Error()
 
     /**
      * An `amount` value was malformed or otherwise not a legal amount (negative, missing
      * whole/fractional part, arithmetic overflow).
+     *
+     * @param index the `paramindex` of the offending payment, or `null` for the empty index.
      */
     data class AmountInvalid(val index: UInt?) : ZIP321Error()
 
-    /** The URI violated the top-level ZIP-321 grammar itself. */
+    /**
+     * The URI violated the top-level ZIP-321 grammar itself.
+     *
+     * @param reason the fixed, input-independent reason for the failure.
+     */
     data class InvalidURI(val reason: StaticReason) : ZIP321Error()
 
-    /** A structural parse failure not covered by a more specific case. */
+    /**
+     * A structural parse failure not covered by a more specific case.
+     *
+     * @param reason the fixed, input-independent reason for the failure.
+     */
     data class ParseError(val reason: StaticReason) : ZIP321Error()
 
     /**

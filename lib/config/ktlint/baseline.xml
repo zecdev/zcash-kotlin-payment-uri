@@ -1,77 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <baseline version="1.0">
-    <file name="src/commonMain/kotlin/org/zecdev/zip321/Render.kt">
-        <error line="20" column="23" source="standard:trailing-comma-on-declaration-site" />
-        <error line="28" column="24" source="standard:function-signature" />
-        <error line="28" column="37" source="standard:function-signature" />
-        <error line="28" column="58" source="standard:function-signature" />
-        <error line="28" column="70" source="standard:function-signature" />
-        <error line="34" column="19" source="standard:function-signature" />
-        <error line="34" column="34" source="standard:function-signature" />
-        <error line="34" column="49" source="standard:function-signature" />
-        <error line="34" column="61" source="standard:function-signature" />
-        <error line="39" column="19" source="standard:function-signature" />
-        <error line="39" column="52" source="standard:function-signature" />
-        <error line="39" column="64" source="standard:function-signature" />
-        <error line="42" column="22" source="standard:trailing-comma-on-call-site" />
-        <error line="47" column="19" source="standard:function-signature" />
-        <error line="47" column="36" source="standard:function-signature" />
-        <error line="47" column="48" source="standard:function-signature" />
-        <error line="50" column="22" source="standard:trailing-comma-on-call-site" />
-        <error line="55" column="19" source="standard:function-signature" />
-        <error line="55" column="46" source="standard:function-signature" />
-        <error line="55" column="60" source="standard:function-signature" />
-        <error line="55" column="97" source="standard:function-signature" />
-        <error line="61" column="26" source="standard:trailing-comma-on-call-site" />
-        <error line="67" column="24" source="standard:function-signature" />
-        <error line="67" column="39" source="standard:function-signature" />
-        <error line="67" column="51" source="standard:function-signature" />
-        <error line="71" column="18" source="standard:trailing-comma-on-call-site" />
-        <error line="75" column="26" source="standard:function-signature" />
-        <error line="75" column="43" source="standard:function-signature" />
-        <error line="75" column="55" source="standard:function-signature" />
-        <error line="79" column="18" source="standard:trailing-comma-on-call-site" />
-        <error line="83" column="17" source="standard:function-signature" />
-        <error line="83" column="35" source="standard:function-signature" />
-        <error line="83" column="49" source="standard:function-signature" />
-        <error line="83" column="86" source="standard:function-signature" />
-        <error line="86" column="19" source="standard:multiline-expression-wrapping" />
-        <error line="89" column="33" source="standard:trailing-comma-on-call-site" />
-        <error line="112" column="23" source="standard:multiline-expression-wrapping" />
-        <error line="114" column="22" source="standard:trailing-comma-on-call-site" />
-        <error line="121" column="23" source="standard:multiline-expression-wrapping" />
-        <error line="123" column="22" source="standard:trailing-comma-on-call-site" />
-        <error line="139" column="17" source="standard:function-signature" />
-        <error line="139" column="49" source="standard:function-signature" />
-        <error line="139" column="68" source="standard:function-signature" />
-        <error line="139" column="110" source="standard:function-signature" />
-        <error line="146" column="23" source="standard:multiline-expression-wrapping" />
-        <error line="149" column="42" source="standard:trailing-comma-on-call-site" />
-    </file>
     <file name="src/commonMain/kotlin/org/zecdev/zip321/encodings/QcharCodec.kt">
         <error line="1" column="1" source="standard:filename" />
     </file>
-    <file name="src/commonMain/kotlin/org/zecdev/zip321/model/LegacyAmount.kt">
-        <error line="83" column="28" source="standard:property-naming" />
-        <error line="84" column="28" source="standard:property-naming" />
-        <error line="85" column="28" source="standard:property-naming" />
-        <error line="96" column="86" source="standard:function-signature" />
-        <error line="171" column="38" source="standard:function-signature" />
-        <error line="171" column="57" source="standard:function-signature" />
-        <error line="171" column="73" source="standard:function-signature" />
-        <error line="204" column="28" source="standard:multiline-expression-wrapping" />
-    </file>
     <file name="src/commonMain/kotlin/org/zecdev/zip321/model/MemoBytes.kt">
-        <error line="16" column="19" source="standard:property-naming" />
-    </file>
-    <file name="src/commonMain/kotlin/org/zecdev/zip321/model/Payment.kt">
-        <error line="16" column="39" source="standard:trailing-comma-on-declaration-site" />
-    </file>
-    <file name="src/commonMain/kotlin/org/zecdev/zip321/parser/IndexedParameter.kt">
-        <error line="5" column="21" source="standard:trailing-comma-on-declaration-site" />
-    </file>
-    <file name="src/jvmMain/kotlin/org/zecdev/zip321/model/LegacyAmountBigDecimal.kt">
-        <error line="37" column="52" source="standard:function-signature" />
-        <error line="67" column="19" source="standard:multiline-expression-wrapping" />
+        <error line="18" column="19" source="standard:property-naming" />
     </file>
 </baseline>
