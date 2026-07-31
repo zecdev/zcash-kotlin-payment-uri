@@ -26,6 +26,29 @@ In the case where we become aware of security issues affecting other projects th
 
 In the case where we fix a security issue in our projects that also affects the following neighboring projects, our intention is to engage in responsible disclosures with them as described in https://github.com/RD-Crypto-Spec/Responsible-Disclosure, subject to the deviations described in the section at the bottom of this document.
 
+## Scope note: address validation is delegated
+
+As of v2.0.0, this library performs **no recipient-address validation of its own**. It implements
+the [ZIP-321](https://zips.z.cash/zip-0321) URI **grammar** and nothing else: it does not decode,
+classify or checksum Zcash addresses, and it ships no Bech32, no Base58Check and no hash.
+
+Address validity is answered entirely by a caller-supplied `AddressValidator`, which is a
+**required** argument of `ZIP321.parse`. Its verdict is AUTHORITATIVE and is never second-guessed:
+returning `null` rejects the address, and the returned `AddressDescriptor` (`network`,
+`isTransparent`, `canReceiveMemos`) is what drives the ZIP-321 payment rules — whether a `memo` may
+accompany a recipient, and whether a zero-valued output to it is permitted.
+
+This is a deliberate security decision, not an omission. A URI parser's structural approximation of
+"is this a valid Zcash address" is exactly the kind of check that looks authoritative while being
+subtly wrong (it cannot decode Unified Address receivers, and it cannot know which address kinds a
+given wallet is willing to pay). Making the validator required means address validity can never
+silently come from such an approximation. Integrators SHOULD implement `AddressValidator` by
+delegating to their Zcash SDK's own address support — librustzcash's `ZcashAddress` via the mobile
+SDKs' FFI/JNI bindings — which is the only place that can answer these questions correctly.
+
+The one rule this library applies on top of the validator's verdict is a COMPARISON, not a
+validation: the accepted address must belong to the `Network` the request is being parsed for.
+
 ## Deviations from the Standard
 
 The standard describes reporters of vulnerabilities including full details of an issue, in order to reproduce it. This is necessary for instance in the case of an external researcher both demonstrating and proving that there really is a security issue, and that security issue really has the impact that they say it has - allowing the development team to accurately prioritize and resolve the issue.

@@ -52,11 +52,20 @@ annotation class Zip321Dsl
  *     }
  * }.getOrThrow()
  *
- * // (d) parsing with an injected validator composes with the DSL-built request
+ * // (d) parsing, with the wallet's own address support as the validator
+ * val validator = AddressValidator { address ->
+ *     val parsed = walletSdk.parseAddress(address) ?: return@AddressValidator null
+ *     AddressDescriptor(
+ *         network = if (parsed.isTestnet) Network.TESTNET else Network.MAINNET,
+ *         isTransparent = parsed.isTransparent,
+ *         canReceiveMemos = parsed.hasShieldedReceiver,
+ *     )
+ * }
+ *
  * val parsed = ZIP321.parse(
  *     ZIP321.uriString(from = multi),
  *     expecting = Network.TESTNET,
- *     validating = { walletSdk.isValidAddress(it) },
+ *     validator = validator,
  * ).getOrThrow()
  * ```
  *

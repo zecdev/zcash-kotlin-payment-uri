@@ -5,775 +5,337 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
-### Fixed — ktlint/detekt baseline hygiene (v2/K17)
+## [2.0.0] - Unreleased
 
-- **Both lint baselines were extremely stale**: `lib/config/ktlint/baseline.xml` carried 74
-  suppressed findings, of which 72 referenced files or exact code that had since been deleted or
-  substantially rewritten (`LegacyAmount.kt` and `LegacyAmountBigDecimal.kt` — the v1 amount type
-  and its `BigDecimal` shim, both removed in K12 — `IndexedParameter.kt`'s old hand-written
-  `equals`/`hashCode`, `Param.kt`'s old `QcharString`-era shape, and stale line/column coordinates
-  in a long-since-reformatted `Render.kt`) — inert dead weight, not actively suppressing anything,
-  but obscuring the two genuinely still-open findings underneath them. `tools/detekt-baseline.xml`
-  was the same story: 72 IDs down to the 11 that reference code that still exists as written
-  (`ZIP321.kt$ZIP321.Errors.*` line lengths and `readResolve()` singletons, `MemoBytes.kt`'s
-  `readResolve()` singletons, `Param.kt$Param`'s `partiallyEqual` return count,
-  `Parser.kt$Parser` `TooManyFunctions`, and the `QcharCodec.kt` filename/object-name mismatch also
-  flagged by ktlint). The K5/K8 redesign is what drove the detekt count that low: the crypto and
-  the whole `ParserContext` address-validation machinery left `commonMain` entirely, taking their
-  baselined findings with them. Regenerated both via `./gradlew ktlintGenerateBaseline` /
-  `./gradlew :lib:detektBaseline` and diffed the results line-by-line to confirm every removed
-  entry was dead (not a live suppression getting silently dropped) and that zero *new* findings
-  were introduced — this is a strict shrink, matching the task's own "do not add new entries" rule
-  from the other direction. Run right after the Dokka KDoc pass below (rather than before it) on
-  purpose: that pass shifts line numbers in `Render.kt`/`MemoBytes.kt`/`Payment.kt`, which would
-  have immediately re-staled a baseline regenerated any earlier.
-- No production code changed as part of this entry; the two real remaining ktlint findings
-  (`MemoBytes.kt`'s `maxLength` property-naming, `QcharCodec.kt`'s filename/object-name mismatch)
-  and the detekt findings above are both pre-existing and out of scope for this milestone.
-
-### Added — API documentation via Dokka (v2/K17)
-
-- Applied the **Dokka Gradle Plugin v2, 2.2.0** (latest stable; v2 has been the default since Dokka
-  2.1.0, superseding the deprecated v1 `dokkaHtml` task/DSL) to `lib/build.gradle.kts`. The unified
-  entry point is `./gradlew :lib:dokkaGenerate` (HTML-only: `dokkaGeneratePublicationHtml`); output
-  lands in `lib/build/dokka/html`.
-- `reportUndocumented` + `failOnWarning` are wired project-wide in the new `dokka { }` block: any
-  undocumented **public** declaration, or any unresolved `[Foo]`-style doc link, fails the build —
-  not just a CI report. Running this surfaced 61 real gaps, all now fixed with real (not
-  boilerplate) KDoc: every `ZIP321Error` case's constructor parameter (`index`/`name`/`count`/
-  `raw`/`reason`), `ParsedRequest`/`ZIP321.ParserResult`'s nested data classes and their properties,
-  `Payment`/`PaymentRequest`/`MemoBytes`/`RecipientAddress`/`NonNegativeAmount`'s `equals`/`hashCode`/
-  `toString`/`compareTo` overrides and `Companion` objects, `OtherParam`'s fields, `MemoBytes.MemoError`
-  and its cases, `RecipientAddress` (the class itself) and its `RecipientAddressError`, `ParserContext`
-  (the class itself, previously entirely undocumented despite its members being documented),
-  `AddressValidator.isValid`, `ParamNameCharacterSet.characters`/`isAsciiLetter`/`isAsciiAlphanumeric`,
-  `qcharEncoded()`, and `ParamName.value`.
-- Added `lib/Module.md`, the module-level Dokka overview page: a "Getting started" section that
-  **links to** (rather than duplicates) the four canonical usage scenarios already written as a
-  KDoc sample on the `paymentRequest` DSL entry point (single source of truth — Dokka has no
-  file-include directive, only symbol links, so the module page references
-  `[org.zecdev.zip321.paymentRequest]` instead of copying its sample text), plus a security section
-  covering AND-composed address validation, the no-data-leakage `ZIP321Error` policy, and the
-  bounded `maxInputBytes` input cap.
-- `dokka.dokkaSourceSets.configureEach { sourceLink { ... } }` points generated symbol pages at
-  `https://github.com/zecdev/zcash-kotlin-payment-uri/blob/main`.
-
-### Added — CI workflows (v2/K17)
-
-- Replaced the stale `.github/workflows/basic-test.yml` (a single `ubuntu-latest` job running
-  `./gradlew test` — a task that hasn't existed since the v2/K0 Kotlin Multiplatform conversion;
-  the per-target tasks are `jvmTest`/`iosSimulatorArm64Test`/etc) with `.github/workflows/ci.yml`,
-  a 4-job workflow (all required) on push to `main` and every PR:
-  - **`test-jvm`**: `ubuntu-latest` × JDK **17 / 21** (Temurin). Runs the explicit task list
-    `jvmTest koverVerify ktlintCheck detekt` rather than `build`/`check`: those also depend on
-    compiling the `iosArm64`/`iosSimulatorArm64` targets, and Kotlin/Native can only cross-compile
-    Apple targets on a macOS host, so the explicit list runs every JVM-side gate (unit tests, the
-    K16 Kover 100%-line/≥98%-branch coverage gate, ktlint, detekt) without ever touching a target
-    this runner can't build.
-  - **`test-apple`**: `macos-15` (Xcode's ambient default there, 16.4, matches what was already
-    verified locally in v2/K16 for `iosSimulatorArm64Test` — reconfirmed working here). Runs
-    `iosSimulatorArm64Test` (simulator tests) plus `linkDebugTestIosArm64` (device-target link
-    check; it cannot run on a device in CI).
-  - **`fuzz-smoke`**: `ubuntu-latest`. Runs the existing Jazzer JUnit `@FuzzTest`
-    (`ZIP321FuzzTest`, already exercised in fast REGRESSION mode as part of `test-jvm`'s `jvmTest`)
-    with `JAZZER_FUZZ=1` to switch it into actual mutation-based fuzzing, bounded to a smoke-sized
-    **45 seconds** via `ZIP321FuzzTest`'s own new `@FuzzTest(maxDuration = "45s")`. The documented
-    `-Djazzer.max_duration=<duration>` runtime override was tested against this project's pinned
-    jazzer-junit 0.24.0 (both as a bare CLI flag and via explicit Gradle `Test.systemProperties`
-    forwarding) and, empirically, changed nothing — the run kept going for the un-overridden
-    5-minute annotation default every time — so the bound is set directly on the annotation
-    instead, documented loudly in the test file for whoever builds a deeper/nightly fuzzing job
-    later.
-  - **`dokka`**: `ubuntu-latest`. Runs `./gradlew :lib:dokkaGenerate` (fails on any undocumented
-    public symbol or broken doc link — see the Dokka entry above).
-  - Every job checks out `submodules: recursive`; per the note in `.gitmodules`, this workflow only
-    goes green once https://github.com/zecdev/zcash-zip321-test-vectors is published and
-    `.gitmodules` is re-pointed at it.
-  - Test/coverage/lint/dokka reports and any fuzz crash artifacts are uploaded via
-    `actions/upload-artifact` (`if: failure()` for test/lint reports; `if: always()` for the
-    generated Dokka site).
-  - README.md gets a 4-job badge table (all pointing at the same `ci.yml` workflow badge — GitHub
-    has no per-job badge endpoint).
-- **Fixed real, pre-existing bugs in `.github/workflows/deploy-release.yml`** surfaced while
-  auditing it for KMP fallout:
-  - **The `deploy_release` job now runs on `macos-15`, not `ubuntu-latest`.** `./gradlew publish`
-    produces FOUR publications since v2/K0 (root Gradle-module, jvm, iosArm64,
-    iosSimulatorArm64), and Kotlin/Native can only cross-compile Apple targets on macOS — left on
-    ubuntu, a real release would have silently published only the jvm/root artifacts and
-    permanently omitted `org.zecdev:zip321-iosarm64` / `org.zecdev:zip321-iossimulatorarm64` for
-    that version.
-  - Added `submodules: recursive` to the checkout (previously entirely missing) — `publish`
-    depends on compiling and testing every target, which fails without the corpus submodule the
-    v2/K1 conformance-vector embedding needs.
-  - Removed a literal **duplicated `Checkout` step** (copy-paste artifact; the workflow checked
-    out the repository twice in a row).
-  - Removed the dead `ORG_GRADLE_PROJECT_NATIVE_TARGETS_ENABLED: false` env var: no Gradle
-    property of that name is read anywhere in `build.gradle.kts`/`settings.gradle.kts` — it did
-    nothing.
-  - Replaced `gradle/gradle-build-action` (**archived upstream**, last pushed 2024-08-22) with its
-    maintained successor `gradle/actions/setup-gradle`.
-  - Bumped `actions/checkout`, `actions/setup-java`, and `actions/upload-artifact` SHA pins to
-    their current major versions (v7.0.0 / v5.5.0 / v7.0.1), keeping the existing SHA-pinned style.
-  - The final "Upload Artifacts" step's bundle path was hardcoded to the pre-KMP
-    `zip321-lib-<version>-bundle.zip` name; globbed to `*-bundle.zip` instead of re-guessing the
-    exact filename JReleaser now produces for the 4-publication layout without a real Maven
-    Central deploy available to confirm it in this environment.
-
-### Added — 100% line / 98%+ branch coverage gate on commonMain/jvmMain (v2/K16)
-
-- Applied `org.jetbrains.kotlinx.kover` **0.9.8** (latest stable) to `lib/build.gradle.kts`. Kover
-  only instruments JVM tests (its own docs: non-JVM/Native targets are unsupported), so its `total`
-  report variant is, in this KMP project, exactly commonMain+jvmMain production code as exercised
-  by `jvmTest` — matching this gate's scope precisely. `commonTest`/`jvmTest` sources (including
-  the generated conformance corpus, `GeneratedVectors.kt` / `GeneratedZip321ConformanceTest.kt`,
-  which lives entirely under `commonTest`) are excluded from reports by Kover's default
-  test-source-set detection; an explicit `packages("org.zecdev.zip321.conformance")` filter
-  documents that exclusion defensively.
-- Two verification rules under `kover.reports.total.verify`, wired into `koverVerify` (runs
-  automatically as part of `check` → `build` via Kover's `total.verify.onCheck = true` default — no
-  extra plumbing needed): **100% LINE coverage** (strict), and **branch coverage ≥ 98%**
-  (deliberately pragmatic — see below). CI/local gate invocation: `./gradlew koverVerify` (or
-  simply `./gradlew build`/`check`, which already depend on it).
-- **Coverage progression: 87.7% line (899/1025) / 75.7% branch (650/859) → 100.0% line (687/687) /
-  98.6% branch (558/566).** (The denominators shifted across the drive both because dead code was
-  deleted and because K16's own property tests, added in the prior commit, already moved the
-  starting baseline up from the pre-K16 state; they shrank substantially again once the K5/K8
-  redesign moved ALL cryptography and address decoding out of `commonMain` — the SHA-256
-  expect/actual, Bech32 and Base58Check are `commonTest` reference checkers, and address validity
-  is delegated to a caller-supplied `AddressValidator` — and test-support code is not in the
-  coverage denominator at all. Neither rule moved: LINE is still a strict 100%, BRANCH still clears
-  98%. What remains measured is exactly the ZIP-321 URI grammar, the value types and the render
-  path.)
-  Closed via ~35 new/expanded test functions across
-  existing files plus five new test files (`ZIP321ErrorTests.kt`, `ParamTests.kt`,
-  `PaymentEqualityTests.kt`, `PaymentRequestTests.kt`, and JVM-only `SerializationTests.kt` for the
-  `readResolve()` singleton-identity contract, which needs a real `java.io` serialize/deserialize
-  round trip), covering: `ZIP321Error.withIndex`/`Companion.from` exhaustively over every
-  case; `Payment`/`PaymentRequest`/`Param`/`RecipientAddress`/`MemoBytes` `equals`/`hashCode`
-  exercised per-field and per-subtype; the `maxInputBytes` input guard; the deprecated `Payment`
-  `invoke` shim (only reachable by calling `Payment.invoke(...)` explicitly — within this module,
-  `Payment(args)` sugar resolves straight to the internal primary constructor, never the
-  companion's `operator fun invoke`); `PaymentRequestScope`'s DSL `label`/`otherParam`
-  (with-and-without-a-value)/no-block-`payment` forms; `Base58Check.verify`'s
-  prefix-longer-than-payload guard; `Bech32.decode`'s HRP-length and all-non-letter-input paths and
-  `Decoded`'s `equals`/`hashCode`; and several `Parser`-internal helpers
-  (`leadingAddress`/`parseParameters`/`mapToIndexedPayments`/`mapToPayments`/`parseParameterIndex`)
-  exercised directly via their own contracts, including the `RecipientMissing` case for a non-empty
-  parameter group that simply has no `address`.
-- **Dead code deleted** (mirroring the Swift S16 precedent almost exactly, including two of the
-  *same* shape of bug): `Payment.isSingleAddress()` (public, zero callers anywhere, no Swift
-  counterpart); the entire `ParamNameString` class and `QcharString` class in `Param.kt` (v1
-  leftovers — `ParamNameString` had zero callers at all; `QcharString` was exercised only by its
-  own now-deleted `QcharStringTests.kt`, never by production code) — `Param.kt` shrank by about a
-  third; `IndexedParameter`'s hand-written `equals`/`hashCode`, which is byte-for-byte what the
-  compiler already synthesizes for a `data class` with those two properties; `Param`'s hand-written
-  `equals`/`hashCode` — **provably dead**, not just untested: every concrete `Param` is a `data
-  class` subtype (`Address`, `Amount`, …) that synthesizes its OWN `equals`/`hashCode`, which always
-  wins over the sealed superclass's hand-written version via virtual dispatch, so `Param`'s version
-  could never execute for any instance, confirmed empirically (zero coverage no matter how many
-  equality assertions the suite made); `AmountParser.mapError`'s `NegativeAmount` branch
-  (the amount type is unsigned and `NonNegativeAmount.zec`'s grammar has no sign character, so that
-  specific exception can never reach this mapper); an unreachable `else` arm in `Parser.fromUniqueIndexedParameters` finding the lead
-  address (simplified `firstOrNull{when...}?.let{when...}` double-dispatch down to a single
-  `firstOrNull{...} as? Param.Address` — the exact same "always-`.address`" bug Swift's S16 fixed in
-  `Parser.leadingAddress`, found independently in a second spot here); `Parser.leadingAddress`
-  itself, restructured to return `RecipientAddress?` directly instead of wrapping it in an
-  always-`.address` `IndexedParameter` — eliminating an unreachable `when` arm in `Parser.parse`
-  (this **is** the literal Swift S16 fix, ported); `Parser.parse`'s `catch (e:
-  IllegalArgumentException)` wrapper — redundant with `ZIP321.parse`'s own outer catch of the same
-  exception type, which produces the identical `ParseError(MALFORMED_URI)` result, and the one
-  `require` on the call path that could throw it can never actually fail given how `remainingText`
-  is constructed; `Bech32.decode`'s second `code >= 128` ASCII re-guard on the data part (every
-  character was already confirmed < 128 by the loop above); `CharsetValidations`'s two full levels
-  of pure-namespacing wrapper (a `class` around a `companion object` around the actual
-  `ParamNameCharacterSet` object) — accessing a nested Kotlin `object` never needs its enclosing
-  declaration initialized at all, so both wrapper levels' own init code was permanently dead;
-  `ParamNameCharacterSet` is now a plain top-level object (file renamed to match, per detekt's
-  `MatchingDeclarationName`).
-- **One `@KoverExcludeWithRationale` exemption** (of the 3-site budget; see
-  `lib/src/commonMain/kotlin/org/zecdev/zip321/internal/KoverExcludeWithRationale.kt`, a new
-  annotation Kover's `annotatedBy` filter recognizes): `Parser.rethrowTagged`, isolating the `?:
-  error` fallback for a `Payment.create` failure that today is always a `ZIP321Error` — kept
-  defensively (the stdlib `Result` type isn't parameterized on the error type, so nothing at
-  compile time rules out `Payment.create` someday failing with something else), extracted into its
-  own tiny function so the exemption annotation's blast radius is exactly one line, not the whole
-  surrounding function.
-- **Branch coverage is gated at ≥98%, not 100% — a deliberate, justified pragmatic scope-down**
-  (loudly documented in `lib/build.gradle.kts`, repeated here per the task's own instructions).
-  Every one of the 10 remaining missed branch outcomes (across `QCharCodec.hexValue`,
-  `Render.parameter`, `NonNegativeAmount.zec`'s fraction-digit loop, `isAsciiLetter`/`isAsciiAlphanumeric`,
-  `Bech32.decode`'s mixed-case guard, and `Parser`'s `isAlpha`
-  and its `as? Param.Address` cast) was traced to the same root cause — confirmed empirically via
-  `javap -c` on the compiled class for the clearest case (`Render.parameter`): Kotlin compiles
-  `x?.let { … } ?: y` with an extra, structurally-unreachable SECOND null-check on the `let` block's
-  own (string-template, therefore never `null`) result, and similarly compiles character-range
-  checks (`ch in 'a'..'z'`) and fixed-trip-count `downTo … step` loops with synthetic bounds/entry
-  checks beyond the source-level logical branches. This is confirmed to be a coverage-tooling
-  artifact, not a real gap: every LOGICAL outcome of each affected line (both range-membership
-  directions, boundary-adjacent characters on both sides of every range boundary, all-digit /
-  all-upper / all-lower / mixed-case inputs, found/not-found results) has its own dedicated test —
-  see `QcharCodecTests`, `NonNegativeAmountTests`, `AddressValidationTests`, `Bech32Tests`,
-  `ParserTests`. 98% sits comfortably below the achieved 98.6%, leaving room for
-  incidental fluctuation while still catching a genuine regression.
-- **Kover scope after the K5/K8 redesign.** The SHA-256 expect/actual now lives in
-  `commonTest`/`jvmTest`/`iosTest` as test support, so it is outside the coverage denominator
-  entirely (as is every other test-support file); the iOS targets are outside Kover's reach by
-  construction — the plugin does not instrument Native targets — and are proven instead by
-  `iosSimulatorArm64Test`
-  running the same `commonTest` suite. No filter, exclusion or threshold was adjusted.
-
-### Added — deterministic property-style round-trip tests (v2/K16)
-
-- `lib/src/commonTest/kotlin/org/zecdev/zip321/PropertyGenerators.kt`: a tiny inline `SplitMix64`
-  seeded PRNG plus generator functions mirroring the reference librustzcash `zip321::testing`
-  proptest strategies (and the Swift library's S16 port) — arbitrary valid memo bytes (0..512),
-  arbitrary `NonNegativeAmount` (biased to also hit `0`/`1`/`MAX_MONEY` boundaries), arbitrary unicode
-  label/message/otherParam-value strings (including emoji and characters that require
-  percent-encoding), arbitrary non-reserved `otherParam` names, arbitrary payments drawn from a
-  fixed pool of known-checksum-valid addresses per network/kind (transparent P2PKH/P2SH, Sapling,
-  Unified, TEX — reusing the literals in `ParserContextValidationTests.validMatrix`), and arbitrary
-  indexed payment requests (0..20 payments at sparse `paramindex` values 0..9999).
-- `lib/src/commonTest/kotlin/org/zecdev/zip321/PropertyTests.kt`: five deterministic laws, each run
-  over a fixed range of seeds (1,400 total cases, full-suite addition runtime well under a second):
-  (1) full round trip `parse(uriString(from = r)) == success(Request(r))` (300 cases); (2)
-  `NonNegativeAmount.zec(z.decimalString()) == z` (300 cases); (3)
-  `MemoBytes.fromBase64URL(m.toBase64URL()) == m` (300 cases); (4)
-  `QCharCodec.decode(QCharCodec.encode(s)) == s` (300 cases); (5) paramindex preservation — a
-  request with sparse indices round-trips preserving `indexedPayments` exactly (200 cases). All
-  seeds are fixed integers; no wall-clock/system-random seeding. `kotlin.test` has no
-  `@Test(arguments:)`-style parameterization, so each law loops over its seed range inside a single
-  `@Test` function, with the seed embedded in every failure message.
-- **`kotest-property` will NOT return.** The v2/K1 migration note said it would come back
-  "together with the property-based tests in a later v2 PR" — this entry IS that PR, and it uses a
-  from-scratch deterministic PRNG in `commonTest` (`kotlin.test`) instead, so the property suite
-  runs on every KMP target (jvm + iOS), not just the JVM. This supersedes the v2/K1 note.
-
-### Added — fluent builders and DSL (v2/K14)
-
-- **`Payment.Builder`** (`Builder(recipient)` + chainable `amount(NonNegativeAmount)`, `amount(zec: String)`,
-  `memo(MemoBytes)`, `memo(utf8: String)`, `label(...)`, `message(...)`,
-  `otherParam(name, value)`, terminal `build(): Result<Payment>`). Fallible inputs are validated
-  LAZILY at `build()`: a bad `amount(zec = ...)` surfaces as `AmountInvalid` (or
-  `AmountExceededSupply`), an oversized `memo(utf8 = ...)` as `MemoBytesError`, an invalid
-  `otherParam` name as `ParseError(INVALID_PARAMETER)`; a memo to a transparent recipient surfaces
-  as `TransparentMemo` via `Payment.create`. When several fields are invalid, the first error wins
-  in FIXED field order (amount → memo → other params → structural rules), matching the Swift
-  library byte-for-byte.
-  `Payment.Builder` accumulates `otherParam(...)` calls into the payment's always-present
-  `otherParams` list; a repeated name surfaces at `build()` as `DuplicateParameter` through
-  `Payment.create`.
-- **`PaymentRequest.Builder`** (`add(payment)` auto-indexing sequentially from `0`,
-  `add(payment, at = n)` for an explicit paramindex, `Builder(payments)` seeding, terminal
-  `build(): Result<PaymentRequest>`). Deferred validation: a repeated index fails with
-  `DuplicateParameter("address", index)` and an index above `9999` fails with `TooManyPayments`.
-- **`paymentRequest { }` DSL** — the idiomatic Kotlin equivalent of the Swift library's
-  `@resultBuilder` entry point `PaymentRequest.build { }`:
-  `paymentRequest { payment(recipient) { amount(zec = "1.00"); memo(utf8 = "Thanks") } }` returns
-  `Result<PaymentRequest>`. `payment(prebuilt)` / `payments(list)` mirror the Swift
-  result-builder's `Payment` / `[Payment]` expression statements. The DSL is a thin layer over the
-  builders: its output is `assertEquals`-identical to the explicit `Builder` chains and it shares
-  their first-error-wins deferred-error semantics.
-
-### Breaking changes (v2/K14)
-
-- **`OtherParam`'s constructor is now internal; construct via
-  `OtherParam.create(name, value): Result<OtherParam>`**, which validates the name against the
-  ZIP-321 grammar and reserved-name rules: an empty name, a reserved query key (`address`,
-  `amount`, `label`, `memo`, `message`), any `req-`-prefixed name, or a name that is not a valid
-  `paramname` (`ALPHA *( ALPHA / DIGIT / "+" / "-" )`) fails with
-  `ParseError(INVALID_PARAMETER)`. The parse path constructs instances internally from
-  already-validated grammar tokens. (`copy()` follows the constructor's visibility via
-  `@ConsistentCopyVisibility`.)
-
-### Breaking changes — v2.0.0 canonical renderer (v2/K13)
-
-- **The renderer now renders from `PaymentRequest.indexedPayments`, preserving each payment's
-  ACTUAL stored `paramindex`.** A request whose only payment sits at index `5` renders
-  `zcash:?address.5=…&amount.5=1` (previously it was collapsed onto the empty index). Per-payment
-  parameter order matches the reference exactly: address, amount, memo, label, message, then
-  `otherParams` in stored order. The `Render` object itself (a v1 public implementation detail) is
-  now `internal`; render through `ZIP321.uriString` / `ZIP321.request`.
-- **The default `formattingOptions` of `ZIP321.uriString(from)` and `ZIP321.request(payment)`
-  changed to `FormattingOptions.UseEmptyParamIndex(omitAddressLabel = true)`** — the canonical
-  reference form (previously `EnumerateAllPayments`). A single payment at the empty paramindex
-  renders as the leading-address form `zcash:<addr>?amount=…`; multi-payment (or any payment at a
-  non-zero index) renders as `zcash:?address[.n]=…&…` — address-label omission only ever applies
-  to a single payment at index `0`. The round-trip law `parse(uriString(from = r)) == Request(r)`
-  holds for every request `r` under the default options (asserted over the corpus's valid vectors).
-- **`FormattingOptions.EnumerateAllPayments` is now a documented NORMALIZATION mode**: it discards
-  stored paramindices and re-numbers payments sequentially from `1` (`address.1=…&address.2=…`)
-  under `zcash:?`.
-- **The v1 `ZIP321.maxPaymentsAllowed = 2109` constant was removed.** It was a v1 remnant with no
-  basis in ZIP-321 and made the parser wrongly reject any `paramindex` in `[2108, 9999]`. The only
-  limits are the `paramindex` grammar (`NONZERO 0*3DIGIT`, i.e. ≤ 9999) and
-  `PaymentRequest.MAX_PAYMENT_COUNT` (9999) for programmatic construction; `address.2500=…` now
-  parses fine.
-
-### Fixed (v2/K13)
-
-- **A single payment at a non-zero paramindex now re-renders faithfully** instead of being
-  collapsed onto the empty index, fixing the `structure_index_gap_only_address_5` conformance
-  divergence. The conformance expected-failure map is now EMPTY: every valid corpus vector passes
-  parse, error-discriminant, and canonical-render checks.
-- **The empty request renders as `zcash:` under every `FormattingOptions`** (previously only the
-  default path handled it).
-
-### Breaking changes — v2.0.0 public API reshape (v2/K12)
-
-This is the deliberate breaking-change milestone of the v2 rewrite. The public surface now matches
-the cross-language v2 contract shared with the Swift library.
-
-- **`ZIP321.parse(uri, expecting, validator, maxInputBytes)` is the ONLY parsing entry point** and
-  is a *total* function: it returns `Result<PaymentRequest>` instead of throwing, and its failures
-  are ALWAYS a `ZIP321Error`. Input guards run first: input larger than `maxInputBytes` (default
-  `ZIP321.DEFAULT_MAX_INPUT_BYTES` = 8 KiB) fails with `InvalidURI(INPUT_TOO_LARGE)`; the empty
-  string fails with `ParseError(EMPTY_INPUT)`; a non-`zcash:` scheme fails with
-  `InvalidURI(NOT_ZCASH_SCHEME)`; a `//` authority component fails with
-  `InvalidURI(INVALID_AUTHORITY)`. The throwing `ZIP321.request(uriString, …)` parse shim and
-  `ZIP321.ParserResult` are **deleted**; `request(...)` now names only the rendering overloads.
-- **`ParsedRequest` is DELETED — `parse` returns `Result<PaymentRequest>` directly.** The sealed
-  type existed to distinguish `zcash:<addr>` from `zcash:?address=<addr>`, but ZIP-321 URI Semantics
-  says those denote the SAME request: which spelling a URI used is a syntax choice, and the
-  reference `TransactionRequest` has no notion of the difference either. Modelling it made a purely
-  syntactic accident observable and forced every caller to branch on it. Both spellings now
-  construct EQUAL `PaymentRequest` values, asserted explicitly (`SingleRecipientSpellingTests`) and
-  by property test over generated recipients.
-- **The public `ZIP321.Errors` grab-bag is now internal, replaced by the sealed `ZIP321Error`
-  taxonomy**, mirroring the conformance corpus's cross-language discriminants: `InvalidBase64`,
-  `MemoBytesError`, `TransparentMemo`, `ZeroValuedTransparentOutput`, `TooManyPayments`,
-  `DuplicateParameter`, `RecipientMissing`, `InvalidAddress`, `UnknownRequiredParameter`,
-  `InvalidParamIndex`, `AmountExceededSupply`, `AmountInvalid`, `InvalidURI`, `ParseError`.
-  **Data-leakage policy, enforced by construction**: error payloads carry only parameter names,
-  indices, counts, or fixed `StaticReason` enum values — never addresses, memo contents, amounts, or
-  raw URI slices (the single bounded exception is `InvalidParamIndex`'s raw index token, ≤ 5
-  characters by grammar). Sprout rejection surfaces as `InvalidAddress`.
-- **The v1 amount type (`LegacyAmount`, named `NonNegativeAmount` in v1.x) was removed entirely**,
-  together with its `jvmMain` `BigDecimal` interop shim. `Payment.amount` is now the v2
-  `NonNegativeAmount?` (was `nonNegativeAmount: NonNegativeAmount?` of the v1 class). Migration:
-  replace `NonNegativeAmount("1.5")` with `NonNegativeAmount.zec("1.5").getOrThrow()` (strict
-  ZIP-321 `amountparam` grammar) or `NonNegativeAmount.zatoshi(150_000_000uL).getOrThrow()` for raw
-  integer counts. The type exposes `value: ULong` and `decimalString()`; note the **`ULong`**
-  backing — it makes non-negativity structural and is name-mangled for plain-Java callers (see the
-  v2/K2 entry). This also **fixes the `zatoshiToZEC` 8-significant-digit rounding bug**: large
-  amounts like `20999999.99999999` and `3768769.02796286` ZEC now render byte-exact instead of
-  being corrupted to `21000000` / `3768769`.
-- **`Payment` construction moved to a `Result` factory.**
-  `Payment.create(recipientAddress, amount, memo, label, message, otherParams)` returns
-  `Result<Payment>` and enforces the reference `to_payment` rules at construction time: a memo to a
-  transparent recipient fails with `TransparentMemo`, and a **zero-valued amount to a transparent
-  recipient fails with `ZeroValuedTransparentOutput`** (new consensus check, also enforced on the
-  parse path). The throwing `Payment(...)` invocation remains as a deprecated shim.
-  `label`/`message` are plain **decoded** `String?`; the `QcharString` / `ParamNameString` grammar
-  wrappers are no longer on the public surface.
-- **`PaymentRequest` now preserves ZIP-321 paramindices.** Payments are stored by `paramindex`;
-  `payments: List<Payment>` returns them ordered by ascending index, and the new
-  `indexedPayments: List<IndexedPayment>` exposes the indices (a request parsed from
-  `address.5`/`amount.5` retains index 5). `PaymentRequest(payments)` auto-indexes sequentially from
-  0 and enforces the 9999-payment cap (`TooManyPayments`); the new
-  `PaymentRequest.fromIndexedPayments(...)` validates index uniqueness (`DuplicateParameter`) and the
-  ≤ 9999 bound. The v1 construction-time network-coherence check was removed — the recipient's
-  network is reported by the caller's validator and compared against `expecting` at parse time
-  (v2/K8).
-- **`OtherParam` is now `(name: String, value: String?)`** with plain decoded semantics (previously
-  `key: ParamNameString`, `value` derived from a qchar wrapper).
-- **`Payment.otherParams` is a non-null `List<OtherParam>`** (default `emptyList()`), not
-  `List<OtherParam>?`. ZIP-321 has no way to spell the difference between "absent" and "empty", and
-  neither does the reference implementation: an absent list and an empty list render identically, so
-  representing both would make two distinct `Payment` values with the same URI, breaking the
-  round-trip law. Construct → render → parse is asserted for both the empty and the non-empty case.
-- **Duplicate `otherparam` names are rejected at construction.** `Payment.create(...)` fails with
-  `DuplicateParameter(name, null)` when a name repeats within a payment, regardless of the values.
-  Distinct names are unaffected.
-- **Empty requests** parse to `PaymentRequest(emptyList())` (`zcash:` and `zcash:?`) and render back
-  to `zcash:`. A single payment at the empty paramindex with no query parameters renders as the bare
-  `zcash:<addr>` — not `zcash:<addr>?` — matching the reference `to_uri`.
-- Rendering entry points keep their existing names and signatures:
-  `uriString(from, formattingOptions)`, `request(payment | recipient, formattingOptions)`.
-- Conformance corpus bumped to the adjudicated `53911fb` (51 vectors); the invalid-vector runner
-  asserts the exact `ZIP321Error` discriminant against the corpus. Expected-failure ledger: burned
-  `structure_empty_request`, `structure_empty_request_query_marker`,
-  `spec_invalid_zero_valued_transparent_output`, `amount_just_below_max_money`, and
-  `amount_parse_simple_large_decimal`; the sole remaining entry, the render-owned
-  `structure_index_gap_only_address_5`, was burned by the K13 renderer rewrite (see above) — the
-  expected-failure ledger is now EMPTY.
-
-### Changed (v2/K11)
-- **The ZIP-321 URI grammar is rewritten onto the `Scanner`.** `parser/Parser.kt` replaces the
-  hand-rolled state-machine tokenizer with a single-pass Scanner-based pipeline that follows the
-  reference `nom` flow: `zcash:` scheme, a `take_till('?')` lead address (empty allowed; a
-  non-empty lead address must validate), then `&`-separated query segments parsed as
-  `name [ "." index ] [ "=" value ]` (split without omitting empty segments, so a stray `&` or a
-  lone `?` is rejected). Parameter names are `ALPHA *( ALPHA / DIGIT / "+" / "-" )` (a percent-escape
-  in a name is rejected); indices are `NONZERO 0*3DIGIT`; raw values are restricted to
-  `qchar`-permitted characters / percent-escapes. `label`/`message`/`other` values are
-  percent-decoded via `QCharCodec` (a decode failure now maps to `Errors.QcharDecodeFailed`);
-  `address`/`amount`/`memo` values are parsed by their own grammars verbatim (a `%` in them is
-  rejected). Grouping, duplicate detection, empty-request rejection and legacy-URI behavior are
-  unchanged.
-- **A rejected leading address now maps to `Errors.InvalidAddress`.** Previously an unvalidated
-  leading run was silently treated as "no address" (surfacing a downstream `ParseError`/
-  `RecipientMissing`, or letting a raw `RecipientAddressError` propagate). It now unifies with the
-  query-parameter path: any invalid non-empty lead address (bad checksum, wrong network, Sprout,
-  or custom-validator rejection) is rejected as `InvalidAddress`. This changes the error CLASS of
-  a few already-rejecting inputs (e.g. `zcash:<garbage>` and unicode-delimiter URIs go from
-  `ParseError` to `InvalidAddress`); every such input still rejects. The
-  `structure_empty_request_query_marker` xfail now observes `ParseError` instead of
-  `InvalidParamName` (`zcash:?` splits into one empty query segment); its reason text was updated.
-  No expected-failure ledger movement (still 3 conformance + 3 renderMismatch).
-
-### Removed (v2/K11)
-- Deleted the dead K0-era parser helpers superseded by the Scanner rewrite and the now-orphaned
-  `CharsetValidations` sets (`QcharCharacterSet`, `UnreservedCharacterSet`, `PctEncodedCharacterSet`,
-  `AllowedDelimsCharacterSet`, `isValidParamNameChar`) and the `Char.isAsciiLetterOrDigit()`
-  extension. `ParamNameCharacterSet` (used by `ParamNameString`) and `Char.isAsciiLetter()` remain.
-
-### Added (v2/K10)
-- **Internal single-pass `Scanner`** (`parser/Scanner.kt`): a forward-only cursor over a
-  `CharSequence` (`peek`/`advance`/`expect`/`takeWhile`/`matchLiteral`/`isAtEnd`/`currentOffset`)
-  with single-character lookahead and no backtracking, mirroring the streaming style of the
-  reference `nom` grammar. It is the substrate for the K11 URI grammar rewrite. Every ZIP-321
-  terminal is ASCII, so a `Char` cursor is sufficient.
-- **Internal strict `AmountParser`** (`parser/AmountParser.kt`): parses an `amount` value through
-  the strict ZIP-321 `amountparam` grammar (via `NonNegativeAmount.zec`) and maps
-  `NonNegativeAmount.AmountException` onto the closest v1 `ZIP321.Errors` case (`ExceededSupply`,
-  including `ULong`-overflowing strings, -> `AmountExceededSupply`; `InvalidDecimalString` ->
-  `InvalidParamValue("amount", …)`; `TooManyFractionalDigits`/`NegativeAmount` -> `AmountTooSmall`).
-
-### Changed (v2/K10)
-- **The parser now enforces the strict `amountparam` grammar.** `amount` values are parsed through
-  the new `AmountParser`/`NonNegativeAmount.zec` path instead of the lenient
-  `LegacyAmount(decimalString)`, so a leading or trailing decimal point (`amount=.5`,
-  `amount=123.`), a sign, whitespace, scientific notation, or a percent-escape are rejected.
-  `Payment.nonNegativeAmount` remains `LegacyAmount`-typed (bridged from the unsigned
-  `NonNegativeAmount` via a new internal `LegacyAmount.fromNonNegativeAmount(...)` factory — a
-  factory rather than a constructor because `NonNegativeAmount` is a `value class` erasing to
-  `long`, which would clash with `constructor(value: Long)`).
-  Conformance vectors `invalid_amount_trailing_decimal_point` and `invalid_amount_leading_decimal_point`
-  now pass and were removed from the expected-failure map.
-
-### Added (v2/K9)
-- **Reference-exact ZIP-321 `qchar` codec** (`encodings/QcharCodec.kt`): the `QCharCodec`
-  `encode`/`decode` pair is rewritten to mirror the librustzcash `zip321` reference. `encode`
-  percent-encodes exactly the *complement* of the raw `qchar` set (space, `"`, `#`, `%`, `&`,
-  `/`, `<`, `=`, `>`, `?`, `[`, `\`, `]`, `^`, `` ` ``, `{`, `|`, `}`, the C0 controls, DEL, and
-  every non-ASCII byte as uppercase `%XX`). `decode` is now **strict** and returns `null` on
-  failure: each `%XX` must be two hex digits (either case), each raw byte must be a `qchar`
-  byte, and the decoded bytes must be valid UTF-8 (overlong sequences, lone continuation bytes,
-  unpaired surrogates and truncated sequences are rejected — the previous `URLDecoder`-derived
-  decoder produced U+FFFD replacements instead). New `isQcharByte`/`isValueByte` predicates are
-  exposed for the K10/K11 scanner. The `String.qcharDecode()` extension delegates to the codec
-  and throws `IllegalArgumentException` on a strict-decode failure (call `QCharCodec.decode`
-  for a nullable result).
-
-### Fixed (v2/K9)
-- **Empty `qchar` values are valid**: `QcharString.from("")` now succeeds (a zero-length
-  `*qchar` value round-trips through both the encoded and decoded views), matching the
-  reference which accepts an empty `message=`/`label=`. (Kotlin's parse path already decoded
-  empty values via `qcharDecode`, so no conformance vector changed class.)
-
-### Changed (v2/K8) — BREAKING: address validation is fully delegated
-- **The library no longer validates Zcash addresses.** It implements the
-  [ZIP-321](https://zips.z.cash/zip-0321) URI **grammar** and nothing else.
-  Whether a recipient string is a valid, payable Zcash address — and what that
-  recipient can receive — is now answered exclusively by a caller-supplied
-  validator, whose verdict is AUTHORITATIVE and is never second-guessed.
-- **New public API** (`org.zecdev.zip321`):
-  - `enum class Network { MAINNET, TESTNET, REGTEST }` — the consensus network a
-    request is parsed against.
-  - `data class AddressDescriptor(network, isTransparent, canReceiveMemos)` —
-    what a validator reports about an address it accepts. These are exactly the
-    three facts ZIP-321 semantics depend on: the network the request is checked
-    against, whether a `memo` may accompany the recipient, and whether a
-    zero-valued output to it is permitted. `isTransparent` and
-    `canReceiveMemos` are independent on purpose, so kinds that are neither
-    plainly transparent nor plainly shielded (TEX; a UA whose receiver set the
-    caller resolves) are describable without this library enumerating address
-    kinds it deliberately does not model.
-  - `fun interface AddressValidator { fun validate(address: String): AddressDescriptor? }`
-    — `null` rejects the address; anything else is trusted verbatim. Being a
-    `fun interface`, a lambda can be passed directly.
-- **`ParserContext` is DELETED.** It was both "the network" and "the built-in
-  structural validator"; those roles are now `Network` and `AddressValidator`
-  respectively. Its checksum/prefix machinery does not move into the library —
-  it is gone from `commonMain` entirely (the equivalent checkers live in
-  `commonTest` as test support, v2/K5–K7).
-- **`RecipientAddress` is now `value` + `descriptor`.** The public constructor
-  wraps an address a caller has ALREADY validated; `RecipientAddress.create(value,
-  validator)` validates and returns `null` on rejection. There is no throwing
-  constructor and no `RecipientAddressError` any more. `isTransparent()`/memo
-  capability are read off the descriptor rather than re-derived from the string.
-- **`ZIP321.request(uriString, expecting: Network, validator: AddressValidator)`**
-  replaces `request(uriString, context: ParserContext, validatingRecipients:
-  ((String) -> Boolean)?)`. The validator is REQUIRED, precisely so that address
-  validity can never silently come from a structural approximation baked into a
-  URI parser. The v1 "AND-composed optional closure" model is gone: there is no
-  built-in check for an injected one to compose with.
-- Wallets should implement `AddressValidator` by delegating to their Zcash SDK's
-  own address support (librustzcash's `ZcashAddress` via the mobile SDKs'
-  FFI/JNI bindings), which is the only place that can answer these questions
-  correctly — including Unified Address receiver decoding and which address
-  kinds the wallet is willing to pay.
-- Conformance xfail burn-down: `invalid_address_sapling_bad_checksum`,
-  `invalid_address_unified_mainnet_bad_checksum`,
-  `invalid_address_transparent_bad_checksum` and
-  `invalid_address_sapling_mixed_case` now pass and were removed from the
-  expected-failure map. They pass because the test suite injects a validator
-  (`ReferenceAddressValidator`) that really verifies encodings — which is
-  exactly the point: the library rejects what the VALIDATOR rejects.
-- Removed the now-unused `CharsetValidations` Base58/Bech32 character sets and
-  their `isValidBase58Char`/`isValidBech32Char` helpers.
-
-### Added (v2/K8) — the expected network is enforced
-- **A recipient whose network is not the expected one is rejected.** A ZIP-321
-  request is parsed against exactly one consensus network, named by
-  `expecting`. When the validator accepts an address but reports a different
-  `AddressDescriptor.network`, the request is rejected with an invalid-address
-  error carrying the payment's `paramindex`.
-
-  This is a COMPARISON, not a validation: the library still learns an address's
-  network only from the validator, and has no way of its own to tell. ZIP-321
-  itself is network-agnostic — the librustzcash reference parses addresses
-  without a network at all — so enforcing it is a consumer-library requirement,
-  made explicit and documented at the parse boundary.
-
-### Added (v2/K7) — test support only
-- **Base58Check reference checker**
-  (`lib/src/commonTest/kotlin/org/zecdev/zip321/support/Base58Check.kt`) —
-  **test support, not part of the shipped library**: `decode(String):
-  ByteArray?` (base58 big-integer decode via `ByteArray`/`MutableList<Byte>`
-  arithmetic — no `BigInteger` dependency — 4-byte SHA-256d checksum
-  verification using the v2/K5 `Sha256`, leading-`'1'` zero-byte preservation)
-  and `verify(String, expectedVersionBytes: List<ByteArray>): Boolean`. Port of
-  the Swift reference's test-support `Base58Check.swift`, including its table
-  citing the mainnet/testnet/regtest transparent-address version-byte prefixes
-  from librustzcash `zcash_protocol`. `Base58CheckTests` ports
-  testnet/mainnet P2PKH decode, corpus corrupted-checksum rejection,
-  wrong-version-bytes rejection, leading-zero-byte preservation,
-  invalid-alphabet-character rejection (`0`/`O`/`I`/`l`), and too-short-input
-  rejection.
-
-### Added (v2/K6) — test support only
-- **Bech32 / Bech32m reference checker**
-  (`lib/src/commonTest/kotlin/org/zecdev/zip321/support/Bech32.kt`), per
-  BIP-173 / BIP-350 — **test support, not part of the shipped library**:
-  `Variant` enum (`BECH32` checksum constant `1`, `BECH32M` checksum constant
-  `0x2bc830a3`), `decode(String): Decoded?` (mixed-case rejected *before*
-  lowercasing, 1023-char limit, printable-ASCII 33..126 charset, separator is
-  the last `'1'`, HRP 1..83 chars, >= 6 checksum chars, BCH polymod), and
-  `verify(String, expectedHrp, variant): Boolean`. Port of the Swift
-  reference's test-support `Bech32.swift`, including its citation of why the
-  length limit is 1023 (the `bech32` Rust crate's per-checksum `CODE_LENGTH`)
-  rather than BIP-173's 90-char segwit cap. `Bech32Tests` ports the
-  BIP-173/BIP-350 known-answer vectors, real Sapling/Unified/regtest Zcash
-  addresses, and their corpus-corrupted (checksum-broken) variants.
-
-### Added (v2/K5) — test support only
-- **SHA-256 wrapper for the reference address checkers**
-  (`lib/src/commonTest/kotlin/org/zecdev/zip321/support/Sha256.kt`), which is
-  **test support and not part of the shipped library**. `hash(ByteArray)` and
-  `doubleHash(ByteArray)` delegate to an `internal expect fun
-  sha256(ByteArray): ByteArray` whose actuals are each platform's **own**
-  cryptographic library — `java.security.MessageDigest.getInstance("SHA-256")`
-  in `jvmTest` (a fresh, therefore thread-safe, digest instance per call) and
-  CommonCrypto's `CC_SHA256` via Kotlin/Native's bundled `platform.CoreCrypto`
-  interop in `iosTest`. `expect`/`actual` behaves in test source sets exactly
-  as it does in main source sets; `iosTest` is materialised for both iOS
-  targets by Kotlin's default hierarchy template.
-
-  It lives in `commonTest` because the library **performs no address
-  validation of its own** and therefore needs no cryptography: `commonMain`
-  ships zero hash, Bech32 or Base58Check code. This digest exists solely so the
-  test-only address-encoding checkers (v2/K6, v2/K7) can verify the SHA-256d
-  checksums of transparent addresses, which is what makes the shared
-  conformance corpus's checksum-corruption vectors executable.
-
-  `Sha256Tests` pins the *wiring* — expect/actual plumbing, digest byte order,
-  `doubleHash` composition — with four known-answer vectors: `SHA-256("")`,
-  FIPS 180-4 B.1 `"abc"`, B.2's two-block message, and SHA-256d(`"hello"`).
-  Living in `commonTest`, they run under both `jvmTest` and
-  `iosSimulatorArm64Test`, exercising each actual in turn.
-
-### Fixed (v2/K4)
-- **Zero-length memos are now valid** (conformance fix): `MemoBytes` accepts
-  0 to 512 bytes, matching the reference implementation (consensus zero-pads
-  memos to 512 bytes, so an empty memo is well-defined). A URI containing
-  `memo=` now parses to a payment with an empty (not absent) memo instead of
-  being rejected, and the conformance vector `structure_empty_memo_on_sapling`
-  now passes — its entry has been removed from the expected-failure map
-  (now 12 entries). The `MemoBytes.MemoError.MemoEmpty` case has been removed
-  accordingly.
-- **`MemoBytes(String)` now bounds the UTF-8 byte count, not the char count**:
-  the v1 check `string.length <= 512` could accept multi-byte strings whose
-  UTF-8 encoding exceeds 512 bytes (an invalid memo). The constructor now
-  encodes first and checks the byte length, matching the Swift implementation
-  and the ZIP-302 limit.
-
-### Added (v2/K3)
-- **Internal strict unpadded base64url codec (RFC 4648 §5)**
-  (`lib/src/commonMain/kotlin/org/zecdev/zip321/parser/Base64URL.kt`):
-  `encode(ByteArray): String` and `decode(String): ByteArray?`, pure Kotlin
-  common code. Encoding uses the RFC 4648 §5 url-safe alphabet with NO
-  padding, exactly like the reference implementation's
-  `BASE64_URL_SAFE_NO_PAD`. Decoding strictly rejects: `+`, `/`, `=`
-  (padding included), whitespace, any character outside the base64url
-  alphabet (including non-ASCII), impossible lengths (`length % 4 == 1`),
-  and non-canonical encodings whose trailing bits are nonzero (e.g. `"QR"`).
-  The empty string round-trips to zero bytes.
-
-### Changed (v2/K3)
-- **`MemoBytes` now encodes/decodes through the strict `Base64URL` codec**,
-  replacing the K0 hand-rolled translate-and-pad decoder (which mapped
-  `-`/`_` to `+`/`/`, right-padded with `=`, then decoded classic base64).
-  Decoding is stricter than before: classic-alphabet `+`/`/`, `=` padding,
-  and non-canonical encodings with nonzero trailing bits are now rejected
-  (the old path silently accepted them). No conformance vector and no unit
-  test exercised the lenient forms — the expected-failure map is unchanged.
-  The lenient `String.decodeBase64URL()` public extension is removed along
-  with the old implementation.
-
-### Added (v2/K2)
-- **New public `NonNegativeAmount` value type**
-  (`lib/src/commonMain/kotlin/org/zecdev/zip321/model/NonNegativeAmount.kt`):
-  a `Comparable` `@JvmInline value class` wrapping an **unsigned** `ULong`
-  count of zatoshi with `NonNegativeAmount.MAX_MONEY`
-  (`2_100_000_000_000_000u`) as the upper bound. `Result`-based factories
-  `NonNegativeAmount.zatoshi(ULong)` (raw zatoshi) and
-  `NonNegativeAmount.zec(String)` (decimal ZEC string) enforce the **strict**
-  ZIP-321 `amountparam` grammar (`1*DIGIT [ "." 1*8DIGIT ]`): leading zeros in
-  the whole part are accepted, while `"123."`, `".5"`, empty strings, signs,
-  whitespace, and scientific notation are rejected, using checked integer
-  arithmetic only (failures carry the `NonNegativeAmount.AmountException`
-  sealed hierarchy: `NegativeAmount`, `ExceededSupply`,
-  `TooManyFractionalDigits`, `InvalidDecimalString`). `decimalString()`
-  renders exactly like the reference `amount_str` (librustzcash `zip321`:
-  whole part always, fraction only when nonzero, trailing zeros trimmed) — it
-  does NOT inherit the v1 8-significant-digit rounding bug. The type is
-  amount-agnostic: zero is representable; zero-amount policy (e.g.
-  zero-valued transparent outputs) belongs to `Payment`-level validation.
-- **Non-negativity is now structural.** The backing type is `ULong` (not a
-  checked `Long`), mirroring the `u64`-backed `Zatoshis` of the librustzcash
-  `zip321` reference and the `UInt64`-backed `NonNegativeAmount` of
-  `zcash-swift-payment-uri`: a negative amount is unrepresentable rather than
-  rejected at runtime. `AmountException.NegativeAmount` is therefore
-  unreachable from either factory — `zatoshi()` takes an unsigned count, and
-  `zec()` reports a leading sign as `InvalidDecimalString` — and is retained
-  only so the error taxonomy stays identical to the Swift library's
-  `AmountError`.
-- **Java interop, accepted v2 break:** because the public API exposes `ULong`,
-  Kotlin mangles the names of the `value` accessor and of every function with
-  an unsigned parameter or return type in the JVM artifact (`zip321-jvm`), so
-  they are not callable from plain Java under their Kotlin names. Kotlin
-  consumers (including Android) are unaffected: they see
-  `NonNegativeAmount.zatoshi(ULong)`, `value: ULong`, and `MAX_MONEY: ULong`
-  normally. This is a deliberate v2 API break, taken so the Kotlin, Swift, and
-  Rust representations of a ZIP-321 amount agree exactly; Java callers that
-  need a raw zatoshi count should parse via `zec(String)` / render via
-  `decimalString()`, or add a thin Kotlin shim.
-
-### Changed (v2/K2)
-- **The v1 `NonNegativeAmount` class is renamed `LegacyAmount`** and is
-  `@Deprecated("Use NonNegativeAmount")`, freeing its name for the new value
-  type (`zcash-swift-payment-uri` renamed the equivalent struct the same way).
-  There is deliberately **no** typealias for the old name — it now denotes the
-  replacement type — so any reference to `NonNegativeAmount` in v1 code is a
-  hard break, which is acceptable while v2 is unreleased. The legacy behavior
-  itself is unchanged (including its lenient `"123."`/`".5"` parsing and the
-  known 8-significant-digit render rounding bug, both preserved until the v2
-  parser rewrite); its JVM `BigDecimal` interop moved to
-  `lib/src/jvmMain/kotlin/org/zecdev/zip321/model/LegacyAmountBigDecimal.kt`.
-  Internal use sites (parser, renderer, model, tests) suppress the deprecation
-  warning file-wide with `@file:Suppress("DEPRECATION")` until the parser
-  adopts the new type, keeping the build warning-free.
-
-### Changed — test suite on all targets (v2/K1)
-- The test suite moved from jvm-only **kotest** to **`kotlin.test`** in
-  `commonTest`, so the same tests now compile and run on every KMP target
-  (`jvmTest`, `iosSimulatorArm64Test`; `iosArm64` links). Every case and
-  expected outcome was preserved 1:1. Exceptions: `AmountTests` stays in
-  `jvmTest` because it exercises the `java.math.BigDecimal` interop that only
-  exists in `jvmMain`, and the Jazzer fuzz harnesses (`ZIP321FuzzTest`,
-  `ZIP321Fuzzer`) remain JVM-only.
-- The shared conformance corpus is now **embedded into `commonTest` sources at
-  build time**: the `generateConformanceVectors` Gradle task reads
-  `test-vectors/vectors/**/*.json` and generates `GeneratedVectors.kt` (raw
-  JSON as string constants) plus `GeneratedZip321ConformanceTest.kt` (one
-  `kotlin.test` function per vector), regenerating whenever the submodule
-  updates. This removes all classloader/filesystem resource loading from the
-  tests; the 13-entry expected-failure registry (`ExpectedFailures.kt`) is
-  unchanged.
-- `kotlinx-serialization-json` (test-only, multiplatform) moved from `jvmTest`
-  to `commonTest`.
-- iOS test link/run tasks are enabled again. Building them locally requires a
-  full Xcode install (`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`
-  when `xcode-select` points at the CommandLineTools).
-
-### Removed (v2/K1)
-- All **kotest** dependencies (`kotest-runner-junit5`, `kotest-property`,
-  `kotest-assertions-core-jvm`, `kotest-framework-engine-jvm`). Nothing uses
-  kotest after the migration. NOTE: `kotest-property` comes back together with
-  the property-based tests in a later v2 PR.
-
-### Changed (BREAKING — Kotlin Multiplatform conversion, v2/K0)
-- The library is now **Kotlin Multiplatform** (`kotlin("multiplatform")`,
-  Kotlin 2.0.20) instead of a JVM-only `java-library`. Targets: `jvm()`,
-  `iosArm64()`, `iosSimulatorArm64()`. No `androidTarget()` yet — Android
-  consumers use the JVM variant (`org.zecdev:zip321-jvm`) meanwhile; a dedicated
-  Android target is a follow-up.
-- **Publication / artifact layout changed (breaking for build files).** The KMP
-  plugin publishes a root Gradle-module publication plus one per target instead
-  of a single JVM jar. Coordinates:
-  - `org.zecdev:zip321` — root module (Gradle-metadata aware consumers)
-  - `org.zecdev:zip321-jvm` — JVM artifact (what plain-Maven / Android consumers
-    should depend on)
-  - `org.zecdev:zip321-iosarm64`, `org.zecdev:zip321-iossimulatorarm64`
-  Gradle consumers that depend on `org.zecdev:zip321` keep working; consumers
-  that resolved the raw JVM jar must switch to `org.zecdev:zip321-jvm`.
-- Production sources moved to `commonMain` and now compile for all targets with
-  **zero runtime dependencies**.
-
-### Removed
-- `io.github.copper-leaf:kudzu-core` (parser combinators) — the ZIP-321 parser
-  is now a hand-rolled, dependency-free state machine in `commonMain` that
-  preserves v1 accept/reject behavior and error types exactly (verified against
-  the conformance corpus and the full test suite).
-- `com.google.guava:guava` and `org.apache.commons:commons-math3` — both were
-  verified unused in production and tests and dropped. NOTE: `commons-math3` was
-  previously exported via `api(...)`, so this removes it from consumers'
-  compile classpath (breaking only for consumers that were relying on the
-  transitive export, which the library itself never used).
-
-### Changed — `NonNegativeAmount`
-- Internally reimplemented as checked `Long` zatoshi fixed-point (no
-  `java.math.BigDecimal` in the shared code). The `Long` and `String`
-  constructors and the public API are unchanged and behavior is preserved,
-  including v1 leniency (`"123."` and `".5"` still accepted) and the known
-  8-significant-digit rounding bug in the render path (large amounts such as
-  `20999999.99999999` still render as `21000000`; fixed in a later PR).
-- The `BigDecimal` constructor and the `zecToZatoshi` / `zatoshiToZEC` /
-  `BigDecimal.roundZec` helpers remain available to **JVM** consumers as
-  `jvmMain` extensions (source-compatible: `NonNegativeAmount(BigDecimal(...))`
-  still compiles on the JVM), but are not available on iOS/common.
-- Minor: the `commonMain` decimal-string parser accepts only plain decimal
-  notation. Scientific/exponent amount strings (e.g. `"1e2"`), which the old
-  `BigDecimal(String)` path would have accepted but which are unreachable from
-  the ZIP-321 amount grammar and untested, now throw. `BigDecimal`-typed inputs
-  on the JVM (including exponents) are unaffected.
+A deliberate breaking-change release: the public API was reshaped to match the cross-language v2
+contract shared with the companion [Kotlin sibling's Swift counterpart](https://github.com/zecdev/zcash-swift-payment-uri),
+the library became Kotlin Multiplatform, parsing became a total (non-throwing) operation, every
+runtime dependency was removed, and recipient-address validation was **delegated in full** to the
+caller. See the migration table in `README.md` for a caller-focused summary.
 
 ### Added
-- `test-vectors` git submodule pointing at the shared ZIP-321 conformance
-  vector corpus (`zcash-zip321-test-vectors`): 22 valid and 28 invalid
-  vectors verified against the librustzcash `zip321` reference oracle.
-- Conformance runner (`org.zecdev.zip321.conformance.Zip321ConformanceSpec`,
-  test-only) that exercises every corpus vector against the v1 parser and
-  renderer. Known divergences from the reference semantics are documented as
-  expected failures in `ExpectedFailures.kt` (13 entries: 3 valid vectors v1
-  rejects, 7 invalid vectors v1 accepts, 3 canonical-URI render mismatches
-  including an amount-corrupting rounding bug in
-  `NonNegativeAmount.zatoshiToZEC`); fixed vectors fail loudly as XPASS until
-  their entry is removed. Adds `kotlinx-serialization-json` 1.7.3 as a
-  test-only dependency and registers `test-vectors/vectors` as a test
-  resources root.
+
+- **`NonNegativeAmount`, rebuilt** (`lib/src/commonMain/kotlin/org/zecdev/zip321/model/NonNegativeAmount.kt`):
+  the v2 amount type keeps the v1 type's name but is an entirely new, public, `Comparable`
+  `@JvmInline value class` wrapping an **unsigned `ULong`** zatoshi count
+  (`NonNegativeAmount.MAX_MONEY` = `2_100_000_000_000_000u`). `Result`-based factories
+  `NonNegativeAmount.zatoshi(ULong)` (raw zatoshi) and `NonNegativeAmount.zec(String)` (decimal ZEC
+  string) enforce the **strict** ZIP-321 `amountparam` grammar (`1*DIGIT [ "." 1*8DIGIT ]`) using
+  checked integer arithmetic only; `decimalString()` renders exactly like the reference
+  `amount_str` (whole part always, fraction only when nonzero, trailing zeros trimmed) — it does
+  not inherit the v1 8-significant-digit rounding bug (see Fixed/Security). Failures carry the
+  sealed `NonNegativeAmount.AmountException` (`NegativeAmount`, `ExceededSupply`,
+  `TooManyFractionalDigits`, `InvalidDecimalString`), kept 1:1 with the Swift library's
+  `AmountError`; `NegativeAmount` is unreachable and retained only for taxonomy parity.
+  The `ULong` backing makes non-negativity **structural** rather than checked, matching the
+  `u64`-backed `Zatoshis` of the librustzcash `zip321` reference and the `UInt64`-backed
+  `NonNegativeAmount` of `zcash-swift-payment-uri`. **Java-interop consequence (accepted v2
+  break):** Kotlin name-mangles the `value` accessor and every function that takes or returns an
+  unsigned type, so those members are not callable from plain Java under their Kotlin names in the
+  `zip321-jvm` artifact. Kotlin consumers (including Android) are unaffected; Java callers should
+  go through `zec(String)` / `decimalString()` or add a thin Kotlin shim.
+- **`ZIP321Error`**: a sealed, data-leakage-free error taxonomy (`InvalidBase64`,
+  `MemoBytesError`, `TransparentMemo`, `ZeroValuedTransparentOutput`, `TooManyPayments`,
+  `DuplicateParameter`, `RecipientMissing`, `InvalidAddress`, `UnknownRequiredParameter`,
+  `InvalidParamIndex`, `AmountExceededSupply`, `AmountInvalid`, `InvalidURI`, `ParseError`)
+  mirroring the shared cross-language conformance-corpus discriminants. See Security below.
+- **`Network`, `AddressDescriptor` and `AddressValidator`** (package `org.zecdev.zip321`): the
+  delegation contract. `Network` names the consensus network a request is parsed against;
+  `AddressValidator` is a `fun interface` returning `AddressDescriptor?` (so a lambda works
+  directly); `AddressDescriptor(network, isTransparent, canReceiveMemos)` is exactly the three
+  facts ZIP-321 semantics depend on. `isTransparent` and `canReceiveMemos` are independent on
+  purpose, so address kinds that are neither plainly transparent nor plainly shielded (TEX; a
+  Unified Address whose receiver set the caller resolves) are describable without this library
+  enumerating address kinds it deliberately does not model.
+- **`ZIP321.parse(uri, expecting, validator, maxInputBytes)`**: the *total* — and only — parsing
+  entry point, returning `Result<PaymentRequest>`. Input guards run before any grammar work: input
+  above `maxInputBytes` (default `ZIP321.DEFAULT_MAX_INPUT_BYTES` = 8 KiB) fails with
+  `InvalidURI(INPUT_TOO_LARGE)`; empty input fails with `ParseError(EMPTY_INPUT)`; a non-`zcash:`
+  scheme fails with `InvalidURI(NOT_ZCASH_SCHEME)`; a `//` authority component fails with
+  `InvalidURI(INVALID_AUTHORITY)`. `validator` is REQUIRED (see Security). The empty request
+  `zcash:` parses to a `PaymentRequest` with zero payments.
+- **`Payment.create(recipientAddress, amount, memo, label, message, otherParams)`**: a
+  `Result`-based construction factory enforcing the reference `to_payment` rules at construction
+  time — a memo to a transparent recipient fails with `TransparentMemo`, and a zero-valued amount
+  to a transparent recipient fails with `ZeroValuedTransparentOutput` (a new consensus check,
+  enforced on both the construction and parse paths).
+- **`Payment.Builder`** (`Builder(recipient)` + chainable `amount(NonNegativeAmount)`,
+  `amount(zec: String)`,
+  `memo(MemoBytes)`, `memo(utf8: String)`, `label(...)`, `message(...)`,
+  `otherParam(name, value)`, terminal `build(): Result<Payment>`) and **`PaymentRequest.Builder`**
+  (`add(payment)` auto-indexing from `0`, `add(payment, at = n)` for an explicit `paramindex`,
+  terminal `build(): Result<PaymentRequest>`), plus the **`paymentRequest { }` DSL** — the
+  idiomatic Kotlin equivalent of the Swift library's `@resultBuilder` entry point
+  `PaymentRequest.build { }` — with `payment(recipient) { ... }`, `payment(prebuilt)`, and
+  `payments(list)` forms. Fallible inputs are validated lazily at `build()`; when several fields
+  are invalid, the first error wins in fixed field order (amount → memo → other params →
+  structural rules), matching the Swift library byte-for-byte.
+- **`PaymentRequest.indexedPayments: List<IndexedPayment>`** and
+  **`PaymentRequest.fromIndexedPayments(...)`**, exposing and accepting explicit, non-contiguous
+  ZIP-321 `paramindex` values (validating index uniqueness via `DuplicateParameter` and the ≤ 9999
+  index bound).
+- Dependency-free primitives backing amount/memo/URI parsing, under
+  `lib/src/commonMain/kotlin/org/zecdev/zip321/{parser,encodings}/`: **`Base64URL`** (unpadded
+  RFC 4648 §5 base64url, matching the reference `BASE64_URL_SAFE_NO_PAD`), a single-pass
+  **`Scanner`**, and a strict **`AmountParser`** / **`QCharCodec`** (reference-exact `qchar`
+  percent-encoding) underpinning the URI grammar rewrite. Note what is NOT here: no hash, no
+  Bech32, no Base58Check. Because address validation is delegated, this library needs no
+  cryptography at all. The equivalent reference checkers live in `commonTest`
+  (`support/{Sha256,Bech32,Base58Check}.kt`, over a platform SHA-256 via an `expect`/`actual` in
+  the test source sets) purely so the shared conformance corpus's checksum-corruption, mixed-case,
+  Sprout and wrong-network vectors are executable against a `ReferenceAddressValidator` — they are
+  test sources and are never shipped.
+- The shared, oracle-verified ZIP-321 conformance corpus
+  ([zecdev/zcash-zip321-test-vectors](https://github.com/zecdev/zcash-zip321-test-vectors)),
+  consumed as a test-only git submodule at `test-vectors/` and embedded into `commonTest` at build
+  time (`generateConformanceVectors` reads `test-vectors/vectors/**/*.json` and generates
+  `GeneratedVectors.kt` / `GeneratedZip321ConformanceTest.kt`, removing all
+  classloader/filesystem resource loading from the tests), plus a conformance test runner that
+  asserts the **exact** `ZIP321Error` discriminant and byte-identical canonical re-rendering
+  against the librustzcash `zip321` reference. Bumped through several adjudicated corpus revisions
+  to `53911fb` (51 vectors); the expected-failure ledger, which started at 13 documented
+  divergences, is now **empty**.
+- Deterministic property-style round-trip tests (`PropertyGenerators.kt`/`PropertyTests.kt` in
+  `commonTest`): a seeded `SplitMix64` PRNG driving five laws — full parse/render round trip,
+  `NonNegativeAmount` decimal round trip, `MemoBytes` base64url round trip, `QCharCodec` round trip, and
+  `paramindex` preservation — over 1,400 fixed-seed cases across every KMP target (this supersedes
+  the earlier note that `kotest-property` would return; it does not, in favor of a from-scratch
+  deterministic PRNG that runs on `jvm` and `iOS` alike, not just `jvm`), plus three more laws
+  added with the delegation redesign: the two single-recipient spellings always parse equal,
+  `otherParams` survives every round trip as a list, and — adversarially — a `Payment` whose
+  other-param names repeat never constructs, through either `Payment.create` or `Payment.Builder`.
+- **Kover 100% line / ≥98% branch coverage gate** on `commonMain`/`jvmMain` (`koverVerify`, wired
+  into `check`/`build`), with a bounded (3-site) `@KoverExcludeWithRationale` exemption annotation
+  for genuinely unreachable defensive guards. Coverage progressed from 87.7% line / 75.7% branch to
+  100.0% line / 98.6% branch (850/850 and 713/723 as measured on the final tree) via ~35
+  new/expanded test functions, dead-code deletion (see Removed), and restructuring for testability.
+  Kover does not instrument Kotlin/Native, so the iOS `sha256` actual is outside its scope by
+  construction and is proven instead by `iosSimulatorArm64Test` running the same `commonTest`
+  suite; the JVM actual is in scope and fully covered.
+- API documentation via **Dokka Gradle Plugin v2** (`./gradlew :lib:dokkaGenerate`, HTML output at
+  `lib/build/dokka/html`), with `reportUndocumented`/`failOnWarning` wired project-wide so an
+  undocumented public symbol or a broken `[Foo]`-style doc link fails the build. `lib/Module.md` is
+  the module-level landing page: it links to (rather than duplicates) the four canonical usage
+  scenarios written as a runnable KDoc sample on `org.zecdev.zip321.paymentRequest`, plus a security
+  section.
+- **`.github/workflows/ci.yml`**, a 4-required-job workflow replacing the stale single-job
+  `basic-test.yml`: `test-jvm` (`ubuntu-latest` × JDK 17/21, runs
+  `jvmTest koverVerify ktlintCheck detekt`), `test-apple` (`macos-15`, runs
+  `iosSimulatorArm64Test` + `linkDebugTestIosArm64`), `fuzz-smoke` (`ubuntu-latest`, runs the
+  existing Jazzer JUnit `@FuzzTest` with `JAZZER_FUZZ=1` for a bounded 45-second mutation-based
+  smoke run), and `dokka` (`ubuntu-latest`, `./gradlew :lib:dokkaGenerate`, and — as of this
+  release — `scripts/check-readme-snippets.sh`). Every job checks out `submodules: recursive`.
+- **`scripts/check-readme-snippets.sh`**: verifies that every `` ```kotlin `` code block in the
+  canonical KDoc samples (the `paymentRequest` DSL entry point and `Payment.Builder`) appears
+  verbatim in `README.md`, wired into the `dokka` CI job, so the README's Quick Start snippets can
+  never silently drift from the KDoc they were copied from.
+
+### Changed
+
+- **Breaking: converted to Kotlin Multiplatform** (`kotlin("multiplatform")`, Kotlin 2.0.20)
+  instead of a JVM-only `java-library`. Targets: `jvm()` (JVM 8 bytecode), `iosArm64()`,
+  `iosSimulatorArm64()`. There is no `androidTarget()` yet; Android consumers use the JVM variant
+  meanwhile. Production sources moved to `commonMain` and compile for every target with **zero
+  runtime dependencies**.
+- **Breaking: publication/artifact layout changed.** The KMP plugin publishes a root
+  Gradle-module publication plus one per target instead of a single JVM jar. Coordinates:
+  `org.zecdev:zip321` (root module, Gradle-metadata-aware consumers), `org.zecdev:zip321-jvm`
+  (the JVM artifact; what plain-Maven/Android consumers should depend on),
+  `org.zecdev:zip321-iosarm64`, `org.zecdev:zip321-iossimulatorarm64`. Gradle consumers depending
+  on `org.zecdev:zip321` keep working; consumers that resolved the raw JVM jar must switch to
+  `org.zecdev:zip321-jvm`.
+- **Breaking: address validation is fully delegated; `ParserContext` is DELETED.** `ParserContext`
+  conflated "the consensus network" with "the built-in structural address validator"; the first
+  becomes `Network`, and the second ceases to exist in this library. `RecipientAddress` is now an
+  opaque `value` plus the `descriptor` its validator produced — construct it directly from an
+  already-validated address, or via `RecipientAddress.create(value, validator): RecipientAddress?`.
+  The throwing constructor and `RecipientAddressError` are gone, as is the v1 "AND-composed
+  optional closure" model: there is no built-in check left for an injected one to compose with.
+  A recipient the validator places on a network other than `expecting` is rejected with
+  `InvalidAddress` — a COMPARISON, not a validation.
+- **Breaking: `ParsedRequest` / `ZIP321.ParserResult` are DELETED.** They existed to distinguish
+  `zcash:<addr>` from `zcash:?address=<addr>`, but ZIP-321 URI Semantics says those denote the SAME
+  request — the reference `TransactionRequest` has no notion of the difference either. Modelling it
+  made a purely syntactic accident observable and forced every caller to branch on it. `parse` now
+  returns `Result<PaymentRequest>`, and both spellings construct EQUAL `PaymentRequest` values
+  (asserted explicitly and by property test).
+- **Breaking: `Payment.otherParams` is a non-null `List<OtherParam>`** (default `emptyList()`).
+  ZIP-321 has no way to spell the difference between "absent" and "empty", and neither does the
+  reference: an absent list and an empty list render identically, so representing both would make
+  two distinct `Payment` values share a URI and break the round-trip law. **Duplicate `otherparam`
+  names are now rejected at construction** with `DuplicateParameter(name, null)`, regardless of the
+  values — so no `Payment` can exist that renders to a URI the parser would reject.
+- **Breaking: public API reshape.** `ZIP321.parse(...)` is the parsing entry point (see
+  Added); the throwing `ZIP321.request(uriString, …)` parse shim is **removed**, and `request(...)`
+  now names only the rendering overloads. The public
+  `ZIP321.Errors` grab-bag is now **internal**, replaced by the sealed `ZIP321Error` taxonomy;
+  Sprout rejection now surfaces as `InvalidAddress`. **The v1 `NonNegativeAmount` class was removed
+  entirely** (see Removed) — `Payment.amount` is now the rebuilt `NonNegativeAmount?`, whose `value`
+  is a `ULong`. The throwing `Payment(...)` constructor
+  remains as a deprecated shim over `Payment.create`; `label`/`message` are now plain decoded
+  `String?`. **`OtherParam`'s constructor is now internal**; construct via
+  `OtherParam.create(name, value): Result<OtherParam>`, which validates the name against the
+  ZIP-321 grammar and reserved-name rules (empty name, reserved query key, `req-`-prefixed name, or
+  a name that isn't a valid `paramname` all fail with `ParseError(INVALID_PARAMETER)`).
+- **Breaking: `PaymentRequest` now preserves ZIP-321 paramindices**, stored by `paramindex`
+  (`payments: List<Payment>` returns them ordered by ascending index; see `indexedPayments` under
+  Added). `PaymentRequest(payments)` still auto-indexes sequentially from `0` and enforces the
+  9999-payment cap (`TooManyPayments`). **Empty requests are now valid**: `zcash:` and `zcash:?`
+  parse to `PaymentRequest(emptyList())` (previously rejected) and render back to `zcash:`; a
+  single payment at the empty paramindex with no query parameters renders as the bare
+  `zcash:<addr>`, not `zcash:<addr>?`. The v1 construction-time network-coherence check was
+  removed — the recipient's network is reported by the caller's validator and compared against
+  `expecting` at parse time. **The v1 `ZIP321.maxPaymentsAllowed = 2109`
+  constant was removed**: it was a v1 remnant with no basis in ZIP-321 and wrongly rejected any
+  `paramindex` in `[2108, 9999]`; the only limits are the `paramindex` grammar (≤ 9999) and
+  `PaymentRequest.MAX_PAYMENT_COUNT` (9999).
+- **Breaking: canonical renderer rewritten.** The renderer now renders from
+  `PaymentRequest.indexedPayments`, preserving each payment's actual stored `paramindex` (a request
+  whose only payment sits at index `5` renders `zcash:?address.5=…&amount.5=1`, previously
+  collapsed onto the empty index; per-payment parameter order is address, amount, memo, label,
+  message, then `otherParams` in stored order). The default `formattingOptions` of
+  `ZIP321.uriString`/`ZIP321.request` changed to `FormattingOptions.UseEmptyParamIndex(omitAddressLabel = true)`
+  (the canonical reference form); the round-trip law `parse(uriString(from = r)) == success(r)`
+  holds under it for every corpus request. `FormattingOptions.EnumerateAllPayments` is now a
+  documented **normalization** mode that discards stored paramindices and re-numbers payments
+  sequentially from `1`. `Render` (a v1 public implementation detail) is now `internal`.
+- **The parser now enforces the strict `amountparam` grammar** via the new
+  `AmountParser`/`NonNegativeAmount.zec` path: a leading/trailing decimal point, a sign, whitespace,
+  scientific notation, or a percent-escape in an amount value are all rejected.
+- **The ZIP-321 URI grammar was rewritten onto an internal single-pass `Scanner`**, following the
+  reference `nom` pipeline (`zcash:` scheme, `take_till('?')` lead address, `&`-separated query
+  segments parsed as `name [ "." index ] [ "=" value ]`). Parameter names must be
+  `ALPHA *( ALPHA / DIGIT / "+" / "-" )`; indices are `NONZERO 0*3DIGIT`.
+  `label`/`message`/`otherparam` values are percent-decoded via the rewritten reference-exact
+  `QCharCodec` (strict decode: malformed `%XX`, non-`qchar` raw bytes, and invalid UTF-8 all fail);
+  `address`/`amount`/`memo` values are parsed by their own grammars verbatim (a `%` in them is
+  rejected). A rejected leading address now uniformly maps to `InvalidAddress`.
+- **The payment rules read capabilities off the validator's descriptor**, never off the address
+  string: a `memo` is rejected when the descriptor says the recipient cannot receive one, and a
+  zero-valued amount is rejected when it says the recipient is transparent. A validator that calls
+  a `t1…`-looking string memo-capable is believed.
+- **`MemoBytes` rewritten on the strict `Base64URL` codec** and now bounds the UTF-8 **byte**
+  count, not the char count (a v1 check on `string.length` could accept a memo whose UTF-8 encoding
+  exceeds 512 bytes). Accepts 0 to 512 bytes (consensus zero-pads memos to 512 bytes, so an empty
+  memo is well-defined; `MemoError.MemoEmpty` was removed accordingly — see Fixed).
+- **Test suite migrated from jvm-only kotest to `kotlin.test` in `commonTest`**, so the same suite
+  now compiles and runs on every KMP target (`jvmTest`, `iosSimulatorArm64Test`; `iosArm64` links).
+  `AmountTests` stays JVM-only (`java.math.BigDecimal` interop); the Jazzer fuzz harness remains
+  JVM-only.
+- **CI**: `.github/workflows/deploy-release.yml` now runs on `macos-15` (not `ubuntu-latest` —
+  required for the `iosArm64`/`iosSimulatorArm64` publications to actually get built), checks out
+  `submodules: recursive` (previously missing entirely), had a duplicated checkout step and a dead
+  `ORG_GRADLE_PROJECT_NATIVE_TARGETS_ENABLED` env var removed, replaced the archived
+  `gradle/gradle-build-action` with `gradle/actions/setup-gradle`, and bumped
+  `actions/checkout`/`actions/setup-java`/`actions/upload-artifact` SHA pins. Both ktlint and
+  detekt baselines were regenerated: ~74 of 76 ktlint-baseline entries and ~22 of 30
+  detekt-baseline entries were dead (referencing code deleted or rewritten earlier in this
+  release) and were removed; zero new findings were introduced.
+
+### Removed
+
+- **All non-test-only runtime dependencies**: `io.github.copper-leaf:kudzu-core` (parser
+  combinators — the ZIP-321 parser is now the hand-rolled, dependency-free grammar described
+  above), `com.google.guava:guava`, and `org.apache.commons:commons-math3` (both verified unused;
+  `commons-math3` was previously exported via `api(...)`, so this also removes it from consumers'
+  transitive compile classpath). All **kotest** test dependencies (`kotest-runner-junit5`,
+  `kotest-property`, `kotest-assertions-core-jvm`, `kotest-framework-engine-jvm`).
+- **The v1 `NonNegativeAmount` class removed entirely**, including its `jvmMain` `BigDecimal`
+  interop shim. Its name was reused for the new value type described under Added, so this is a
+  hard source break rather than a rename with an alias. Migration: replace
+  `NonNegativeAmount("1.5")` with `NonNegativeAmount.zec("1.5").getOrThrow()` (strict grammar) or
+  `NonNegativeAmount.zatoshi(150_000_000uL).getOrThrow()` for raw zatoshi counts; note the `uL`
+  suffix — raw counts are now `ULong`.
+- **`QcharString` and `ParamNameString` removed from the public surface** (see `OtherParam` under
+  Changed).
+- Dead code identified while driving coverage to 100% (mirroring several of the same findings
+  independently made in the Swift library's own coverage drive): `Payment.isSingleAddress()`
+  (zero callers); hand-written `Param`/`IndexedParameter` `equals`/`hashCode` (provably dead —
+  every concrete `Param` subtype is a `data class` that synthesizes its own, which always wins over
+  virtual dispatch); `AmountParser.mapError`'s unreachable `NegativeAmount` branch;
+  `Parser.leadingAddress`'s always-`.address` double-dispatch (the exact same shape of bug the
+  Swift library's own coverage drive independently found and fixed); `Parser.parse`'s redundant
+  `IllegalArgumentException` catch; `Bech32.decode`'s redundant second ASCII re-guard; the
+  two-level `CharsetValidations` pure-namespacing wrapper around `ParamNameCharacterSet`.
+- **`lib/src/jvmTest/java/ZIP321Fuzzer.java`**: a dead, v1-era standalone Jazzer entry point,
+  wired into no Gradle task and referencing the internal v1 `ZIP321.Errors`/`request(...)` API
+  removed above. The still-live Jazzer harness is the JUnit `@FuzzTest` `ZIP321FuzzTest`, exercised
+  by `test-jvm`'s `jvmTest` (regression mode) and `fuzz-smoke` (fuzzing mode).
+
+### Fixed
+
+- **Amount-rendering corruption, fixed by rebuilding the amount type**: the v1
+  `zatoshiToZEC` 8-significant-digit rounding bug silently corrupted large amounts on re-render
+  (e.g. `20999999.99999999` ZEC rendered as `21000000`, `3768769.02796286` as `3768769`).
+  `NonNegativeAmount.decimalString()` now renders byte-exact for every representable amount (also listed
+  under Security — this could silently alter a payment amount on re-render).
+- **A single payment at a non-zero `paramindex` now re-renders faithfully** instead of being
+  collapsed onto the empty index, fixing the `structure_index_gap_only_address_5` conformance
+  divergence.
+- **The empty request renders as `zcash:` under every `FormattingOptions`** (previously only the
+  default path handled it).
+- **Zero-length memos are now valid**: `MemoBytes` accepts an empty memo (`memo=` parses to a
+  payment with an empty, not rejected, memo), matching the reference (consensus zero-pads memos to
+  512 bytes). `MemoBytes.MemoError.MemoEmpty` was removed accordingly.
+- **Empty `qchar` values are valid**: a URI containing an empty `message=`/`label=` now parses
+  successfully, matching the reference.
+- **Regtest transparent P2SH prefix corrected** (`t2`, not `t3`): the confirmed
+  `B58_SCRIPT_ADDRESS_PREFIX` table shows regtest reuses the testnet script version bytes.
+
+### Security
+
+- **Address validation is fully DELEGATED, and the delegate is AUTHORITATIVE.** This library
+  implements the ZIP-321 URI **grammar** and nothing else: it does not decode, classify or checksum
+  Zcash addresses, and it ships no Bech32, no Base58Check and no hash. A caller-supplied
+  `AddressValidator` is a **required** argument of `ZIP321.parse`; returning `null` rejects the
+  address, and the `AddressDescriptor` it returns is trusted verbatim and drives the ZIP-321
+  payment rules. This is a deliberate security decision, not an omission: a URI parser's structural
+  approximation of "is this a valid Zcash address" is exactly the kind of check that looks
+  authoritative while being subtly wrong — it cannot decode Unified Address receivers, and it
+  cannot know which address kinds a given wallet is willing to pay. Making the validator required
+  means address validity can never silently come from such an approximation. Integrators SHOULD
+  implement it by delegating to their Zcash SDK's own address support (librustzcash's
+  `ZcashAddress` via the mobile SDKs' FFI/JNI bindings). The one rule applied on top of the
+  validator's verdict is a COMPARISON, not a validation: the accepted address must belong to the
+  `Network` named by `expecting`.
+- **No cryptography, and no third-party runtime dependencies.** Because validation is delegated,
+  there is nothing crypto-shaped in this library to get wrong or to audit. The test suite carries
+  its own reference Bech32/Base58Check checkers over a platform SHA-256, purely so the shared
+  conformance corpus's checksum-corruption vectors are executable; those are `commonTest` sources
+  and are never shipped.
+- **Errors never carry sensitive input.** The sealed `ZIP321Error` taxonomy is constructed so that
+  no case can carry an address, memo contents, an amount, or a raw URI slice — only parameter
+  names, indices, counts, or fixed `StaticReason` values (the one bounded exception,
+  `InvalidParamIndex`'s raw index token, is capped at a few characters by the ZIP-321 grammar).
+- **A bounded input size.** `ZIP321.parse` rejects input above `maxInputBytes` (8 KiB by default)
+  before any grammar or address-validation work runs, bounding the cost of parsing adversarial
+  input.
+- **SHA-256 is the platform's, not ours.** The library ships no hash implementation of its own:
+  `java.security.MessageDigest` on JVM/Android and CommonCrypto's `CC_SHA256` on iOS sit behind a
+  single `expect`/`actual`, matching the Swift library's CryptoKit switch. Both are first-party to
+  their platform — audited, maintained, hardware-accelerated — so this buys the audited code paths
+  at no supply-chain cost.
+- **Zero third-party runtime dependencies**, minimizing supply-chain surface.
+- **100% line coverage (≥98% branch coverage)**, deterministic property-based round-trip tests,
+  full agreement with the shared, oracle-verified cross-language conformance corpus, and bounded
+  Jazzer mutation-based fuzzing (`fuzz-smoke`), all enforced as required CI gates on every pull
+  request.
+- **Fixed a silent amount-corruption bug** (the v1 `zatoshiToZEC` 8-significant-digit rounding bug,
+  see Fixed): a large payment amount could be altered without error on re-render, which is a
+  correctness issue with direct security relevance for a payment-request library.
+
+## [1.0.2] - 2026-01-26
+
+Tagged and released (`v1.0.2`, GitHub release "Latest" as of this writing) with no CHANGELOG entry
+at the time — this entry documents that release after the fact, verified against
+`git diff v1.0.1 v1.0.2` and `gh release list`. No library API or behavior changed.
+
+### Changed
+- Bumped the `org.jreleaser` Gradle plugin from `1.14.0` to `1.22.0`.
+- Tuned JReleaser's Maven Central deployment retry policy (`maxRetries` / `retryDelay`) to work
+  around JReleaser failing after its default retry budget even though the artifact had, in
+  practice, already published successfully.
+- Removed dead, commented-out `tasks.jar { ... }` configuration from `lib/build.gradle.kts`.
 
 ## 1.0.1
 This version fixes issues with Orchard-only UAs and Sapling addresses URIs

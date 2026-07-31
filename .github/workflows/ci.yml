@@ -181,6 +181,9 @@ jobs:
       - name: Generate API docs (fails on any undocumented public symbol or broken doc link)
         run: ./gradlew :lib:dokkaGenerate
 
+      - name: README snippets match KDoc source
+        run: scripts/check-readme-snippets.sh
+
       - name: Upload generated docs
         if: always()
         uses: actions/upload-artifact@v7
