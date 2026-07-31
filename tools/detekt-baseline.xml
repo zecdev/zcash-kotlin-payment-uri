@@ -2,7 +2,6 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-    <ID>ComplexCondition:Parser.kt$Parser$p &lt; input.length &amp;&amp; input[p] != '&amp;' &amp;&amp; input[p] != '.' &amp;&amp; input[p] != '='</ID>
     <ID>CyclomaticComplexMethod:MemoBytes.kt$fun String.decodeBase64URL(): ByteArray?</ID>
     <ID>CyclomaticComplexMethod:Param.kt$Param.Companion$@Throws(ZIP321.Errors::class) fun from( queryKey: String, value: String?, index: UInt, network: Network, validator: AddressValidator, ): Param</ID>
     <ID>Filename:QcharCodec.kt$org.zecdev.zip321.encodings.QcharCodec.kt</ID>
@@ -41,15 +40,12 @@
     <ID>MagicNumber:QcharCodec.kt$QCharCodec$16</ID>
     <ID>MagicNumber:QcharCodec.kt$QCharCodec$3</ID>
     <ID>MagicNumber:QcharCodec.kt$QCharCodec$4</ID>
-    <ID>MagicNumber:QcharCodec.kt$QCharCodec$500</ID>
-    <ID>MaxLineLength:QcharCodec.kt$QCharCodec$ states that</ID>
     <ID>MaxLineLength:ZIP321.kt$ZIP321.Errors.DuplicateParameter$* Parsing encountered a duplicate [ZIP-321](https://zips.z.cash/zip-0321) URI parameter for the returned payment index.</ID>
     <ID>MaxLineLength:ZIP321.kt$ZIP321.Errors.InvalidParamIndex$* The payment request includes a `paramIndex` that is invalid according to [ZIP-321](https://zips.z.cash/zip-0321) specs</ID>
     <ID>MaxLineLength:ZIP321.kt$ZIP321.Errors.TooManyPayments$*</ID>
     <ID>MaxLineLength:ZIP321.kt$ZIP321.Errors.TransparentMemoNotAllowed$*</ID>
     <ID>MayBeConst:ZIP321.kt$ZIP321$/** * ZIP-321 allows a maximum of 2109 payments in a single URI string */ val maxPaymentsAllowed = 2109u</ID>
     <ID>NestedBlockDepth:MemoBytes.kt$fun String.decodeBase64URL(): ByteArray?</ID>
-    <ID>NestedBlockDepth:QcharCodec.kt$QCharCodec$private fun decodePercentEncoded(s: String): String</ID>
     <ID>ReturnCount:LegacyAmount.kt$LegacyAmount.Companion$private fun exceedsMaxSupply(wholePart: String, fracPart: String): Boolean</ID>
     <ID>ReturnCount:LegacyAmount.kt$LegacyAmount.Companion$private fun roundToSignificantDigits(v: Long): Long</ID>
     <ID>ReturnCount:MemoBytes.kt$fun String.decodeBase64URL(): ByteArray?</ID>
@@ -66,7 +62,6 @@
     <ID>ThrowsCount:LegacyAmountBigDecimal.kt$@Throws(LegacyAmount.AmountError::class) private fun LegacyAmount.Companion.validateDecimal(value: BigDecimal)</ID>
     <ID>ThrowsCount:Param.kt$Param.Companion$@Throws(ZIP321.Errors::class) fun from( queryKey: String, value: String?, index: UInt, network: Network, validator: AddressValidator, ): Param</ID>
     <ID>ThrowsCount:Parser.kt$Parser$@Throws(ZIP321.Errors::class) fun parse(uriString: String): ParserResult</ID>
-    <ID>ThrowsCount:QcharCodec.kt$QCharCodec$private fun decodePercentEncoded(s: String): String</ID>
     <ID>TooManyFunctions:Parser.kt$Parser</ID>
     <ID>UnusedPrivateMember:LegacyAmount.kt$LegacyAmount.AmountError.GreaterThanSupply$private fun readResolve(): Any</ID>
     <ID>UnusedPrivateMember:LegacyAmount.kt$LegacyAmount.AmountError.InvalidTextInput$private fun readResolve(): Any</ID>
@@ -79,10 +74,6 @@
     <ID>UnusedPrivateMember:ZIP321.kt$ZIP321.Errors.InvalidBase64$private fun readResolve(): Any</ID>
     <ID>UnusedPrivateMember:ZIP321.kt$ZIP321.Errors.InvalidURI$private fun readResolve(): Any</ID>
     <ID>UnusedPrivateProperty:LegacyAmountBigDecimal.kt$private const val ZATOSHI_PER_ZEC: Long = 100_000_000</ID>
-    <ID>UseRequire:QcharCodec.kt$QCharCodec$throw IllegalArgumentException( "URLDecoder: Illegal hex characters in escape (%) pattern - negative value" )</ID>
-    <ID>UseRequire:QcharCodec.kt$QCharCodec$throw IllegalArgumentException("URLDecoder: Incomplete trailing escape (%) pattern")</ID>
     <ID>UtilityClassWithPublicConstructor:CharsetValidations.kt$CharsetValidations</ID>
-    <ID>Wrapping:Parser.kt$Parser$-></ID>
-    <ID>Wrapping:Parser.kt$Parser${ address: String -> context.isValid(address) &amp;&amp; customValidation(address) }</ID>
   </CurrentIssues>
 </SmellBaseline>

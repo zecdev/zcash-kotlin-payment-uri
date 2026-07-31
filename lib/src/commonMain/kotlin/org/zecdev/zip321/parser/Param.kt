@@ -10,6 +10,7 @@ import org.zecdev.zip321.Network
 import org.zecdev.zip321.ParamName
 import org.zecdev.zip321.ZIP321
 import org.zecdev.zip321.ZIP321.Errors.TooManyPayments
+import org.zecdev.zip321.encodings.QCharCodec
 import org.zecdev.zip321.extensions.qcharDecode
 import org.zecdev.zip321.extensions.qcharEncoded
 import org.zecdev.zip321.model.LegacyAmount
@@ -54,31 +55,23 @@ sealed class Param {
                         throw ZIP321.Errors.InvalidParamValue(queryKey, index)
                     }
 
-                    try {
-                        Amount(LegacyAmount(decimalString = value))
-                    } catch (error: LegacyAmount.AmountError.NegativeAmount) {
-                        throw ZIP321.Errors.AmountTooSmall(index)
-                    } catch (error: LegacyAmount.AmountError.GreaterThanSupply) {
-                        throw ZIP321.Errors.AmountExceededSupply(index)
-                    } catch (error: LegacyAmount.AmountError.InvalidTextInput) {
-                        throw ZIP321.Errors.ParseError("Invalid text input $value")
-                    } catch (error: LegacyAmount.AmountError.TooManyFractionalDigits) {
-                        throw ZIP321.Errors.AmountTooSmall(index)
-                    }
+                    // Strict ZIP-321 `amountparam` grammar via `NonNegativeAmount`, bridged to
+                    // the still-`LegacyAmount`-typed `Payment.nonNegativeAmount`.
+                    Amount(LegacyAmount.fromNonNegativeAmount(AmountParser.parse(value, index)))
                 }
                 ParamName.LABEL.value -> {
                     // LABEL param can't have no value
                     if (value == null) {
                         throw ZIP321.Errors.InvalidParamValue(queryKey, index)
                     }
-                    Label(value.qcharDecode())
+                    Label(decodeQcharValue(value, queryKey, index))
                 }
                 ParamName.MESSAGE.value -> {
                     // MESSAGE param can't have no value
                     if (value == null) {
                         throw ZIP321.Errors.InvalidParamValue(queryKey, index)
                     }
-                    Message(value.qcharDecode())
+                    Message(decodeQcharValue(value, queryKey, index))
                 }
                 ParamName.MEMO.value -> {
                     // MEMO param can't have no value
@@ -95,10 +88,28 @@ sealed class Param {
                     if (queryKey.startsWith("req-")) {
                         throw ZIP321.Errors.UnknownRequiredParameter(queryKey)
                     }
-                    Other(ParamNameString(queryKey), value?.qcharDecode())
+                    // `otherparam` values are percent-decoded per the `qchar` grammar (matching
+                    // the reference), then preserved. An absent value (no `=`) stays `null`.
+                    Other(ParamNameString(queryKey), value?.let { decodeQcharValue(it, queryKey, index) })
                 }
             }
         }
+
+        /**
+         * Strictly percent-decodes a `label`/`message`/`otherparam` value per the ZIP-321 `qchar`
+         * grammar, mapping a decode failure onto [ZIP321.Errors.QcharDecodeFailed]. The URI
+         * tokenizer already restricts the raw value to `qchar` characters / percent-escapes, so
+         * the only failures here are a malformed `%XX` escape or a decoded byte sequence that is
+         * not valid UTF-8.
+         */
+        @Throws(ZIP321.Errors::class)
+        private fun decodeQcharValue(
+            value: String,
+            queryKey: String,
+            index: UInt,
+        ): String =
+            QCharCodec.decode(value)
+                ?: throw ZIP321.Errors.QcharDecodeFailed(index.mapToParamIndex(), queryKey, value)
     }
 
     data class Address(val recipientAddress: RecipientAddress) : Param()
@@ -238,26 +249,25 @@ class ParamNameString(val value: String) {
 class QcharString private constructor(private val encoded: String) {
     companion object {
         /**
-         * Initializes a [QcharString] from a non-empty, non-qchar-encoded input string.
+         * Initializes a [QcharString] from a non-qchar-encoded input string.
          *
          * This constructor checks whether decoding the input string would change it,
          * in order to avoid nested or duplicate encodings.
          *
-         * @param value The raw string to be qchar-encoded.
+         * @param value The raw string to be qchar-encoded. The empty string is a valid
+         *              (zero-length) `*qchar` value and is accepted.
          * @param strict If `true`, the initializer will fail if decoding the input string
          *                   yields a different result — which suggests the input is already qchar-encoded.
          *
-         * @return A [QcharString] instance, or `null` if encoding fails or strict mode detects an issue.
+         * @return A [QcharString] instance, or `null` if strict mode detects an issue.
          */
         fun from(
             value: String,
             strict: Boolean = false,
         ): QcharString? {
-            // String can't be empty
-            require(value.isNotEmpty()) { return null }
             // check whether value is already qchar-encoded or partially
             if (strict) {
-                val qcharDecode = value.qcharDecode()
+                val qcharDecode = QCharCodec.decode(value) ?: return null
 
                 if (qcharDecode != value) return null
             }

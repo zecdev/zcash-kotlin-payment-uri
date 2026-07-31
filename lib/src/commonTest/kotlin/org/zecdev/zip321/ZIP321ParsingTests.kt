@@ -417,7 +417,10 @@ class ZIP321ParsingTests {
         val url =
             "zcash:tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpUʔamount 1ꓸ234?message=Thanks%20for%20your%20payment%20for%20the%20correct%20&amount=20&Have=%20a%20nice%20day"
 
-        assertFailsWith<ZIP321.Errors.ParseError> {
+        // K11: the lead address is everything before the first ASCII '?' ("tmEZ…ʔamount 1ꓸ234"),
+        // which fails validation and is now rejected as InvalidAddress (was a downstream
+        // ParseError under the pre-K11 ascii-run leading-address heuristic).
+        assertFailsWith<ZIP321.Errors.InvalidAddress> {
             ZIP321.request(url, Network.TESTNET, ReferenceAddressValidator.TESTNET)
         }
     }

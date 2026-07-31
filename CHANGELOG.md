@@ -6,6 +6,80 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Changed (v2/K11)
+- **The ZIP-321 URI grammar is rewritten onto the `Scanner`.** `parser/Parser.kt` replaces the
+  hand-rolled state-machine tokenizer with a single-pass Scanner-based pipeline that follows the
+  reference `nom` flow: `zcash:` scheme, a `take_till('?')` lead address (empty allowed; a
+  non-empty lead address must validate), then `&`-separated query segments parsed as
+  `name [ "." index ] [ "=" value ]` (split without omitting empty segments, so a stray `&` or a
+  lone `?` is rejected). Parameter names are `ALPHA *( ALPHA / DIGIT / "+" / "-" )` (a percent-escape
+  in a name is rejected); indices are `NONZERO 0*3DIGIT`; raw values are restricted to
+  `qchar`-permitted characters / percent-escapes. `label`/`message`/`other` values are
+  percent-decoded via `QCharCodec` (a decode failure now maps to `Errors.QcharDecodeFailed`);
+  `address`/`amount`/`memo` values are parsed by their own grammars verbatim (a `%` in them is
+  rejected). Grouping, duplicate detection, empty-request rejection and legacy-URI behavior are
+  unchanged.
+- **A rejected leading address now maps to `Errors.InvalidAddress`.** Previously an unvalidated
+  leading run was silently treated as "no address" (surfacing a downstream `ParseError`/
+  `RecipientMissing`, or letting a raw `RecipientAddressError` propagate). It now unifies with the
+  query-parameter path: any invalid non-empty lead address (bad checksum, wrong network, Sprout,
+  or custom-validator rejection) is rejected as `InvalidAddress`. This changes the error CLASS of
+  a few already-rejecting inputs (e.g. `zcash:<garbage>` and unicode-delimiter URIs go from
+  `ParseError` to `InvalidAddress`); every such input still rejects. The
+  `structure_empty_request_query_marker` xfail now observes `ParseError` instead of
+  `InvalidParamName` (`zcash:?` splits into one empty query segment); its reason text was updated.
+  No expected-failure ledger movement (still 3 conformance + 3 renderMismatch).
+
+### Removed (v2/K11)
+- Deleted the dead K0-era parser helpers superseded by the Scanner rewrite and the now-orphaned
+  `CharsetValidations` sets (`QcharCharacterSet`, `UnreservedCharacterSet`, `PctEncodedCharacterSet`,
+  `AllowedDelimsCharacterSet`, `isValidParamNameChar`) and the `Char.isAsciiLetterOrDigit()`
+  extension. `ParamNameCharacterSet` (used by `ParamNameString`) and `Char.isAsciiLetter()` remain.
+
+### Added (v2/K10)
+- **Internal single-pass `Scanner`** (`parser/Scanner.kt`): a forward-only cursor over a
+  `CharSequence` (`peek`/`advance`/`expect`/`takeWhile`/`matchLiteral`/`isAtEnd`/`currentOffset`)
+  with single-character lookahead and no backtracking, mirroring the streaming style of the
+  reference `nom` grammar. It is the substrate for the K11 URI grammar rewrite. Every ZIP-321
+  terminal is ASCII, so a `Char` cursor is sufficient.
+- **Internal strict `AmountParser`** (`parser/AmountParser.kt`): parses an `amount` value through
+  the strict ZIP-321 `amountparam` grammar (via `NonNegativeAmount.zec`) and maps
+  `NonNegativeAmount.AmountException` onto the closest v1 `ZIP321.Errors` case (`ExceededSupply`,
+  including `ULong`-overflowing strings, -> `AmountExceededSupply`; `InvalidDecimalString` ->
+  `InvalidParamValue("amount", …)`; `TooManyFractionalDigits`/`NegativeAmount` -> `AmountTooSmall`).
+
+### Changed (v2/K10)
+- **The parser now enforces the strict `amountparam` grammar.** `amount` values are parsed through
+  the new `AmountParser`/`NonNegativeAmount.zec` path instead of the lenient
+  `LegacyAmount(decimalString)`, so a leading or trailing decimal point (`amount=.5`,
+  `amount=123.`), a sign, whitespace, scientific notation, or a percent-escape are rejected.
+  `Payment.nonNegativeAmount` remains `LegacyAmount`-typed (bridged from the unsigned
+  `NonNegativeAmount` via a new internal `LegacyAmount.fromNonNegativeAmount(...)` factory — a
+  factory rather than a constructor because `NonNegativeAmount` is a `value class` erasing to
+  `long`, which would clash with `constructor(value: Long)`).
+  Conformance vectors `invalid_amount_trailing_decimal_point` and `invalid_amount_leading_decimal_point`
+  now pass and were removed from the expected-failure map.
+
+### Added (v2/K9)
+- **Reference-exact ZIP-321 `qchar` codec** (`encodings/QcharCodec.kt`): the `QCharCodec`
+  `encode`/`decode` pair is rewritten to mirror the librustzcash `zip321` reference. `encode`
+  percent-encodes exactly the *complement* of the raw `qchar` set (space, `"`, `#`, `%`, `&`,
+  `/`, `<`, `=`, `>`, `?`, `[`, `\`, `]`, `^`, `` ` ``, `{`, `|`, `}`, the C0 controls, DEL, and
+  every non-ASCII byte as uppercase `%XX`). `decode` is now **strict** and returns `null` on
+  failure: each `%XX` must be two hex digits (either case), each raw byte must be a `qchar`
+  byte, and the decoded bytes must be valid UTF-8 (overlong sequences, lone continuation bytes,
+  unpaired surrogates and truncated sequences are rejected — the previous `URLDecoder`-derived
+  decoder produced U+FFFD replacements instead). New `isQcharByte`/`isValueByte` predicates are
+  exposed for the K10/K11 scanner. The `String.qcharDecode()` extension delegates to the codec
+  and throws `IllegalArgumentException` on a strict-decode failure (call `QCharCodec.decode`
+  for a nullable result).
+
+### Fixed (v2/K9)
+- **Empty `qchar` values are valid**: `QcharString.from("")` now succeeds (a zero-length
+  `*qchar` value round-trips through both the encoded and decoded views), matching the
+  reference which accepts an empty `message=`/`label=`. (Kotlin's parse path already decoded
+  empty values via `qcharDecode`, so no conformance vector changed class.)
+
 ### Changed (v2/K8) — BREAKING: address validation is fully delegated
 - **The library no longer validates Zcash addresses.** It implements the
   [ZIP-321](https://zips.z.cash/zip-0321) URI **grammar** and nothing else.
