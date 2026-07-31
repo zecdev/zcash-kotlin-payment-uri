@@ -2,6 +2,7 @@ package org.zecdev.zip321.parser
 
 import org.zecdev.zip321.Network
 import org.zecdev.zip321.ZIP321
+import org.zecdev.zip321.model.NonNegativeAmount
 import org.zecdev.zip321.support.ReferenceAddressValidator
 import org.zecdev.zip321.support.validRecipient
 import kotlin.test.Test
@@ -9,6 +10,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFails
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 // NOTE (K11/v2): the leading-address helpers are now `splitLeadingAddress` (pure split on the
 // first `?`) and `leadingAddress` (validates a non-empty lead address). A rejected non-empty lead
@@ -43,27 +45,36 @@ class ParserTests {
 
     @Test
     fun `detects single recipient with leading address`() {
-        val (rest, node) = parser().leadingAddress("zcash:$testnetAddress")
+        val (rest, recipient) = parser().leadingAddress("zcash:$testnetAddress")
 
-        val recipient = validRecipient(testnetAddress)
+        val expected = validRecipient(testnetAddress)
         assertNull(rest)
-        assertEquals(IndexedParameter(0u, Param.Address(recipient)), node)
+        assertEquals(expected, recipient)
     }
 
     @Test
     fun `detects leading address with other params`() {
-        val (rest, node) = parser().leadingAddress("zcash:$testnetAddress?amount=1.0001")
+        val (rest, recipient) = parser().leadingAddress("zcash:$testnetAddress?amount=1.0001")
 
-        val recipient = validRecipient(testnetAddress)
+        val expected = validRecipient(testnetAddress)
         assertEquals("?amount=1.0001", rest)
-        assertEquals(IndexedParameter(0u, Param.Address(recipient)), node)
+        assertEquals(expected, recipient)
     }
 
     @Test
-    fun `returns null node when no leading address is present`() {
-        val (rest, node) = parser().leadingAddress("zcash:?amount=1.0001&address=$testnetAddress")
+    fun `returns null recipient when no leading address is present`() {
+        val (rest, recipient) = parser().leadingAddress("zcash:?amount=1.0001&address=$testnetAddress")
         assertEquals("?amount=1.0001&address=$testnetAddress", rest)
-        assertNull(node)
+        assertNull(recipient)
+    }
+
+    @Test
+    fun `leadingAddress rejects an input that does not start with the zcash scheme`() {
+        val error =
+            assertFailsWith<ZIP321.Errors.ParseError> {
+                parser().leadingAddress("bitcoin:notzcash")
+            }
+        assertEquals("Not `zcash:` uri", error.value)
     }
 
     @Test
@@ -109,5 +120,84 @@ class ParserTests {
     fun `parse resolves a full request with a leading address`() {
         val result = parser().parse("zcash:$testnetAddress?amount=1.0001&message=lunch")
         assertEquals(1, result.payments.size)
+    }
+
+    @Test
+    fun `parse resolves the bare zcash scheme to the empty request`() {
+        val result = parser().parse("zcash:")
+        assertTrue(result.payments.isEmpty())
+    }
+
+    // MARK: - Parser.parse's own top-level guard (bypassing ZIP321.parse's identical guards)
+
+    @Test
+    fun `parse rejects an empty string when called directly`() {
+        assertFailsWith<ZIP321.Errors.InvalidURI> { parser().parse("") }
+    }
+
+    @Test
+    fun `parse rejects a non-zcash scheme when called directly`() {
+        assertFailsWith<ZIP321.Errors.InvalidURI> { parser().parse("bitcoin:notzcash") }
+    }
+
+    // MARK: - scanIndexDigits / parseParameterIndex edge cases
+
+    @Test
+    fun `parseParameterIndex rejects a completely empty digit run`() {
+        assertFailsWith<ZIP321.Errors.InvalidParamIndex> { parser().parseParameterIndex("") }
+    }
+
+    @Test
+    fun `parseParameterIndex rejects trailing non-digit characters after a valid run`() {
+        // `scanIndexDigits` itself accepts "123" (stopping at the first non-digit); the
+        // full-consumption check in `parseParameterIndex` is what rejects the trailing "x".
+        assertFailsWith<ZIP321.Errors.InvalidParamIndex> { parser().parseParameterIndex("123x") }
+    }
+
+    @Test
+    fun `parseQueryToken rejects a completely empty query segment`() {
+        // An empty segment has no first character for `scanName` to even inspect.
+        assertFailsWith<ZIP321.Errors.ParseError> { parser().parseQueryToken("") }
+    }
+
+    // MARK: - parseParameters' own precondition (bypassing parse()'s guaranteed `?`-prefix)
+
+    @Test
+    fun `parseParameters requires its input to start with the query marker`() {
+        assertFails { parser().parseParameters("amount=1", null) }
+    }
+
+    // MARK: - mapToIndexedPayments / mapToPayments
+
+    @Test
+    fun `mapToIndexedPayments rejects an empty parameter list`() {
+        assertFailsWith<ZIP321.Errors.RecipientMissing> { parser().mapToIndexedPayments(emptyList()) }
+    }
+
+    @Test
+    fun `mapToIndexedPayments rejects a non-empty index group that has no address`() {
+        // Distinct from the empty-list case above: this index HAS parameters, just none of them
+        // is an `address` — exercising `fromUniqueIndexedParameters`'s own "recipient not found"
+        // fallback, tagged with the concrete (non-zero) index.
+        val error =
+            assertFailsWith<ZIP321.Errors.RecipientMissing> {
+                parser().mapToIndexedPayments(listOf(IndexedParameter(5u, Param.Amount(NonNegativeAmount.zec("1").getOrThrow()))))
+            }
+        assertEquals(5u, error.index)
+    }
+
+    @Test
+    fun `mapToPayments returns the mapped payments on success`() {
+        val recipient = validRecipient(testnetAddress)
+        val params =
+            listOf(
+                IndexedParameter(0u, Param.Address(recipient)),
+                IndexedParameter(0u, Param.Amount(NonNegativeAmount.zec("1").getOrThrow())),
+            )
+
+        val payments = parser().mapToPayments(params)
+
+        assertEquals(1, payments.size)
+        assertEquals(recipient, payments[0].recipientAddress)
     }
 }

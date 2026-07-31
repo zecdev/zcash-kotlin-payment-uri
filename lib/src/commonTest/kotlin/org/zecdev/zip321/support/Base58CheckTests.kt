@@ -54,6 +54,15 @@ class Base58CheckTests {
     }
 
     @Test
+    fun verifyRejectsAPrefixLongerThanTheDecodedPayload() {
+        // The (2-byte version + 20-byte hash) payload is far shorter than this contrived prefix;
+        // `verify` must reject it (not throw) rather than assume the prefix always fits.
+        val addr = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
+        val tooLongPrefix = ByteArray(100)
+        assertFalse(Base58Check.verify(addr, listOf(tooLongPrefix)))
+    }
+
+    @Test
     fun leadingOnePreservesLeadingZeroBytes() {
         // '1'-prefixed vector encoding payload 0x00 01 02 03 04 (checksum valid).
         val vector = "1An6UhWF92g"

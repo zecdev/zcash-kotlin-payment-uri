@@ -111,12 +111,13 @@ internal object Bech32 {
         val dataPart = lowered.substring(sepIndex + 1)
         if (dataPart.length < 6) return null
 
-        // Map each data character to its 5-bit value.
+        // Map each data character to its 5-bit value. No separate `code >= 128` guard is needed
+        // here (unlike `CHARSET_REVERSE`'s own bounds, which this indexing relies on): every
+        // character of `s` — `dataPart` included — was already confirmed printable ASCII
+        // (33..126, therefore < 128) by the loop above, before lowercasing.
         val values = ByteArray(dataPart.length)
         for (i in dataPart.indices) {
-            val code = dataPart[i].code
-            if (code >= 128) return null
-            val v = CHARSET_REVERSE[code]
+            val v = CHARSET_REVERSE[dataPart[i].code]
             if (v < 0) return null
             values[i] = v.toByte()
         }

@@ -40,9 +40,12 @@ internal object AmountParser {
      *     for `amount`
      *   - [NonNegativeAmount.AmountException.TooManyFractionalDigits] ->
      *     [ZIP321.Errors.AmountTooSmall] (v1 parity)
-     *   - [NonNegativeAmount.AmountException.NegativeAmount] -> [ZIP321.Errors.AmountTooSmall]
-     *     (v1 parity; not reachable, since the amount type is unsigned and the grammar has no
-     *     sign, but mapped for totality)
+     *
+     * Note: [NonNegativeAmount.AmountException.NegativeAmount] has no case here (and so falls
+     * through to `else`) — the amount type is unsigned and [NonNegativeAmount.zec]'s grammar has
+     * no sign character, so it is structurally impossible for `NonNegativeAmount.zec(string)` to
+     * ever produce that specific exception; an explicit branch for it would be permanently
+     * unreachable dead code.
      */
     private fun mapError(
         error: Throwable,
@@ -51,7 +54,6 @@ internal object AmountParser {
         when (error) {
             is NonNegativeAmount.AmountException.ExceededSupply -> ZIP321.Errors.AmountExceededSupply(index)
             is NonNegativeAmount.AmountException.TooManyFractionalDigits -> ZIP321.Errors.AmountTooSmall(index)
-            is NonNegativeAmount.AmountException.NegativeAmount -> ZIP321.Errors.AmountTooSmall(index)
             else -> ZIP321.Errors.InvalidParamValue("amount", if (index == 0u) null else index)
         }
 }

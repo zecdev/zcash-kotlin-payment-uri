@@ -97,6 +97,23 @@ class Bech32Tests {
     }
 
     @Test
+    fun allDigitStringNeverSetsHasLowerOrHasUpper() {
+        // HRP "?" (BIP-173 permits a non-alphabetic HRP; see the "?1ezyfcl" vector above) plus an
+        // all-digit data part: neither `hasLower` nor `hasUpper` is ever set `true`. The checksum
+        // won't validate, but that's fine — this exercises the mixed-case guard's "all false"
+        // path, not a successful decode.
+        assertNull(Bech32.decode("?1982035468"))
+    }
+
+    @Test
+    fun hrpLongerThan83CharsRejected() {
+        // Well under the overall 1023-char limit, but the HRP alone exceeds BIP-173's 83-char cap.
+        val overlongHrp = "a".repeat(84) + "1qqqqqq"
+        assertTrue(overlongHrp.length <= Bech32.MAX_LENGTH)
+        assertNull(Bech32.decode(overlongHrp))
+    }
+
+    @Test
     fun exceedingLengthLimitRejected() {
         // A syntactically char-valid string longer than the 1023-char limit.
         val tooLong = "a1" + "q".repeat(1023)
@@ -161,5 +178,49 @@ class Bech32Tests {
         assertTrue(Bech32.verify(sapling, "ztestsapling", Bech32.Variant.BECH32))
         assertFalse(Bech32.verify(sapling, "zs", Bech32.Variant.BECH32)) // wrong HRP
         assertFalse(Bech32.verify(sapling, "ztestsapling", Bech32.Variant.BECH32M)) // wrong variant
+    }
+
+    @Test
+    fun verifyRejectsAStringThatDoesNotDecodeAtAll() {
+        assertFalse(Bech32.verify("not-bech32-at-all", "zs", Bech32.Variant.BECH32))
+    }
+
+    // MARK: Decoded value semantics
+
+    @Test
+    fun decodedEqualsComparesByHrpVariantAndDataContent() {
+        val addr = "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez"
+        val first = assertNotNull(Bech32.decode(addr))
+        val second = assertNotNull(Bech32.decode(addr))
+
+        // Distinct `Decoded` instances (same input decoded twice) still compare equal by content.
+        assertEquals(first, second)
+        assertEquals(first.hashCode(), second.hashCode())
+        assertEquals(first, first)
+
+        val differentHrp = assertNotNull(Bech32.decode("a12uel5l"))
+        assertFalse(first.equals(differentHrp))
+        assertFalse(first.equals("not a Decoded"))
+
+        // Same HRP, same variant, but different data content: another distinct testnet Sapling
+        // address.
+        val sameHrpAndVariantDifferentData =
+            assertNotNull(
+                Bech32.decode("ztestsapling1n65uaftvs2g7075q2x2a04shfk066u3lldzxsrprfrqtzxnhc9ps73v4lhx4l9yfxj46sl0q90k"),
+            )
+        assertEquals(first.hrp, sameHrpAndVariantDifferentData.hrp)
+        assertEquals(first.variant, sameHrpAndVariantDifferentData.variant)
+        assertFalse(first.equals(sameHrpAndVariantDifferentData))
+    }
+
+    @Test
+    fun decodedEqualsDistinguishesVariantAloneWithMatchingHrpAndData() {
+        // No real address pair shares both HRP and data while differing only in checksum variant,
+        // so this specific combination is only reachable by constructing `Decoded` directly
+        // (accessible within the module) rather than through `decode()`.
+        val data = byteArrayOf(1, 2, 3)
+        val bech32 = Bech32.Decoded("same-hrp", data, Bech32.Variant.BECH32)
+        val bech32m = Bech32.Decoded("same-hrp", data, Bech32.Variant.BECH32M)
+        assertFalse(bech32.equals(bech32m))
     }
 }

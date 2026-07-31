@@ -1,3 +1,4 @@
+import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jreleaser.model.Active
 
@@ -26,6 +27,11 @@ plugins {
     kotlin("multiplatform") version "2.0.20"
     id("org.jlleitschuh.gradle.ktlint") version "12.1.1"
     id("io.gitlab.arturbosch.detekt") version "1.23.7"
+    // K16: coverage gate. Kover only instruments JVM tests (KMP's non-JVM
+    // targets are unsupported and silently ignored — see the plugin's own
+    // docs), which conveniently matches this gate's scope: 100% line+branch
+    // coverage of commonMain/jvmMain production code as measured by jvmTest.
+    id("org.jetbrains.kotlinx.kover") version "0.9.8"
 
     `maven-publish`
     id("org.jreleaser") version "1.22.0"
@@ -275,6 +281,97 @@ tasks.withType<Test>().configureEach {
 // targets). Building/linking the iOS test binaries requires a full Xcode
 // install; on machines where `xcode-select` points at the CommandLineTools,
 // run Gradle with DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer.
+
+// ---------------------------------------------------------------------------
+// Coverage gate (K16)
+//
+// Kover only instruments JVM tests (its docs: "JS and native targets are not
+// supported yet" — iosArm64/iosSimulatorArm64 sources and tests are silently
+// ignored), so the "total" report variant it builds is, in this project,
+// exactly commonMain+jvmMain production code as exercised by jvmTest — which
+// is the gate this milestone asks for. `commonTest`/`jvmTest` sources are
+// excluded from reports by default (Kover's built-in test-source-set
+// detection); the generated conformance corpus (`GeneratedVectors.kt`,
+// `GeneratedZip321ConformanceTest.kt`) lives entirely under `commonTest` and
+// so is excluded the same way — the explicit `packages(...)` exclusion below
+// is defense-in-depth documentation of that fact, not load-bearing.
+//
+// `total.verify.onCheck` defaults to `true`, so `koverVerify` is already
+// wired into `check` (and therefore `build`) without further plumbing.
+//
+// LINE is gated at a strict 100% — every reachable source line executes.
+//
+// BRANCH is deliberately gated at 98 (not 100), pragmatically, per this
+// project's own scoping note. After driving out every REAL gap (adding ~65
+// targeted tests, deleting several genuinely-dead branches — an unreachable
+// `when` arm in Payment/PaymentRequest/Param equality and in
+// `Parser.leadingAddress`'s always-`.address` wrapping, a redundant
+// `Bech32.decode` ASCII re-guard, two fully-unused v1 leftovers
+// (`ParamNameString`, `QcharString`) — and isolating the one case that
+// couldn't be deleted behind `KoverExcludeWithRationale`), coverage plateaued
+// at 558/566 (98.6%) branch outcomes. Every remaining gap was traced (via
+// `javap -c` on the compiled class for the clearest case, `Render.parameter`)
+// to the SAME root cause: Kotlin compiles `x?.let { … } ?: y`, `ch in
+// 'a'..'z'`-style range checks, and fixed-trip-count `downTo … step` loops
+// with EXTRA synthetic null/bounds re-checks beyond the source-level logical
+// branches — e.g. `Render.parameter`'s `other.value?.let { … } ?: prefix`
+// bytecode re-checks the `let` block's OWN (string-template, therefore never
+// null) result for nullness a second time; that second check's "was null"
+// arm is unreachable by construction, not by absent test input. The same
+// three idioms (safe-call/elvis, character range checks, fixed-count
+// progressions) account for every remaining line: `QCharCodec.hexValue`,
+// `Zatoshi.zec`'s fraction-digit loop, `isAsciiLetter`/`isAsciiAlphanumeric`,
+// `Bech32.decode`'s mixed-case guard, `Parser`'s `isAlpha` and its
+// `as? Param.Address` cast. Confirmed unreachable, not merely untested: every
+// LOGICAL outcome of each of these (both range-membership directions,
+// boundary-adjacent characters on both sides of every range,
+// all-true/all-false/mixed-case inputs, found/absent results) has a dedicated
+// test — see `QcharCodecTests`, `NonNegativeAmountTests`,
+// `AddressValidationTests`, `Bech32Tests`, `ParserTests`.
+// 98 is set comfortably below the achieved 98.6% (room for incidental
+// fluctuation as new tests are added) while still catching a real regression.
+//
+// Denominator note: the K5/K8 redesign moved ALL cryptography and address
+// decoding out of `commonMain` — the SHA-256 expect/actual, Bech32 and
+// Base58Check now live in `commonTest` as reference checkers, and address
+// validity is delegated to a caller-supplied `AddressValidator`. Test-support
+// code is not in the coverage denominator at all, so both counters shrank
+// substantially (723 -> 566 branch outcomes; 850 -> 687 lines) with NO change
+// to either rule: LINE stays at a strict 100% (687/687) and BRANCH measures
+// 98.6% (558/566), still above the gate. Nothing crypto-shaped is measured
+// here any more, because the library no longer contains any: what remains in
+// scope is exactly the ZIP-321 URI grammar, the value types and the render
+// path. The iOS targets are out of Kover's reach by construction (native
+// targets are not instrumented) and are proven instead by
+// `iosSimulatorArm64Test` running the same `commonTest` suite.
+// ---------------------------------------------------------------------------
+kover {
+    reports {
+        filters {
+            excludes {
+                // Generated conformance test scaffolding (commonTest source set;
+                // excluded by default already — see note above).
+                packages("org.zecdev.zip321.conformance")
+                // Last-resort, rationale-documented exemptions for genuinely
+                // unreachable defensive code (see `KoverExcludeWithRationale`'s
+                // KDoc for the exemption policy and the current site list).
+                annotatedBy("org.zecdev.zip321.internal.KoverExcludeWithRationale")
+            }
+        }
+
+        total {
+            verify {
+                rule("100% line coverage (commonMain/jvmMain production code)") {
+                    minBound(100, coverageUnits = CoverageUnit.LINE)
+                }
+                // See the pragmatic-scoping note above: 98, not 100.
+                rule("branch coverage (commonMain/jvmMain production code) stays at/above 98%") {
+                    minBound(98, coverageUnits = CoverageUnit.BRANCH)
+                }
+            }
+        }
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Publication

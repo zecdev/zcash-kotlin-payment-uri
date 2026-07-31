@@ -54,6 +54,9 @@ class NonNegativeAmountTests {
             Triple("18446744073709551624", NonNegativeAmount.AmountException.ExceededSupply, "invalid_amount_overflow_wraps_positive"),
             // one zatoshi over MAX_MONEY.
             Triple("21000000.00000001", NonNegativeAmount.AmountException.ExceededSupply, "invalid_amount_exceeds_max_money"),
+            // whole-number part ALONE exceeds MAX_MONEY, with no fractional part at all — a
+            // distinct code path from the overflow/fractional-overage cases above.
+            Triple("21000001", NonNegativeAmount.AmountException.ExceededSupply, "whole part alone exceeds max money"),
             // a leading sign fails the `1*DIGIT` prefix of the grammar: it is a malformed
             // string, never a negative value (which the type cannot represent anyway).
             Triple("-1", NonNegativeAmount.AmountException.InvalidDecimalString, "invalid_amount_negative"),

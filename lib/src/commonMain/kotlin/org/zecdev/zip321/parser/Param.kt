@@ -5,8 +5,6 @@ import org.zecdev.zip321.Network
 import org.zecdev.zip321.ParamName
 import org.zecdev.zip321.ZIP321
 import org.zecdev.zip321.encodings.QCharCodec
-import org.zecdev.zip321.extensions.qcharDecode
-import org.zecdev.zip321.extensions.qcharEncoded
 import org.zecdev.zip321.model.MemoBytes
 import org.zecdev.zip321.model.NonNegativeAmount
 import org.zecdev.zip321.model.RecipientAddress
@@ -131,45 +129,17 @@ internal sealed class Param {
                 is Other -> paramName
             }
 
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other == null || this::class != other::class) return false
-
-        other as Param
-
-        if (name != other.name) return false
-
-        return when (this) {
-            is Address -> recipientAddress == (other as? Address)?.recipientAddress
-            is Amount -> amount == (other as? Amount)?.amount
-            is Memo -> memoBytes == (other as? Memo)?.memoBytes
-            is Label -> label == (other as? Label)?.label
-            is Message -> message == (other as? Message)?.message
-            is Other ->
-                (other as? Other)?.let {
-                        p ->
-                    p.paramName == paramName && p.value == value
-                } ?: false
-        }
-    }
-
-    override fun hashCode(): Int {
-        var result = name.hashCode()
-        result = 31 * result +
-            when (this) {
-                is Address -> recipientAddress.hashCode()
-                is Amount -> amount.hashCode()
-                is Memo -> memoBytes.hashCode()
-                is Label -> label.hashCode()
-                is Message -> message.hashCode()
-                is Other -> {
-                    result = 31 * result + paramName.hashCode()
-                    result = 31 * result + value.hashCode()
-                    result
-                }
-            }
-        return result
-    }
+    // NOTE (K16): `Param` used to hand-write `equals`/`hashCode` here, dispatching on `this::class`.
+    // That override was unreachable dead code: every concrete `Param` is one of the `data class`
+    // subtypes below, and Kotlin ALWAYS synthesizes `equals`/`hashCode` for a `data class` (from
+    // its own constructor properties) regardless of what the sealed superclass declares — the
+    // subtype's synthesized override wins over the superclass's hand-written one via ordinary
+    // virtual dispatch. So `Param.Address(x) == Param.Address(y)` was always resolving to
+    // `Address`'s auto-generated `equals` (which already checks `other is Address` and compares
+    // `recipientAddress`), never to this class's version — confirmed empirically: the removed
+    // code had zero coverage no matter how many equality assertions the test suite made. Each
+    // subtype's synthesized equals/hashCode is exactly the by-value, type-safe comparison this
+    // manual version was trying to hand-roll, so deleting it changes no observable behavior.
 
     /**
      * Checks if this `Param` is the same kind of
@@ -199,85 +169,4 @@ internal fun List<Param>.hasDuplicateParam(param: Param): Boolean {
         if (i.partiallyEqual(param)) return true else continue
     }
     return false
-}
-
-/**
- *  A  `paramname` encoded string according to [ZIP-321](https://zips.z.cash/zip-0321)
- *
- *  ZIP-321 defines:
- *  ```
- *   paramname       = ALPHA *( ALPHA / DIGIT / "+" / "-" )
- */
-internal class ParamNameString(val value: String) {
-    init {
-        // String can't be empty
-        require(value.isNotEmpty()) { throw ZIP321.Errors.InvalidParamName(value) }
-        // String can't start with a digit, "+" or "-"
-        require(value.first().isAsciiLetter())
-        // The whole String conforms to the character set defined in ZIP-321
-        require(
-            value.map {
-                CharsetValidations.Companion.ParamNameCharacterSet.characters.contains(it)
-            }.reduce { acc, b -> acc && b },
-        ) {
-            throw ZIP321.Errors.InvalidParamName(value)
-        }
-    }
-
-    override fun toString(): String {
-        return value
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is ParamNameString) return false
-
-        if (value != other.value) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        return value.hashCode()
-    }
-}
-
-internal class QcharString private constructor(private val encoded: String) {
-    companion object {
-        /**
-         * Initializes a [QcharString] from a non-qchar-encoded input string.
-         *
-         * This constructor checks whether decoding the input string would change it,
-         * in order to avoid nested or duplicate encodings.
-         *
-         * @param value The raw string to be qchar-encoded. The empty string is a valid
-         *              (zero-length) `*qchar` value and is accepted.
-         * @param strict If `true`, the initializer will fail if decoding the input string
-         *                   yields a different result — which suggests the input is already qchar-encoded.
-         *
-         * @return A [QcharString] instance, or `null` if strict mode detects an issue.
-         */
-        @Suppress("ReturnCount")
-        fun from(
-            value: String,
-            strict: Boolean = false,
-        ): QcharString? {
-            // check whether value is already qchar-encoded or partially
-            if (strict) {
-                val qcharDecode = QCharCodec.decode(value) ?: return null
-
-                if (qcharDecode != value) return null
-            }
-
-            return QcharString(value.qcharEncoded())
-        }
-    }
-
-    fun stringValue(): String {
-        return encoded.qcharDecode()
-    }
-
-    fun qcharValue(): String {
-        return encoded
-    }
 }

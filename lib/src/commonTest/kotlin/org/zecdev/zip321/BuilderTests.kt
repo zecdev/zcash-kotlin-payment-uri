@@ -84,6 +84,17 @@ class BuilderTests {
         assertEquals(direct, payment)
     }
 
+    @Test
+    fun `Builder label sets the plain decoded label`() {
+        val payment =
+            Payment.Builder(recipient(saplingAddress))
+                .label("groceries")
+                .build()
+                .getOrThrow()
+
+        assertEquals("groceries", payment.label)
+    }
+
     // MARK: - (c) multi-payment request
 
     @Test
@@ -186,6 +197,23 @@ class BuilderTests {
         val result =
             Payment.Builder(recipient(saplingAddress))
                 .otherParam(name = "amount", value = "2")
+                .build()
+
+        assertEquals(
+            ZIP321Error.ParseError(ZIP321Error.StaticReason.INVALID_PARAMETER),
+            result.exceptionOrNull(),
+        )
+    }
+
+    @Test
+    fun `a second otherParam call after an invalid one keeps the first error`() {
+        // `otherParam`'s deferred accumulator is a `Result`; once it holds a failure, `mapCatching`
+        // short-circuits and never evaluates a LATER `otherParam` call's name/value at all. A
+        // second, perfectly valid `otherParam` after an invalid first one must not un-fail it.
+        val result =
+            Payment.Builder(recipient(saplingAddress))
+                .otherParam(name = "", value = "first is invalid")
+                .otherParam(name = "future-param", value = "second is valid")
                 .build()
 
         assertEquals(
@@ -357,6 +385,33 @@ class BuilderTests {
             }
 
         assertEquals(ZIP321Error.AmountInvalid(null), result.exceptionOrNull())
+    }
+
+    @Test
+    fun `DSL payment with no block builds a bare single-address payment`() {
+        val request = paymentRequest { payment(recipient(saplingAddress)) }.getOrThrow()
+
+        assertEquals(saplingAddress, request.payments.single().recipientAddress.value)
+        assertNull(request.payments.single().amount)
+    }
+
+    @Test
+    fun `DSL label and otherParam with and without an explicit value delegate to the Builder`() {
+        val request =
+            paymentRequest {
+                payment(recipient(saplingAddress)) {
+                    label("groceries")
+                    otherParam(name = "future-flag") // uses the DSL's default `value = null`
+                    otherParam(name = "future-kv", value = "present")
+                }
+            }.getOrThrow()
+
+        val payment = request.payments.single()
+        assertEquals("groceries", payment.label)
+        assertEquals(
+            listOf(OtherParam.create("future-flag", null).getOrThrow(), OtherParam.create("future-kv", "present").getOrThrow()),
+            payment.otherParams,
+        )
     }
 
     @Test

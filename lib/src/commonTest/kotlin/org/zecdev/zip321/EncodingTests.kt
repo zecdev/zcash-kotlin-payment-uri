@@ -4,6 +4,7 @@ import org.zecdev.zip321.extensions.qcharDecode
 import org.zecdev.zip321.extensions.qcharEncoded
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class EncodingTests {
@@ -95,5 +96,11 @@ class EncodingTests {
         ).forEach { (input, expected) ->
             assertEquals(expected, input.qcharDecode())
         }
+    }
+
+    @Test
+    fun `qcharDecode throws IllegalArgumentException for a malformed qchar string`() {
+        assertFailsWith<IllegalArgumentException> { "a b".qcharDecode() } // raw non-qchar byte
+        assertFailsWith<IllegalArgumentException> { "100%".qcharDecode() } // truncated escape
     }
 }

@@ -114,6 +114,18 @@ class AmountParserTests {
         assertTrue(throwsAmountError { AmountParser.parse("1e8", 0u) })
     }
 
+    @Test
+    fun `rejects garbage at a non-zero paramindex`() {
+        // The catch-all "invalid decimal string" mapping tags the concrete index when non-zero
+        // (as opposed to the empty-paramindex `null` asserted by the other malformed-amount cases).
+        val error =
+            assertFailsWith<ZIP321.Errors.InvalidParamValue> {
+                AmountParser.parse("abc", 5u)
+            }
+        assertEquals("amount", error.param)
+        assertEquals(5u, error.index)
+    }
+
     private fun throwsAmountError(body: () -> Unit): Boolean =
         try {
             body()

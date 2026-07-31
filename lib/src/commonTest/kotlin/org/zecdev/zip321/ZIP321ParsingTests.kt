@@ -490,4 +490,30 @@ class ZIP321ParsingTests {
                 .exceptionOrNull() is ZIP321Error.InvalidParamIndex,
         )
     }
+
+    // MARK: - maxInputBytes input guard
+
+    @Test
+    fun `parse rejects input larger than maxInputBytes`() {
+        val hugeUri = "zcash:" + "a".repeat(ZIP321.DEFAULT_MAX_INPUT_BYTES)
+
+        val error = ZIP321.parse(hugeUri, Network.TESTNET, ReferenceAddressValidator.TESTNET).exceptionOrNull()
+
+        assertEquals(ZIP321Error.InvalidURI(ZIP321Error.StaticReason.INPUT_TOO_LARGE), error)
+    }
+
+    @Test
+    fun `parse accepts input up to a custom smaller maxInputBytes and rejects just above it`() {
+        val address = "tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU"
+        val url = "zcash:$address"
+
+        // Exactly at the custom limit: accepted.
+        assertTrue(ZIP321.parse(url, Network.TESTNET, ReferenceAddressValidator.TESTNET, maxInputBytes = url.length).isSuccess)
+
+        // One byte over the custom limit: rejected as INPUT_TOO_LARGE.
+        assertEquals(
+            ZIP321Error.InvalidURI(ZIP321Error.StaticReason.INPUT_TOO_LARGE),
+            ZIP321.parse(url, Network.TESTNET, ReferenceAddressValidator.TESTNET, maxInputBytes = url.length - 1).exceptionOrNull(),
+        )
+    }
 }
