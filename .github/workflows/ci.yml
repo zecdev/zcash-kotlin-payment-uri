@@ -44,8 +44,9 @@ name: CI
 on:
   push:
     branches: ["main"]
+  # No branch filter: the stacked v2 pull requests target their parent
+  # branches, not main, and every PR must be tested.
   pull_request:
-    branches: ["main"]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
