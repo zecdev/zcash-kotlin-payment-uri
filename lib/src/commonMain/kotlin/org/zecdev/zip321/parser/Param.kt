@@ -5,6 +5,8 @@
 
 package org.zecdev.zip321.parser
 
+import org.zecdev.zip321.AddressValidator
+import org.zecdev.zip321.Network
 import org.zecdev.zip321.ParamName
 import org.zecdev.zip321.ZIP321
 import org.zecdev.zip321.ZIP321.Errors.TooManyPayments
@@ -21,8 +23,8 @@ sealed class Param {
             queryKey: String,
             value: String?,
             index: UInt,
-            context: ParserContext,
-            validatingAddress: ((String) -> Boolean)? = null
+            network: Network,
+            validator: AddressValidator,
         ): Param {
             if (queryKey.isEmpty()) {
                 throw ZIP321.Errors.InvalidParamName("paramName cannot be empty")
@@ -38,11 +40,13 @@ sealed class Param {
                         throw ZIP321.Errors.InvalidParamValue(queryKey, index)
                     }
 
-                    try {
-                        Address(RecipientAddress(value, context, validatingAddress))
-                    } catch (error: RecipientAddress.RecipientAddressError.InvalidRecipient) {
-                        throw ZIP321.Errors.InvalidAddress(if (index > 0u) index else null)
-                    }
+                    // Address validity is DELEGATED: the caller-supplied
+                    // validator is the only authority, and rejecting the
+                    // address rejects the request.
+                    Address(
+                        recipient(value, network, validator)
+                            ?: throw ZIP321.Errors.InvalidAddress(if (index > 0u) index else null),
+                    )
                 }
                 ParamName.AMOUNT.value -> {
                     // AMOUNT param can't have no value
@@ -98,21 +102,27 @@ sealed class Param {
     }
 
     data class Address(val recipientAddress: RecipientAddress) : Param()
+
     data class Amount(val amount: LegacyAmount) : Param()
+
     data class Memo(val memoBytes: MemoBytes) : Param()
+
     data class Label(val label: String) : Param()
+
     data class Message(val message: String) : Param()
+
     data class Other(val paramName: ParamNameString, val value: String?) : Param()
 
     val name: String
-        get() = when (this) {
-            is Address -> ParamName.ADDRESS.name.lowercase()
-            is Amount -> ParamName.AMOUNT.name.lowercase()
-            is Memo -> ParamName.MEMO.name.lowercase()
-            is Label -> ParamName.LABEL.name.lowercase()
-            is Message -> ParamName.MESSAGE.name.lowercase()
-            is Other -> paramName.value
-        }
+        get() =
+            when (this) {
+                is Address -> ParamName.ADDRESS.name.lowercase()
+                is Amount -> ParamName.AMOUNT.name.lowercase()
+                is Memo -> ParamName.MEMO.name.lowercase()
+                is Label -> ParamName.LABEL.name.lowercase()
+                is Message -> ParamName.MESSAGE.name.lowercase()
+                is Other -> paramName.value
+            }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -128,27 +138,29 @@ sealed class Param {
             is Memo -> memoBytes == (other as? Memo)?.memoBytes
             is Label -> label == (other as? Label)?.label
             is Message -> message == (other as? Message)?.message
-            is Other -> (other as? Other)?.let {
-                    p ->
-                p.paramName == paramName && p.value == value
-            } ?: false
+            is Other ->
+                (other as? Other)?.let {
+                        p ->
+                    p.paramName == paramName && p.value == value
+                } ?: false
         }
     }
 
     override fun hashCode(): Int {
         var result = name.hashCode()
-        result = 31 * result + when (this) {
-            is Address -> recipientAddress.hashCode()
-            is Amount -> amount.hashCode()
-            is Memo -> memoBytes.hashCode()
-            is Label -> label.hashCode()
-            is Message -> message.hashCode()
-            is Other -> {
-                result = 31 * result + paramName.hashCode()
-                result = 31 * result + value.hashCode()
-                result
+        result = 31 * result +
+            when (this) {
+                is Address -> recipientAddress.hashCode()
+                is Amount -> amount.hashCode()
+                is Memo -> memoBytes.hashCode()
+                is Label -> label.hashCode()
+                is Message -> message.hashCode()
+                is Other -> {
+                    result = 31 * result + paramName.hashCode()
+                    result = 31 * result + value.hashCode()
+                    result
+                }
             }
-        }
         return result
     }
 
@@ -199,7 +211,7 @@ class ParamNameString(val value: String) {
         require(
             value.map {
                 CharsetValidations.Companion.ParamNameCharacterSet.characters.contains(it)
-            }.reduce { acc, b -> acc && b }
+            }.reduce { acc, b -> acc && b },
         ) {
             throw ZIP321.Errors.InvalidParamName(value)
         }
@@ -237,7 +249,10 @@ class QcharString private constructor(private val encoded: String) {
          *
          * @return A [QcharString] instance, or `null` if encoding fails or strict mode detects an issue.
          */
-        fun from(value: String, strict: Boolean = false): QcharString? {
+        fun from(
+            value: String,
+            strict: Boolean = false,
+        ): QcharString? {
             // String can't be empty
             require(value.isNotEmpty()) { return null }
             // check whether value is already qchar-encoded or partially

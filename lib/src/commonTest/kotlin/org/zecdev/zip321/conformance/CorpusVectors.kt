@@ -8,7 +8,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
-import org.zecdev.zip321.parser.ParserContext
+import org.zecdev.zip321.Network
 
 /**
  * Model and loader for the shared ZIP-321 conformance vector corpus that
@@ -62,11 +62,11 @@ data class InvalidVector(
     val oracleSkipReason: String?,
 )
 
-fun networkToParserContext(network: String): ParserContext =
+fun networkOfVector(network: String): Network =
     when (network) {
-        "main" -> ParserContext.MAINNET
-        "test" -> ParserContext.TESTNET
-        "regtest" -> ParserContext.REGTEST
+        "main" -> Network.MAINNET
+        "test" -> Network.TESTNET
+        "regtest" -> Network.REGTEST
         else -> error("Unknown vector network '$network'")
     }
 

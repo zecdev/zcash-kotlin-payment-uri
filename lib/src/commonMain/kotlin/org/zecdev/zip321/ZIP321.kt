@@ -7,7 +7,6 @@ import org.zecdev.zip321.model.Payment
 import org.zecdev.zip321.model.PaymentRequest
 import org.zecdev.zip321.model.RecipientAddress
 import org.zecdev.zip321.parser.Parser
-import org.zecdev.zip321.parser.ParserContext
 
 /**
  * ZIP-321 object for handling formatting options.
@@ -140,15 +139,16 @@ object ZIP321 {
     @Throws(Errors::class)
     fun uriString(
         from: PaymentRequest,
-        formattingOptions: FormattingOptions = FormattingOptions.EnumerateAllPayments
+        formattingOptions: FormattingOptions = FormattingOptions.EnumerateAllPayments,
     ): String {
         return when (formattingOptions) {
             is FormattingOptions.EnumerateAllPayments -> Render.request(from, 1u, false)
-            is FormattingOptions.UseEmptyParamIndex -> Render.request(
-                from,
-                startIndex = null,
-                omittingFirstAddressLabel = formattingOptions.omitAddressLabel
-            )
+            is FormattingOptions.UseEmptyParamIndex ->
+                Render.request(
+                    from,
+                    startIndex = null,
+                    omittingFirstAddressLabel = formattingOptions.omitAddressLabel,
+                )
         }
     }
 
@@ -162,9 +162,10 @@ object ZIP321 {
     @Throws(Errors::class, Errors.ParseError::class)
     fun request(
         recipient: RecipientAddress,
-        formattingOptions: FormattingOptions = FormattingOptions.UseEmptyParamIndex(
-            omitAddressLabel = true
-        )
+        formattingOptions: FormattingOptions =
+            FormattingOptions.UseEmptyParamIndex(
+                omitAddressLabel = true,
+            ),
     ): String {
         try {
             return when (formattingOptions) {
@@ -174,13 +175,14 @@ object ZIP321 {
                         Render.parameter(
                             recipient,
                             index = null,
-                            omittingAddressLabel = formattingOptions.omitAddressLabel
-                        )
+                            omittingAddressLabel = formattingOptions.omitAddressLabel,
+                        ),
                     )
                 }
-                else -> "zcash:?".plus(
-                    Render.parameter(recipient, index = 1u, omittingAddressLabel = false)
-                )
+                else ->
+                    "zcash:?".plus(
+                        Render.parameter(recipient, index = 1u, omittingAddressLabel = false),
+                    )
             }
         } catch (e: IllegalArgumentException) {
             val message = e.message ?: "parser failed with unknown error"
@@ -198,24 +200,35 @@ object ZIP321 {
     @Throws(Errors::class)
     fun request(
         payment: Payment,
-        formattingOptions: FormattingOptions = FormattingOptions.EnumerateAllPayments
+        formattingOptions: FormattingOptions = FormattingOptions.EnumerateAllPayments,
     ): String {
         return uriString(PaymentRequest(payments = listOf(payment)), formattingOptions = formattingOptions)
     }
 
     /**
-     * Parses a ZIP-321 payment request from [String]
+     * Parses a ZIP-321 payment request from [String].
+     *
+     * Recipient-address validation is fully DELEGATED. This library implements
+     * the ZIP-321 URI grammar and nothing else: an address is valid exactly
+     * when [validator] says so, and the [AddressDescriptor] it returns is what
+     * drives the ZIP-321 payment rules (memo support, zero-valued transparent
+     * outputs). There is no built-in structural check to fall back on, and
+     * [validator] is REQUIRED for precisely that reason.
      *
      * @param uriString The payment request String.
-     * @param validatingRecipients a lambda that validates all found recipients
+     * @param expecting the consensus network this request is expected to be
+     * for. Every recipient the [validator] accepts must report this network in
+     * its [AddressDescriptor].
+     * @param validator the caller-supplied authority on recipient addresses;
+     * returning `null` from [AddressValidator.validate] rejects the address.
      * @return The ZIP-321 payment request result [ParserResult].
      */
     @Throws(Errors::class)
     fun request(
         uriString: String,
-        context: ParserContext,
-        validatingRecipients: ((String) -> Boolean)?
+        expecting: Network,
+        validator: AddressValidator,
     ): ParserResult {
-        return Parser(context, validatingRecipients).parse(uriString)
+        return Parser(expecting, validator).parse(uriString)
     }
 }

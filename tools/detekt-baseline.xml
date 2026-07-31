@@ -4,13 +4,13 @@
   <CurrentIssues>
     <ID>ComplexCondition:Parser.kt$Parser$p &lt; input.length &amp;&amp; input[p] != '&amp;' &amp;&amp; input[p] != '.' &amp;&amp; input[p] != '='</ID>
     <ID>CyclomaticComplexMethod:MemoBytes.kt$fun String.decodeBase64URL(): ByteArray?</ID>
-    <ID>CyclomaticComplexMethod:Param.kt$Param.Companion$@Throws(ZIP321.Errors::class) fun from( queryKey: String, value: String?, index: UInt, context: ParserContext, validatingAddress: ((String) -> Boolean)? = null ): Param</ID>
+    <ID>CyclomaticComplexMethod:Param.kt$Param.Companion$@Throws(ZIP321.Errors::class) fun from( queryKey: String, value: String?, index: UInt, network: Network, validator: AddressValidator, ): Param</ID>
     <ID>Filename:QcharCodec.kt$org.zecdev.zip321.encodings.QcharCodec.kt</ID>
     <ID>ForbiddenComment:ParserContext.kt$ParserContext$// TODO: verify actual prefixes</ID>
     <ID>ForbiddenComment:ParserContext.kt$ParserContext$// TODO: verify actual regtest prefix</ID>
     <ID>ForbiddenComment:ParserContext.kt$ParserContext$// TODO: verify actual testnet prefix</ID>
     <ID>Indentation:Parser.kt$Parser$ </ID>
-    <ID>LongMethod:Param.kt$Param.Companion$@Throws(ZIP321.Errors::class) fun from( queryKey: String, value: String?, index: UInt, context: ParserContext, validatingAddress: ((String) -> Boolean)? = null ): Param</ID>
+    <ID>LongMethod:Param.kt$Param.Companion$@Throws(ZIP321.Errors::class) fun from( queryKey: String, value: String?, index: UInt, network: Network, validator: AddressValidator, ): Param</ID>
     <ID>MagicNumber:CharsetValidations.kt$128</ID>
     <ID>MagicNumber:LegacyAmount.kt$LegacyAmount.Companion$10</ID>
     <ID>MagicNumber:MemoBytes.kt$0x3F</ID>
@@ -54,18 +54,17 @@
     <ID>ReturnCount:LegacyAmount.kt$LegacyAmount.Companion$private fun roundToSignificantDigits(v: Long): Long</ID>
     <ID>ReturnCount:MemoBytes.kt$fun String.decodeBase64URL(): ByteArray?</ID>
     <ID>ReturnCount:Param.kt$Param$fun partiallyEqual(other: Param): Boolean</ID>
-    <ID>ReturnCount:Param.kt$QcharString.Companion$fun from(value: String, strict: Boolean = false): QcharString?</ID>
+    <ID>ReturnCount:Param.kt$QcharString.Companion$fun from( value: String, strict: Boolean = false, ): QcharString?</ID>
     <ID>ReturnCount:ParserContext.kt$ParserContext$fun isValid(address: String): Boolean</ID>
     <ID>SwallowedException:LegacyAmountBigDecimal.kt$e: ArithmeticException</ID>
     <ID>SwallowedException:Param.kt$Param.Companion$error: LegacyAmount.AmountError.GreaterThanSupply</ID>
     <ID>SwallowedException:Param.kt$Param.Companion$error: LegacyAmount.AmountError.InvalidTextInput</ID>
     <ID>SwallowedException:Param.kt$Param.Companion$error: LegacyAmount.AmountError.NegativeAmount</ID>
     <ID>SwallowedException:Param.kt$Param.Companion$error: LegacyAmount.AmountError.TooManyFractionalDigits</ID>
-    <ID>SwallowedException:Param.kt$Param.Companion$error: RecipientAddress.RecipientAddressError.InvalidRecipient</ID>
     <ID>ThrowsCount:LegacyAmount.kt$LegacyAmount.Companion$@Throws(AmountError::class) internal fun parseDecimalStringToZatoshi(decimalString: String): Long</ID>
     <ID>ThrowsCount:LegacyAmount.kt$LegacyAmount.Companion$private fun lexDecimal(s: String): Triple&lt;Boolean, String, String></ID>
     <ID>ThrowsCount:LegacyAmountBigDecimal.kt$@Throws(LegacyAmount.AmountError::class) private fun LegacyAmount.Companion.validateDecimal(value: BigDecimal)</ID>
-    <ID>ThrowsCount:Param.kt$Param.Companion$@Throws(ZIP321.Errors::class) fun from( queryKey: String, value: String?, index: UInt, context: ParserContext, validatingAddress: ((String) -> Boolean)? = null ): Param</ID>
+    <ID>ThrowsCount:Param.kt$Param.Companion$@Throws(ZIP321.Errors::class) fun from( queryKey: String, value: String?, index: UInt, network: Network, validator: AddressValidator, ): Param</ID>
     <ID>ThrowsCount:Parser.kt$Parser$@Throws(ZIP321.Errors::class) fun parse(uriString: String): ParserResult</ID>
     <ID>ThrowsCount:QcharCodec.kt$QCharCodec$private fun decodePercentEncoded(s: String): String</ID>
     <ID>TooManyFunctions:Parser.kt$Parser</ID>

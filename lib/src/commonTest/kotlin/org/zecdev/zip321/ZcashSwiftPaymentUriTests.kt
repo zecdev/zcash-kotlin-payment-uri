@@ -9,8 +9,8 @@ import org.zecdev.zip321.model.LegacyAmount
 import org.zecdev.zip321.model.MemoBytes
 import org.zecdev.zip321.model.Payment
 import org.zecdev.zip321.model.PaymentRequest
-import org.zecdev.zip321.model.RecipientAddress
-import org.zecdev.zip321.parser.ParserContext
+import org.zecdev.zip321.support.ReferenceAddressValidator
+import org.zecdev.zip321.support.validRecipient
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.fail
@@ -27,9 +27,8 @@ class ZcashSwiftPaymentUriTests {
         val expected =
             "zcash:ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez"
         val recipient =
-            RecipientAddress(
+            validRecipient(
                 "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
-                ParserContext.TESTNET,
             )
         assertEquals(expected, ZIP321.request(recipient))
     }
@@ -40,9 +39,8 @@ class ZcashSwiftPaymentUriTests {
             "zcash:ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez?amount=1&memo=VGhpcyBpcyBhIHNpbXBsZSBtZW1vLg&message=Thank%20you%20for%20your%20purchase"
 
         val recipient =
-            RecipientAddress(
+            validRecipient(
                 "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
-                ParserContext.TESTNET,
             )
         val payment =
             Payment(
@@ -78,7 +76,7 @@ class ZcashSwiftPaymentUriTests {
         val expected =
             "zcash:?address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount=123.456&address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=0.789&memo.1=VGhpcyBpcyBhIHVuaWNvZGUgbWVtbyDinKjwn6aE8J-PhvCfjok"
 
-        val recipient0 = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET)
+        val recipient0 = validRecipient("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU")
         val payment0 =
             Payment(
                 recipientAddress = recipient0,
@@ -90,9 +88,8 @@ class ZcashSwiftPaymentUriTests {
             )
 
         val recipient1 =
-            RecipientAddress(
+            validRecipient(
                 "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
-                ParserContext.TESTNET,
             )
         val payment1 =
             Payment(
@@ -117,7 +114,7 @@ class ZcashSwiftPaymentUriTests {
         val validURI =
             "zcash:?address=tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU&amount=123.456&address.1=ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez&amount.1=0.789&memo.1=VGhpcyBpcyBhIHVuaWNvZGUgbWVtbyDinKjwn6aE8J-PhvCfjok"
 
-        val recipient0 = RecipientAddress("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU", ParserContext.TESTNET)
+        val recipient0 = validRecipient("tmEZhbWHTpdKMw5it8YDspUXSMGQyFwovpU")
         val payment0 =
             Payment(
                 recipientAddress = recipient0,
@@ -129,9 +126,8 @@ class ZcashSwiftPaymentUriTests {
             )
 
         val recipient1 =
-            RecipientAddress(
+            validRecipient(
                 "ztestsapling10yy2ex5dcqkclhc7z7yrnjq2z6feyjad56ptwlfgmy77dmaqqrl9gyhprdx59qgmsnyfska2kez",
-                ParserContext.TESTNET,
             )
         val payment1 =
             Payment(
@@ -145,7 +141,7 @@ class ZcashSwiftPaymentUriTests {
 
         val paymentRequest = PaymentRequest(payments = listOf(payment0, payment1))
 
-        when (val parsedRequest = ZIP321.request(validURI, ParserContext.TESTNET, null)) {
+        when (val parsedRequest = ZIP321.request(validURI, Network.TESTNET, ReferenceAddressValidator.TESTNET)) {
             is ZIP321.ParserResult.SingleAddress -> fail("expected Request. got $parsedRequest")
             is ZIP321.ParserResult.Request -> {
                 assertEquals(paymentRequest, parsedRequest.paymentRequest)
